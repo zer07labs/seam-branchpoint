@@ -128,7 +128,14 @@ ASCII, so no implementation exercises JCS escaping.
 
 ### P2 — Python reference implementation + golden vectors
 - **Risk:** complex
-- **Status:** TODO
+- **Status:** DONE (2 Opus verify rounds). Divergences: tests are stdlib `unittest` run with
+  `uv run --script` (no pytest pin needed; DECISIONS); evaluation rows record `outcome`/`reason`/`receipt`
+  instead of `expect: "default_no_receipt"`; layouts add L5 (live split 0/0) and L6 (holdout budget 0) for
+  fail-soft row 8; the chain file holds two chains (L2 split, and an L3 holdout chain under
+  `01JBP9000000000000000000AC` with held-out and served receipts); negative cases are multi-batch
+  (`batches`/`expect` lists, one fresh verifier per case) and add cases beyond AC5 (late predecessor both
+  ways, replay, short sig, strict-JSON numbers and keys, cert window and length-overrun cases); `verify`
+  recomputes every chain receipt field from its layout; holdout ignores `weight_bp` (spec).
 - **Delivers:** `reference/python/branchpoint_ref.py` (stdlib + `cryptography`, PEP 723 inline deps pinned, run with
   `uv run`), with `generate` (writes vectors), `--check` (regenerates in memory, byte-compares to committed files) and
   `verify` (recomputes every vector from its inputs); the golden files; `contract/golden/branchpoint/SHA256SUMS`;

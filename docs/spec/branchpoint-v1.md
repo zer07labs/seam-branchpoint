@@ -201,7 +201,7 @@ the chain. Reasons are distinct strings so AS-3 and both references agree (`rece
 | Reason | Refusal |
 |---|---|
 | `cert_malformed`, `cert_window_invalid`, `cert_issuer_unknown`, `cert_sig_invalid` | the certificate (above) |
-| `receipt_schema` | `canonical` is not a 13-key object of the right types and grammars |
+| `receipt_schema` | `canonical` is not strict JSON for a 13-key object of the right types and grammars: a duplicate key, or a number written with a fraction or exponent (`2500.0`, `0e0`), is a schema failure (a parser that coerces those to integers MUST NOT be used) |
 | `receipt_noncanonical` | `canonical` is not its own JCS form |
 | `receipt_cert_mismatch` | the receipt's `cert_digest` is not the batch certificate's |
 | `receipt_sig_invalid` | the workload signature does not verify under the certificate's `pk` |
@@ -209,7 +209,7 @@ the chain. Reasons are distinct strings so AS-3 and both references agree (`rece
 | `duplicate_receipt_id` | a `receipt_id` already accepted by this verifier |
 | `duplicate_seq` | a `seq` already accepted under the same scope |
 | `seq_out_of_order` | within one batch, a scope's `seq` is below one already accepted in that batch |
-| `chain_break` | the verifier holds receipt `n−1` (or `n = 0`) and `prev_hash(n)` is not `receipt_hash(n−1)` (genesis) |
+| `chain_break` | the verifier holds receipt `n−1` (or `n = 0`) and `prev_hash(n)` is not `receipt_hash(n−1)` (genesis), or it holds receipt `n+1` and `prev_hash(n+1)` is not `receipt_hash(n)` (a late predecessor must link forward too) |
 
 A receipt's checks run **in the table's order**; the first failure names its reason, the receipt is refused, and a
 refused receipt changes no verifier state. A certificate failure refuses the whole batch before any receipt is
@@ -217,8 +217,17 @@ read. `duplicate_receipt_id` is checked against every receipt the verifier has a
 tenant for its retention window.
 
 A missing predecessor is **not** a refusal: the verifier accepts `n`, records `gap(lo .. n−1)` where `lo` is one past
-the highest accepted `seq` below `n` in the scope (0 if none), and resumes the chain at `n`. Replay from another
-workload fails three ways: the certificate does not match, the chain breaks, and the `receipt_id` is a duplicate.
+the highest accepted `seq` below `n` in the scope (0 if none), and resumes the chain at `n`. A predecessor that
+arrives in a later batch fills the gap only if it links both ways. Gaps are per-batch observations against the state
+held at that moment, so spans can overlap across batches: AS-3 unions them and never sums them.
+
+A batch envelope that cannot be decoded at all is `cert_malformed` and refuses the whole batch: a batch that is not
+an object; a certificate field that is missing, not a string, or not lowercase even-length hex; or `receipts`
+present but not an array (an absent `receipts` is an empty batch). A receipt signature that is not 64 bytes of
+lowercase hex is `receipt_sig_invalid`. A verifier never crashes on input.
+
+Replay from another workload fails three ways: the certificate does not match, the chain breaks, and the
+`receipt_id` is a duplicate.
 
 `evaluated_at` is the SDK's own clock: the window check binds an honest workload's receipts to its certificate, but
 it is a claim, not a timestamp anyone attests.

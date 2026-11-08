@@ -1,0 +1,198 @@
+{
+  "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+  "chains": [
+    {
+      "experiment_id": "01JBP9000000000000000000AB",
+      "genesis_prev_hash": "5fb24f3c51bc79ff845d0c060dac6d194f5fd77679697112f5381fd46a396ee5",
+      "layout": "L2",
+      "layout_def": {
+        "arms": [
+          {
+            "variant_id": "A",
+            "weight_bp": 1000
+          },
+          {
+            "variant_id": "B",
+            "weight_bp": 2500
+          },
+          {
+            "variant_id": "C",
+            "weight_bp": 6500
+          }
+        ],
+        "budget_bp": 0,
+        "mode": "split",
+        "state": "live"
+      },
+      "receipts": [
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560001000,\"experiment_id\":\"01JBP9000000000000000000AB\",\"mode\":\"split\",\"prev_hash\":\"5fb24f3c51bc79ff845d0c060dac6d194f5fd77679697112f5381fd46a396ee5\",\"propensity_bp\":2500,\"receipt_id\":\"01JBP9R0000000000000000001\",\"salt_kid\":\"630dcd29\",\"seq\":0,\"unit_tag\":\"f03df0d622c4111ce1ed13bee670f8c2\",\"variant_id\":\"B\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560001000,
+            "experiment_id": "01JBP9000000000000000000AB",
+            "mode": "split",
+            "prev_hash": "5fb24f3c51bc79ff845d0c060dac6d194f5fd77679697112f5381fd46a396ee5",
+            "propensity_bp": 2500,
+            "receipt_id": "01JBP9R0000000000000000001",
+            "salt_kid": "630dcd29",
+            "seq": 0,
+            "unit_tag": "f03df0d622c4111ce1ed13bee670f8c2",
+            "variant_id": "B"
+          },
+          "receipt_hash": "68274e4e9da8c2df6fb65f6a4188238746cc3b99535042e5a6e0c5f0f61b88ee",
+          "sig_hex": "88bde33a39cefe2f17a87958baa49e3a6f5a1d053f7149d1ee7e66617b6f73620f465d2ddb6e5df472280e59a726e59a89d51b8024ef2ef3f0f89a09b9635503",
+          "unit": "subj-a"
+        },
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560002000,\"experiment_id\":\"01JBP9000000000000000000AB\",\"mode\":\"split\",\"prev_hash\":\"68274e4e9da8c2df6fb65f6a4188238746cc3b99535042e5a6e0c5f0f61b88ee\",\"propensity_bp\":6500,\"receipt_id\":\"01JBP9R0000000000000000002\",\"salt_kid\":\"630dcd29\",\"seq\":1,\"unit_tag\":\"4d764250f72d69320252aed42be450be\",\"variant_id\":\"C\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560002000,
+            "experiment_id": "01JBP9000000000000000000AB",
+            "mode": "split",
+            "prev_hash": "68274e4e9da8c2df6fb65f6a4188238746cc3b99535042e5a6e0c5f0f61b88ee",
+            "propensity_bp": 6500,
+            "receipt_id": "01JBP9R0000000000000000002",
+            "salt_kid": "630dcd29",
+            "seq": 1,
+            "unit_tag": "4d764250f72d69320252aed42be450be",
+            "variant_id": "C"
+          },
+          "receipt_hash": "aa85a420691a08eb36772a1273848f82e907e9c6774ba0d6321836de6f5e77e9",
+          "sig_hex": "cee4d5c8436480131948abf5e9f6e10257a4907af138646a35062180463aaa1bd048b83679a09f0c9f1ccdb030047a8fa16d92171774a7b331a3944980922605",
+          "unit": "subj-b"
+        },
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560003000,\"experiment_id\":\"01JBP9000000000000000000AB\",\"mode\":\"split\",\"prev_hash\":\"aa85a420691a08eb36772a1273848f82e907e9c6774ba0d6321836de6f5e77e9\",\"propensity_bp\":6500,\"receipt_id\":\"01JBP9R0000000000000000003\",\"salt_kid\":\"630dcd29\",\"seq\":2,\"unit_tag\":\"df3ce1e48bf22bf54171b488f3ad0b61\",\"variant_id\":\"C\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560003000,
+            "experiment_id": "01JBP9000000000000000000AB",
+            "mode": "split",
+            "prev_hash": "aa85a420691a08eb36772a1273848f82e907e9c6774ba0d6321836de6f5e77e9",
+            "propensity_bp": 6500,
+            "receipt_id": "01JBP9R0000000000000000003",
+            "salt_kid": "630dcd29",
+            "seq": 2,
+            "unit_tag": "df3ce1e48bf22bf54171b488f3ad0b61",
+            "variant_id": "C"
+          },
+          "receipt_hash": "447cf2b4c0fcef18d926b43a36b5496b09a7f1758c3fe949aeeb0ebccb0c1c51",
+          "sig_hex": "f69ae954a90f24b138506ad62b15e7ade0e4eda96310e0a4bf410d238115bbae834ad88a25adcc3a0a0546382b85eeb1cb7ee04a3302d341f5c06d1ffcbf350d",
+          "unit": "dec:t-golden:s1"
+        }
+      ]
+    },
+    {
+      "experiment_id": "01JBP9000000000000000000AC",
+      "genesis_prev_hash": "dec5baea9e611eec103cb5dd71adffe063a316093d5f532ba6a1f249d9ac2610",
+      "layout": "L3",
+      "layout_def": {
+        "arms": [
+          {
+            "variant_id": "T",
+            "weight_bp": 0
+          }
+        ],
+        "budget_bp": 2500,
+        "mode": "holdout",
+        "state": "live"
+      },
+      "receipts": [
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560001000,\"experiment_id\":\"01JBP9000000000000000000AC\",\"mode\":\"holdout\",\"prev_hash\":\"dec5baea9e611eec103cb5dd71adffe063a316093d5f532ba6a1f249d9ac2610\",\"propensity_bp\":2500,\"receipt_id\":\"01JBP9R00000000000000000H1\",\"salt_kid\":\"630dcd29\",\"seq\":0,\"unit_tag\":\"f03df0d622c4111ce1ed13bee670f8c2\",\"variant_id\":\"\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560001000,
+            "experiment_id": "01JBP9000000000000000000AC",
+            "mode": "holdout",
+            "prev_hash": "dec5baea9e611eec103cb5dd71adffe063a316093d5f532ba6a1f249d9ac2610",
+            "propensity_bp": 2500,
+            "receipt_id": "01JBP9R00000000000000000H1",
+            "salt_kid": "630dcd29",
+            "seq": 0,
+            "unit_tag": "f03df0d622c4111ce1ed13bee670f8c2",
+            "variant_id": ""
+          },
+          "receipt_hash": "cb461de318a7634ab557cd0cd9090aa8392a6332e0d0199b2735e48d617d054e",
+          "sig_hex": "c8195d9a41f79366a40f0977d1b9d4725fcb1ced8e5d7b3318dc93b8fbde2c10604bb95c1d21a92ec81a4f8ed98db4e26f6b79f998ef71998e6011c6e3b5a00a",
+          "unit": "subj-a"
+        },
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560002000,\"experiment_id\":\"01JBP9000000000000000000AC\",\"mode\":\"holdout\",\"prev_hash\":\"cb461de318a7634ab557cd0cd9090aa8392a6332e0d0199b2735e48d617d054e\",\"propensity_bp\":7500,\"receipt_id\":\"01JBP9R00000000000000000H2\",\"salt_kid\":\"630dcd29\",\"seq\":1,\"unit_tag\":\"4d764250f72d69320252aed42be450be\",\"variant_id\":\"T\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560002000,
+            "experiment_id": "01JBP9000000000000000000AC",
+            "mode": "holdout",
+            "prev_hash": "cb461de318a7634ab557cd0cd9090aa8392a6332e0d0199b2735e48d617d054e",
+            "propensity_bp": 7500,
+            "receipt_id": "01JBP9R00000000000000000H2",
+            "salt_kid": "630dcd29",
+            "seq": 1,
+            "unit_tag": "4d764250f72d69320252aed42be450be",
+            "variant_id": "T"
+          },
+          "receipt_hash": "313b5a87e3974c7ee142b39fbe4d2019d33d286c9b14b17489a00d784d1832e2",
+          "sig_hex": "4fca8494d09b90b61dba71da8c0c870ba8379e6acaab0c3583eaadb79b0bd408869ba53fd68e4cb535a35f4f2a7f4b0dd302aaa2ccd851d18571984fa0c78f09",
+          "unit": "subj-b"
+        },
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560003000,\"experiment_id\":\"01JBP9000000000000000000AC\",\"mode\":\"holdout\",\"prev_hash\":\"313b5a87e3974c7ee142b39fbe4d2019d33d286c9b14b17489a00d784d1832e2\",\"propensity_bp\":7500,\"receipt_id\":\"01JBP9R00000000000000000H3\",\"salt_kid\":\"630dcd29\",\"seq\":2,\"unit_tag\":\"df3ce1e48bf22bf54171b488f3ad0b61\",\"variant_id\":\"T\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560003000,
+            "experiment_id": "01JBP9000000000000000000AC",
+            "mode": "holdout",
+            "prev_hash": "313b5a87e3974c7ee142b39fbe4d2019d33d286c9b14b17489a00d784d1832e2",
+            "propensity_bp": 7500,
+            "receipt_id": "01JBP9R00000000000000000H3",
+            "salt_kid": "630dcd29",
+            "seq": 2,
+            "unit_tag": "df3ce1e48bf22bf54171b488f3ad0b61",
+            "variant_id": "T"
+          },
+          "receipt_hash": "49d7013634c5f184fef879b1d44288ec89a26a2707236684edb93c41266fc039",
+          "sig_hex": "194c7edf690da623809ae2e9f699cd7eca009b06dfabd21c7e58fa94465b2fbd92443a3db30fa43168a1797d03ed5139c5524da3d85ae44e37378146088fc70a",
+          "unit": "dec:t-golden:s1"
+        },
+        {
+          "canonical": "{\"bucket_version\":\"bpa1\",\"cert_digest\":\"83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6\",\"config_digest\":\"1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46\",\"evaluated_at\":1762560004000,\"experiment_id\":\"01JBP9000000000000000000AC\",\"mode\":\"holdout\",\"prev_hash\":\"49d7013634c5f184fef879b1d44288ec89a26a2707236684edb93c41266fc039\",\"propensity_bp\":7500,\"receipt_id\":\"01JBP9R00000000000000000H4\",\"salt_kid\":\"630dcd29\",\"seq\":3,\"unit_tag\":\"e11765b358301c560837294760e5a77d\",\"variant_id\":\"T\"}",
+          "receipt": {
+            "bucket_version": "bpa1",
+            "cert_digest": "83c0b50bcb8cc13572e4bb23eb1b865632fec78e929f0bcca76baeb7665e46b6",
+            "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+            "evaluated_at": 1762560004000,
+            "experiment_id": "01JBP9000000000000000000AC",
+            "mode": "holdout",
+            "prev_hash": "49d7013634c5f184fef879b1d44288ec89a26a2707236684edb93c41266fc039",
+            "propensity_bp": 7500,
+            "receipt_id": "01JBP9R00000000000000000H4",
+            "salt_kid": "630dcd29",
+            "seq": 3,
+            "unit_tag": "e11765b358301c560837294760e5a77d",
+            "variant_id": "T"
+          },
+          "receipt_hash": "035b93be651d88307af37d2895b19c094d9dec966705292c82dc375b4a1e090b",
+          "sig_hex": "7db0db4723de200195e95263ba38f8437feae9e7e1b53a3b6876b771500f3eff92495c49015bd2c1563e35fcd9d39a11236016f8951671de7a161385fdba2b08",
+          "unit": "ünit-ß"
+        }
+      ]
+    }
+  ],
+  "config_digest": "1b809720bf95e9e8f03930f3a1b84ae5f7dc9841ea01140e56e2118998668a46",
+  "config_digest_input": "branchpoint-golden-config"
+}

@@ -35,3 +35,17 @@ and sha256s (`docs/handoff/w3-hub-pin.md`) and is not blocked on the pin.
   receipt changes no state). Without an order, two implementations can name different reasons for one input.
 - **`ExperimentDef.assigner`** (field 12). The one-assigner rule (`ASSIGNED_BY_RUNTIME`) cannot be evaluated without
   it; it mirrors AS-1's `assigner: runtime | sdk`.
+
+### AS-0 chain_break links both ways (2026-11-08)
+A predecessor arriving in a later batch must also match the `prev_hash` of the successor the verifier already
+holds; otherwise a late fill could splice in a receipt the chain never named. Found while writing the P2 reference.
+
+### AS-0 reference tests are stdlib unittest (2026-11-08)
+The plan named pytest. The tests use `unittest` under `uv run --script` so the PEP 723 header pins the only
+dependency (`cryptography`) and CI needs no extra pin. Same coverage, one dependency fewer.
+
+### AS-0 CI-cost pass (2026-11-08)
+Baseline is zero: the repo had no runs before this PR, and the billing endpoint answers 410. `ci` is one job
+on `blacksmith-2vcpu-ubuntu-2404`, with no push-to-main trigger and cancel-in-progress on PRs. A `merge_group`
+path filter on `merge_group.base_sha` fails closed: any diff error, an empty diff, or a failed `changes` runs the
+suite. Estimate: about 1 billed minute per PR push. Details in `docs/ci-cost.md`.
