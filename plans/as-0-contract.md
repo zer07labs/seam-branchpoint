@@ -130,7 +130,8 @@ ASCII, so no implementation exercises JCS escaping.
 - **Risk:** complex
 - **Status:** DONE (2 Opus verify rounds). Divergences: tests are stdlib `unittest` run with
   `uv run --script` (no pytest pin needed; DECISIONS); evaluation rows record `outcome`/`reason`/`receipt`
-  instead of `expect: "default_no_receipt"`; layouts add L5 (live split 0/0) and L6 (holdout budget 0) for
+  instead of `expect: "default_no_receipt"`; reconcile Q5 added L7–L14 (precedence of fail-soft rows 3–8, serialised
+  `assigner`/`bucket_version`/`salt_present`/`variant_kind`); layouts add L5 (live split 0/0) and L6 (holdout budget 0) for
   fail-soft row 8; the chain file holds two chains (L2 split, and an L3 holdout chain under
   `01JBP9000000000000000000AC` with held-out and served receipts); negative cases are multi-batch
   (`batches`/`expect` lists, one fresh verifier per case) and add cases beyond AC5 (late predecessor both

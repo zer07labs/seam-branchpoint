@@ -20,9 +20,13 @@
             "weight_bp": 6500
           }
         ],
+        "assigner": "sdk",
+        "bucket_version": "bpa1",
         "budget_bp": 0,
         "mode": "split",
-        "state": "live"
+        "salt_present": true,
+        "state": "live",
+        "variant_kind": "policy"
       },
       "receipts": [
         {
@@ -101,9 +105,13 @@
             "weight_bp": 0
           }
         ],
+        "assigner": "sdk",
+        "bucket_version": "bpa1",
         "budget_bp": 2500,
         "mode": "holdout",
-        "state": "live"
+        "salt_present": true,
+        "state": "live",
+        "variant_kind": "policy"
       },
       "receipts": [
         {

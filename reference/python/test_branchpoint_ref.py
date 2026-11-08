@@ -28,6 +28,13 @@ def load(name: str) -> dict:
 
 
 class GoldenFiles(unittest.TestCase):
+    def test_bpa1_golden_pins_every_fail_soft_row(self) -> None:
+        # Rows 3-9 of the spec §3 table, so the cross-language gate pins the evaluation order, not just Python.
+        reasons = {e.get("reason") for e in load("bpa1_golden.json")["evaluations"]}
+        want = {"ASSIGNED_BY_RUNTIME", "paused", "unsupported_bucket_version", "salt_absent", "config_invalid",
+                "empty_unit"}
+        self.assertTrue(want <= reasons, want - reasons)
+
     def test_committed_bytes_match_generator(self) -> None:
         for name, data in bp.render().items():
             self.assertEqual((GOLDEN / name).read_bytes(), data, name)

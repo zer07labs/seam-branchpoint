@@ -7,10 +7,10 @@ writes into `seam`. This file is everything that row needs.
 
 | Group | Path in `seam-branchpoint` | sha256 |
 |---|---|---|
-| `branchpoint_bpa1` | `contract/golden/branchpoint/bpa1_golden.json` | `671afd90c33233f8b72063f7056a090f79a2aa69410978bccdcff140735c5ce9` |
+| `branchpoint_bpa1` | `contract/golden/branchpoint/bpa1_golden.json` | `c7b1b16599a2fdcaf2633f3c90e7e8cf2862a678e5cdf2e22a950d432dda1a80` |
 | `branchpoint_unit_tag` | `contract/golden/branchpoint/unit_tag_golden.json` | `75ef6bfed41b6ae261e052af8b0bba7aba3abe64aad7d557db91a360b4cec682` |
 | `branchpoint_workload_cert` | `contract/golden/branchpoint/workload_cert_golden.json` | `ce545efd79d4b0612cd464b4c1e099dfcfb707a465d8a837b25fc21ce6820e79` |
-| `branchpoint_receipt_chain` | `contract/golden/branchpoint/receipt_chain_golden.json` | `a06b657187d46899f0663a4121642916a374262ec140080202327d3d3a7145a1` |
+| `branchpoint_receipt_chain` | `contract/golden/branchpoint/receipt_chain_golden.json` | `12a9ae5b8be106631674397cf854ade9d3a26218c27d2f6a1d8a68d5d9228d3c` |
 | `branchpoint_receipt_negative` | `contract/golden/branchpoint/receipt_negative_golden.json` | `d67f941862c662622157cfe5063ff1b844ad39aeb1ebc655b0f23ae04b153b69` |
 
 These sha256s equal `contract/golden/branchpoint/SHA256SUMS` at the merge of the AS-0 PR. `SHA256SUMS` is the
@@ -21,7 +21,7 @@ source; if this table and that file ever disagree, the file wins and this table 
 ```json
     {
       "name": "branchpoint_bpa1",
-      "sha256": "671afd90c33233f8b72063f7056a090f79a2aa69410978bccdcff140735c5ce9",
+      "sha256": "c7b1b16599a2fdcaf2633f3c90e7e8cf2862a678e5cdf2e22a950d432dda1a80",
       "copies": { "seam-branchpoint": ["contract/golden/branchpoint/bpa1_golden.json"] }
     },
     {
@@ -36,7 +36,7 @@ source; if this table and that file ever disagree, the file wins and this table 
     },
     {
       "name": "branchpoint_receipt_chain",
-      "sha256": "a06b657187d46899f0663a4121642916a374262ec140080202327d3d3a7145a1",
+      "sha256": "12a9ae5b8be106631674397cf854ade9d3a26218c27d2f6a1d8a68d5d9228d3c",
       "copies": { "seam-branchpoint": ["contract/golden/branchpoint/receipt_chain_golden.json"] }
     },
     {

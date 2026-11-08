@@ -280,6 +280,366 @@
       "receipt": false,
       "unit": "",
       "variant_id": ""
+    },
+    {
+      "layout": "L7",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "ASSIGNED_BY_RUNTIME",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L7",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "ASSIGNED_BY_RUNTIME",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L7",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "ASSIGNED_BY_RUNTIME",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L7",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "ASSIGNED_BY_RUNTIME",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L7",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "ASSIGNED_BY_RUNTIME",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L8",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "paused",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L8",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "paused",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L8",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "paused",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L8",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "paused",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L8",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "paused",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L9",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "unsupported_bucket_version",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L9",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "unsupported_bucket_version",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L9",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "unsupported_bucket_version",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L9",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "unsupported_bucket_version",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L9",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "unsupported_bucket_version",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L10",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "salt_absent",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L10",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "salt_absent",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L10",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "salt_absent",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L10",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "salt_absent",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L10",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "salt_absent",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L11",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L11",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L11",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L11",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L11",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L12",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L12",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L12",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L12",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L12",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L13",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L13",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L13",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L13",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L13",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
+    },
+    {
+      "layout": "L14",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-a",
+      "variant_id": ""
+    },
+    {
+      "layout": "L14",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "subj-b",
+      "variant_id": ""
+    },
+    {
+      "layout": "L14",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "dec:t-golden:s1",
+      "variant_id": ""
+    },
+    {
+      "layout": "L14",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "ünit-ß",
+      "variant_id": ""
+    },
+    {
+      "layout": "L14",
+      "outcome": "default",
+      "propensity_bp": 10000,
+      "reason": "config_invalid",
+      "receipt": false,
+      "unit": "",
+      "variant_id": ""
     }
   ],
   "experiment_id": "01JBP9000000000000000000AB",
@@ -295,9 +655,96 @@
           "weight_bp": 5000
         }
       ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
       "budget_bp": 0,
       "mode": "split",
-      "state": "live"
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
+    },
+    "L10": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 9000
+        }
+      ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": false,
+      "state": "live",
+      "variant_kind": "policy"
+    },
+    "L11": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 9000
+        }
+      ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
+    },
+    "L12": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 5000
+        },
+        {
+          "variant_id": "B",
+          "weight_bp": 5000
+        }
+      ],
+      "assigner": "unspecified",
+      "bucket_version": "bpa1",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
+    },
+    "L13": {
+      "arms": [
+        {
+          "variant_id": "T",
+          "weight_bp": 0
+        }
+      ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
+      "budget_bp": 0,
+      "mode": "holdout",
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "unspecified"
+    },
+    "L14": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 0
+        },
+        {
+          "variant_id": "B",
+          "weight_bp": 0
+        }
+      ],
+      "assigner": "unspecified",
+      "bucket_version": "bpa1",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
     },
     "L2": {
       "arms": [
@@ -314,9 +761,13 @@
           "weight_bp": 6500
         }
       ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
       "budget_bp": 0,
       "mode": "split",
-      "state": "live"
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
     },
     "L3": {
       "arms": [
@@ -325,9 +776,13 @@
           "weight_bp": 0
         }
       ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
       "budget_bp": 2500,
       "mode": "holdout",
-      "state": "live"
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
     },
     "L4": {
       "arms": [
@@ -340,9 +795,13 @@
           "weight_bp": 0
         }
       ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
       "budget_bp": 0,
       "mode": "split",
-      "state": "paused"
+      "salt_present": true,
+      "state": "paused",
+      "variant_kind": "policy"
     },
     "L5": {
       "arms": [
@@ -355,9 +814,13 @@
           "weight_bp": 0
         }
       ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
       "budget_bp": 0,
       "mode": "split",
-      "state": "live"
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
     },
     "L6": {
       "arms": [
@@ -366,9 +829,58 @@
           "weight_bp": 0
         }
       ],
+      "assigner": "sdk",
+      "bucket_version": "bpa1",
       "budget_bp": 0,
       "mode": "holdout",
-      "state": "live"
+      "salt_present": true,
+      "state": "live",
+      "variant_kind": "policy"
+    },
+    "L7": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 9000
+        }
+      ],
+      "assigner": "runtime",
+      "bucket_version": "bpa9",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": false,
+      "state": "paused",
+      "variant_kind": "policy"
+    },
+    "L8": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 9000
+        }
+      ],
+      "assigner": "sdk",
+      "bucket_version": "bpa9",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": false,
+      "state": "paused",
+      "variant_kind": "policy"
+    },
+    "L9": {
+      "arms": [
+        {
+          "variant_id": "A",
+          "weight_bp": 9000
+        }
+      ],
+      "assigner": "sdk",
+      "bucket_version": "bpa9",
+      "budget_bp": 0,
+      "mode": "split",
+      "salt_present": false,
+      "state": "live",
+      "variant_kind": "policy"
     }
   },
   "salt_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",

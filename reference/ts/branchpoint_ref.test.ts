@@ -26,6 +26,12 @@ function withCopy(fn: (dir: string) => void): void {
 }
 
 const L = (name: string): ExperimentDef => bp.layouts()[name];
+
+test("bpa1 golden pins every fail-soft row (spec §3 rows 3-9)", () => {
+  const reasons = new Set(load("bpa1_golden.json").evaluations.map((e: { reason?: string }) => e.reason));
+  for (const r of ["ASSIGNED_BY_RUNTIME", "paused", "unsupported_bucket_version", "salt_absent", "config_invalid",
+    "empty_unit"]) assert.ok(reasons.has(r), r);
+});
 const refusal = (fn: () => unknown, reason: string): void =>
   assert.throws(fn, (e: unknown) => e instanceof bp.Refusal && e.reason === reason);
 

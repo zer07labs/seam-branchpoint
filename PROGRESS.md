@@ -45,3 +45,7 @@ PR strategy: one PR (waves rule: one PR per unit; CI-cost pass folded in). Risk:
   - Files: .github/{workflows/ci.yml,workflows/claim-names.yml,actionlint.yaml}, placeholders/, scripts/handoff/, docs/ci-cost.md, docs/handoff/w3-hub-pin.md, CLAUDE.md, plans/.
   - Next: finalization.
 - 2026-11-08 Finalization PASS — fresh Opus verify over the cumulative diff a6b1e85..HEAD in 1 round. The full gate is green: 37 Python and 43 TS tests, and both `--check` runs are byte-identical. AC3 grep (all 18 encodings labels in the spec) and AC5 (names and the 0.0.0 note) were confirmed; handoff sha256s equal SHA256SUMS; reason order matches spec §6 in both languages; mapping covers every field. Nothing new was added: phase-level tests already cover the seams through the cross-language byte identity and the hub handoff. Next: reconcile Q1–Q10.
+- 2026-11-08 Reconcile Q1–Q10 done. Fable analyzed six entries and Opus four; Opus decided all ten; the owner was not needed. All ten are CONFIRMED (DECISIONS § AS-0 reconcile).
+  - Q5 changed: new layouts L7–L14 pin every fail-soft row and its precedence. Vectors were regenerated, and the w3 handoff now lists bpa1 c7b1b165… and receipt_chain 12a9ae5b….
+  - Delta verify: Opus, 2 rounds. R1 GAPS: split row 8 unpinned; overstated precedence claims; TS L7 comment missing; spec kill-switch sentence contradicted row 3. R2 PASS, all closed; mutation sweep confirms the claim.
+  - Gate: 38 Python and 44 TS tests; both `--check` runs byte-identical. Next: ship.

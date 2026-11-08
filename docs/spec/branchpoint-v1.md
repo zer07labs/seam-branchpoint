@@ -70,7 +70,8 @@ Exactly one arm (the treatment). `0 < budget_bp ≤ 10000`:
 
 These equal the runtime's J4-d / D12 allocation propensities. `budget_bp = 0` ⇒ **treated as paused** (default, no
 receipt): the source's kill switch publishes `budget_bp = 0`, and serving the treatment under test to every unit
-would invert it. This deliberately diverges from the runtime, whose "kept" branch is the governed live policy.
+would invert it. This is the runtime's stop path too: at zero every unit takes the baseline. Only which branch is the
+baseline differs (the runtime keeps units on the governed live policy; the SDK serves the default).
 `budget_bp = 10000` ⇒ every unit held out with `propensity_bp = 10000`. A propensity of 0 never occurs. The arm's
 `weight_bp` is ignored in holdout.
 
@@ -91,8 +92,8 @@ first that matches names the reason:
 | 8 | `paused` | all-zero split weights, or holdout `budget_bp = 0` |
 | 9 | `empty_unit` | the unit is the empty string |
 
-The kill switch (4) wins over every other experiment check, and the grammar check (7) runs before any bucket is
-computed, so the HMAC input is always parseable. `ASSIGNED_BY_RUNTIME` keeps the upper-case form the source names
+The kill switch (4) wins over every check after it (only the assigner check, row 3, precedes it), and the grammar
+check (7) runs before any bucket is computed, so the HMAC input is always parseable. `ASSIGNED_BY_RUNTIME` keeps the upper-case form the source names
 (`attested-sdk.md`); every other reason is snake_case.
 
 After an assignment, the SDK writes a receipt only under a valid workload certificate. Without one it still

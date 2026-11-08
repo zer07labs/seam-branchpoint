@@ -466,21 +466,39 @@ def _layouts() -> dict[str, ExperimentDef]:
         "L4": _mk(e, "split", [("A", 0), ("B", 0)], state="paused"),
         "L5": _mk(e, "split", [("A", 0), ("B", 0)]),  # live, all-zero weights: fail-soft row 8
         "L6": _mk(e, "holdout", [("T", 0)], budget=0),  # live holdout, budget 0: fail-soft row 8
+        # Precedence (spec §3 fail-soft rows 3-8): each layout pairs its row's fault with a fault of every later row up to
+        # row 8 that can coexist with it (and row 9 via the empty unit), so only the fixed order yields the named reason. Two implementations with different orders disagree here.
+        "L7": replace(_mk(e, "split", [("A", 9000)], state="paused"), assigner="runtime", bucket_version="bpa9",
+                      salt=None),  # row 3 over 4, 5, 6, 7
+        "L8": replace(_mk(e, "split", [("A", 9000)], state="paused"), bucket_version="bpa9", salt=None),  # row 4
+        "L9": replace(_mk(e, "split", [("A", 9000)]), bucket_version="bpa9", salt=None),  # row 5 over 6, 7
+        "L10": replace(_mk(e, "split", [("A", 9000)]), salt=None),  # row 6 over 7
+        "L11": _mk(e, "split", [("A", 9000)]),  # row 7 (weights sum 9000) over 9 (empty unit)
+        "L12": replace(_mk(e, "split", [("A", 5000), ("B", 5000)]), assigner="unspecified"),  # row 7: zero enum
+        "L13": replace(_mk(e, "holdout", [("T", 0)], budget=0), variant_kind="unspecified"),  # row 7 over 8 (holdout)
+        "L14": replace(_mk(e, "split", [("A", 0), ("B", 0)]), assigner="unspecified"),  # row 7 over 8 (split)
     }
 
 
 def _layout_json(d: ExperimentDef) -> dict[str, object]:
     return {
         "arms": [{"variant_id": a.variant_id, "weight_bp": a.weight_bp} for a in d.arms],
+        "assigner": d.assigner,
         "budget_bp": d.budget_bp,
+        "bucket_version": d.bucket_version,
         "mode": d.mode,
+        "salt_present": d.salt is not None,
         "state": d.state,
+        "variant_kind": d.variant_kind,
     }
 
 
 def _layout_from_json(experiment_id: str, lay: dict) -> ExperimentDef:
-    return _mk(experiment_id, lay["mode"], [(a["variant_id"], a["weight_bp"]) for a in lay["arms"]], lay["budget_bp"],
-               lay["state"])
+    """Rebuild a layout over the golden salt; `salt_present: false` is the absent-salt fault (row 6)."""
+    d = _mk(experiment_id, lay["mode"], [(a["variant_id"], a["weight_bp"]) for a in lay["arms"]], lay["budget_bp"],
+            lay["state"])
+    return replace(d, assigner=lay["assigner"], bucket_version=lay["bucket_version"], variant_kind=lay["variant_kind"],
+                   salt=d.salt if lay["salt_present"] else None)
 
 
 def _eval_json(e: Evaluation) -> dict[str, object]:

@@ -549,25 +549,48 @@ export function layouts(): Record<string, ExperimentDef> {
     L4: mk(e, "split", [["A", 0], ["B", 0]], 0, "paused"),
     L5: mk(e, "split", [["A", 0], ["B", 0]]), // live, all-zero weights: fail-soft row 8
     L6: mk(e, "holdout", [["T", 0]], 0), // live holdout, budget 0: fail-soft row 8
+    // Precedence (spec §3 fail-soft rows 3-8): each layout pairs its row's fault with a fault of every later row up to
+    // row 8 that can coexist with it (and row 9 via the empty unit), so only the fixed order yields the named reason. Two implementations with different orders disagree here.
+    L7: { ...mk(e, "split", [["A", 9000]], 0, "paused"), assigner: "runtime", bucket_version: "bpa9", salt: null }, // row 3 over 4, 5, 6, 7
+    L8: { ...mk(e, "split", [["A", 9000]], 0, "paused"), bucket_version: "bpa9", salt: null }, // row 4
+    L9: { ...mk(e, "split", [["A", 9000]]), bucket_version: "bpa9", salt: null }, // row 5 over 6, 7
+    L10: { ...mk(e, "split", [["A", 9000]]), salt: null }, // row 6 over 7
+    L11: mk(e, "split", [["A", 9000]]), // row 7 (weights sum 9000) over 9 (empty unit)
+    L12: { ...mk(e, "split", [["A", 5000], ["B", 5000]]), assigner: "unspecified" }, // row 7: zero enum
+    L13: { ...mk(e, "holdout", [["T", 0]], 0), variant_kind: "unspecified" }, // row 7 over 8 (holdout)
+    L14: { ...mk(e, "split", [["A", 0], ["B", 0]]), assigner: "unspecified" }, // row 7 over 8 (split)
   };
 }
 
 interface LayoutJson {
   arms: Arm[];
+  assigner: string;
   budget_bp: number;
+  bucket_version: string;
   mode: string;
+  salt_present: boolean;
   state: string;
+  variant_kind: string;
 }
 
 const layoutJson = (d: ExperimentDef): LayoutJson => ({
   arms: d.arms.map((a) => ({ variant_id: a.variant_id, weight_bp: a.weight_bp })),
+  assigner: d.assigner,
   budget_bp: d.budget_bp,
+  bucket_version: d.bucket_version,
   mode: d.mode,
+  salt_present: d.salt !== null,
   state: d.state,
+  variant_kind: d.variant_kind,
 });
 
-const layoutFromJson = (experimentId: string, lay: LayoutJson): ExperimentDef =>
-  mk(experimentId, lay.mode, lay.arms.map((a) => [a.variant_id, a.weight_bp] as [string, number]), lay.budget_bp, lay.state);
+/** Rebuild a layout over the golden salt; `salt_present: false` is the absent-salt fault (row 6). */
+const layoutFromJson = (experimentId: string, lay: LayoutJson): ExperimentDef => {
+  const d = mk(experimentId, lay.mode, lay.arms.map((a) => [a.variant_id, a.weight_bp] as [string, number]),
+    lay.budget_bp, lay.state);
+  return { ...d, assigner: lay.assigner, bucket_version: lay.bucket_version, variant_kind: lay.variant_kind,
+    salt: lay.salt_present ? d.salt : null };
+};
 
 export const evalJson = (e: Evaluation): Record<string, unknown> => ({
   outcome: e.outcome,
