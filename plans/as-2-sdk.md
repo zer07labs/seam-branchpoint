@@ -32,11 +32,11 @@ and the SDK cannot be built without them:
 3. **SDK-key authentication.** D15.4 as amended says the SDK key is a CP machine credential with PoP (the D-384
    pattern). The CP scheme is concrete: a self-signed EdDSA JWT, header `{alg:"EdDSA", typ:"seam-mc+jwt", kid}`,
    claims `{iss=sub=kid, aud, iat, exp, jti}`, `exp−iat ≤ 300 s`, `jti` `^[A-Za-z0-9_-]{16,128}$`, replay-cached
-   (`seam-control-plane/src/machine-auth.ts:1-49,150-154`). The SDK mints one per request with `kid = sdk_key_id`
+   (`seam-control-plane/src/core/machine-auth.ts:1-49,150-154`). The SDK mints one per request with `kid = sdk_key_id`
    (`bk_…`); AS-1 extends the CP's id check from `mc_` to `bk_`.
 
 The CP's tenant-document signing convention is `Ed25519(sk, domain ‖ tenant ‖ "\n" ‖ doc_bytes)` with detached hex
-signatures and no canonicalisation (`seam-control-plane/src/signing.ts:301-345`). The SDK document reuses that shape
+signatures and no canonicalisation (`seam-control-plane/src/core/signing.ts:301-345`). The SDK document reuses that shape
 under its own domain so an SDK document can never be replayed as a governing tenant document.
 
 Stale or divergent: `seam-experiments/plans/attested-sdk.md:130` still lists a 12-key receipt with a float
@@ -95,7 +95,8 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
   reverted, not committed).
 
 ### P1 — Wire: SDK document, upload batch, SDK-key token (spec + vectors + cross-repo plans)
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 3 rounds. Diverged: verify added the batch signature `batch_sig_hex` (R9.2), outcome scope by cert digest, malformed-200 retry (R9.6), integer micro-unit outcomes (R9.4), tenant grammar (R8.3), CP-route dispositions (R10.7), and more R8.1 negative vectors. The spec is authoritative over this section's text. For P3/P6: the SDK's number→micro-units `round_half_even` has no shared vector yet; each SDK track tests it against the same table.
+- **Risk:** complex
 - **Delivers:** spec §8–§10 defining the three wires the SDK needs; a new golden group
   `contract/golden/branchpoint-sdk/` (separate directory so the AS-0 group's five files and `SHA256SUMS` stay
   byte-identical — they are pinned in the hub); both references generate it identically; two cross-repo plans.
@@ -151,9 +152,11 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
     — exactly the shape the AS-0 negative vectors and reference verifier use, plus `outcomes` and an informational
     `dropped` list (the SDK's own overflow spans; AS-3 still derives gaps from the chain and never trusts this list).
     Outcome JSON: `{receipt_id, experiment_id, reward?, metrics?, observed_at?, verified_by?}`, ≤ 16 metrics, keys
-    1..63 bytes `^[A-Za-z0-9_.:-]+$`, finite numbers only (outcomes are unsigned in v1, §7, so floats are allowed).
-    One certificate per batch; receipts of several experiments may share a batch. `cert` is optional only when
-    `receipts` is empty (an outcomes-only batch), so outcomes still upload with no current certificate.
+    1..63 bytes `^[A-Za-z0-9_.:-]+$`, **integer** reward/metric values only (the batch is signed, no floats). One
+    certificate per batch; receipts of several experiments may share a batch. **Superseded by the P1 verifier-gap
+    fix (spec §9 is normative):** every non-empty batch carries `cert` and `batch_sig_hex` (workload-key Ed25519 over
+    the batch JCS); outcomes are accepted only for receipts under the same cert digest; the response adds an
+    `outcomes` array; a malformed `200` is a whole-batch retry; the SDK drops invalid outcomes locally.
     **Collector response (§9.1):** `200` with `{"results":[{"receipt_id","status"}]}` where `status` is `accepted`,
     `duplicate` (already stored byte-identically — the SDK treats it as success, which makes retries after a timeout
     idempotent), or a §6 refusal reason (permanent; counted `rejected`, never retried). Batch-level `400` (malformed
@@ -203,6 +206,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P2 — Python core primitives
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** `sdk/python` package with pure, stateless primitives that reproduce **every** AS-0 vector and the P1
   vectors byte for byte.
 - **Depends on:** P1
@@ -238,6 +242,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P3 — Python client: cache, certificates, chain state, uploader, transport, report_outcome
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** `BranchpointClient` usable without OpenFeature; `HttpTransport`; `FakeTransport`/`FakeCP`; the AS
   acceptance criteria for the Python core (zero network on evaluate, fail-soft, p99 < 50 µs, SRM).
 - **Depends on:** P2
@@ -334,6 +339,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P4 — Python OpenFeature provider + OTel hook
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** `seam_branchpoint.openfeature.BranchpointProvider` and `BranchpointOtelHook` (extra `openfeature`,
   `otel`).
 - **Depends on:** P3
@@ -380,6 +386,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P5 — TypeScript core primitives
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** `sdk/ts` package mirroring P2: pure primitives reproducing every AS-0 and P1 vector.
 - **Depends on:** P1 (independent of P2–P4)
 - **Files:** `sdk/ts/{package.json,package-lock.json,tsconfig.json,README.md}`, `src/{wire,cert,document,evaluate,chain,auth,index}.ts`,
@@ -399,6 +406,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P6 — TypeScript client: cache, certificates, chain state, uploader, transport, reportOutcome
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** `BranchpointClient` (TS) mirroring P3 with the same AS acceptance criteria.
 - **Depends on:** P5
 - **Files:** `src/{transport,uploader,client,fake}.ts`, `test/{client,uploader,transport_http,no_network,failsoft,srm,perf}.test.ts`.
@@ -421,6 +429,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P7 — TypeScript OpenFeature provider + OTel hook
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** `@zer07labs/seam-branchpoint/openfeature`: `BranchpointProvider` (server SDK) + OTel hook.
 - **Depends on:** P6
 - **Files:** `src/openfeature/index.ts`, `src/otel.ts`, `test/{openfeature,otel}.test.ts`, `package.json`
@@ -436,6 +445,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 
 ### P8 — CI, cross-language conformance, docs
 - **Status:** TODO
+- **Risk:** complex
 - **Delivers:** the SDK suites in the gate, a cross-SDK conformance test, repo docs and commands.
 - **Depends on:** P0, P4, P7
 - **Files:** `.github/workflows/ci.yml`, `CLAUDE.md` (commands + gotchas), `README.md`, `docs/sdk/overview.md`

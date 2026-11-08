@@ -90,8 +90,7 @@ jobs:
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
       - name: golden SHA256SUMS
-        working-directory: contract/golden/branchpoint
-        run: sha256sum --check --strict SHA256SUMS
+        run: (cd contract/golden/branchpoint && sha256sum --check --strict SHA256SUMS) && (cd contract/golden/branchpoint-sdk && sha256sum --check --strict SHA256SUMS)
       - name: golden gate — local copies match the hub pins
         run: python3 contract/scripts/golden_gate.py local --repo seam-branchpoint --manifest contract/golden-manifest.json
       - name: Python reference — regenerate (--check) + tests

@@ -21,10 +21,13 @@ AS-0 log: see git history of this file at 7f9c8df (`git show 7f9c8df:PROGRESS.md
 
 External anchors (read-only):
 - `seam-experiments/plans/attested-sdk.md` §AS-2, _The SDK and provider_ (e1565f2).
-- `seam-control-plane/src/signing.ts:301-345` (tenant doc signing convention), `src/machine-auth.ts` (seam-mc+jwt, D-384).
+- `seam-control-plane/src/core/signing.ts:301-345` (tenant doc signing convention), `src/core/machine-auth.ts` (seam-mc+jwt, D-384).
+
+PR strategy: one draft PR (CHARTER: one PR per unit; phases are commits). Risk: P1–P8 all `complex` (contract/foundation/boundary) → solo Opus gate each. Execution: P1, then Python track (P2–P4) ∥ TS track (P5–P7) in disjoint dirs, then P8.
 
 ## Phase log
 | Phase | Status | Rounds | Commit | Note |
 |-------|--------|--------|--------|------|
 | plan  | DONE | 2 review rounds (REVISE→applied) | – | plans/as-2-sdk.md |
 | P0 | DONE | 1 | (this commit) | vendored manifest + gate; tamper test fails as expected |
+| P1 | DONE | 3 | (this commit) | Opus verify, solo (contract one-way door, complex). R1 GAPS: malformed 200, unauthenticated outcomes, dropped key, R8.1 negatives, bad-outcome blast radius, tenant grammar, CP dispositions. R2 GAPS: outcome scale vs the proto double, domain table, unique receipt ids. R3 PASS. AS2-Q1a–Q17 UNCONFIRMED. Next: P2 ∥ P5 |

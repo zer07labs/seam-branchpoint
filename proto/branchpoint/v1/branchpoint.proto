@@ -161,7 +161,8 @@ message ReceiptBatch {
 }
 
 // An outcome reported against a receipt. Unsigned in v1 (a signed form is additive). Caps mirror seam-outcome-v2:
-// at most 16 metrics, metric keys at most 63 bytes.
+// at most 16 metrics, metric keys at most 63 bytes. The §9 JSON upload wire carries reward and metric values as
+// integer micro-units (spec R9.4); these fields hold the decoded value (wire / 10^6).
 message Outcome {
   string receipt_id = 1;
   string experiment_id = 2;

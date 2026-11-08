@@ -1,13 +1,15 @@
 # `branchpoint.v1` — normative specification
 
-Status: **AS-0 contract.** Frozen when the W3 seam row pins the golden groups in `seam/contract/golden-manifest.json`
+Status: **AS-0 contract; §8–§10 added by AS-2 P1.** Frozen when the W3 seam row pins the golden groups in `seam/contract/golden-manifest.json`
 and AS-2 publishes the first SDK. Until then it changes only by a PR to this repo that regenerates the vectors.
 
 Sources: `seam-experiments/plans/attested-sdk.md` (_The SDK and provider_, §AS-0), D15.1/D15.2/D15.4 as amended,
 `seam-experiments/plans/branchpoint.md` BP-7 (published experiment shape), BP-8 (Allocation trailer), BP-9 (`bp2`),
 `plans/joint/holdout-via-changeset.md` J4-d (holdout propensities). The typed schema is
 [`proto/branchpoint/v1/branchpoint.proto`](../../proto/branchpoint/v1/branchpoint.proto); the field map to Seam is
-[`docs/mapping.md`](../mapping.md); the golden vectors are in [`contract/golden/branchpoint/`](../../contract/golden/branchpoint/).
+[`docs/mapping.md`](../mapping.md); the golden vectors are in [`contract/golden/branchpoint/`](../../contract/golden/branchpoint/)
+(§3–§6) and [`contract/golden/branchpoint-sdk/`](../../contract/golden/branchpoint-sdk/) (§8–§10, AS-2; a separate group so
+the hub-pinned AS-0 files never change).
 Every rule below is exercised by a vector or by a test of both reference implementations (`reference/python`,
 `reference/ts`). The key words MUST, MUST NOT and SHOULD are normative.
 
@@ -31,6 +33,8 @@ Every hash and signature input starts with a distinct domain, so nothing verifie
 | `seam.branchpoint.receipt.v1` | **receipt signature** and **receipt_hash** |
 | `seam.branchpoint.chain-genesis.v1` | **chain** genesis |
 | `seam.branchpoint.chain-close.v1` | **reserved** for `chain_close` (message defined later; additive) |
+| `seam.branchpoint.sdk-doc.v1\n` | **SDK document** signature (§8; never `seam-config-tenant.v1`) |
+| `seam.branchpoint.upload-batch.v1\n` | **upload batch** signature (§9, R9.2) |
 
 ## 3. Experiment evaluation
 
@@ -237,5 +241,183 @@ it is a claim, not a timestamp anyone attests.
 
 - The proto evolves under buf `WIRE_JSON` breaking checks; field numbers are never reused.
 - A new bucket formula is a new `bucket_version`; a new receipt key set is a new receipt domain (`….receipt.v2`).
-- `Outcome` is unsigned in v1. A signed outcome is an additive message under a new domain.
+- The proto `Outcome` is unsigned. On the AS-2 upload wire an outcome is covered by the batch signature (§9 R9.2);
+  a per-outcome signature would be an additive message under a new domain.
 - SDK semver ↔ document: each SDK release states which `branchpoint-sdk` document `v` it reads (README).
+- The AS-2 wires version independently: a new document shape is `v: 2` under a new domain (`….sdk-doc.v2`); unknown
+  members of `doc_bytes` and of an experiment are ignored, so additive optional fields need no new `v`; the batch (§9)
+  refuses unknown members, so a new batch member is a new collector route (`/v2/…`); a new token profile is a new `typ`.
+
+## 8. SDK document
+
+The CP serves each tenant's experiments to the SDK as one signed document. Golden: `sdk_document_golden.json` (the
+document key seeds, a document carrying layout L1 and the holdout layout, the exact signing message, and every case
+below with its expected outcome).
+
+### envelope
+
+The response body is a JSON object `{"doc": <string>, "kid": <string>, "sig": <string>}`. `doc_bytes` is `doc` encoded
+as UTF-8: exactly the octets that were signed. `kid` is the RFC 7638 **key_id** of the document signing key; `sig` is
+`hex(Ed25519(doc_sk, "seam.branchpoint.sdk-doc.v1\n" ‖ tenant ‖ "\n" ‖ doc_bytes))` (the CP's tenant-document
+convention under its own domain, so it never verifies as a `seam-config-tenant.v1` document, nor for another tenant).
+`config_digest = hex(sha256(doc_bytes))` — the value every receipt carries (§5).
+
+### document
+
+`doc_bytes` is a JSON object:
+
+| Member | Type |
+|---|---|
+| `v` | `1` |
+| `kind` | `"branchpoint-sdk"` |
+| `tenant` | string, the tenant the document is for |
+| `version` | integer `0 ..= 2^53−1`, strictly increasing per tenant |
+| `issued_at_ms`, `expires_at_ms` | integers `0 ..= 2^53−1`, `issued_at_ms < expires_at_ms` (CP wall clock) |
+| `experiments` | array of experiment objects |
+
+An experiment object carries the `ExperimentDef` fields in their JSON forms: `experiment_id` (ULID), `key` and optional
+`decision_point` (`[A-Za-z0-9_.:/-]{1,128}`), `mode` (`split`|`holdout`), `state` (`live`|`paused`), `assigner`
+(`sdk`|`runtime`), `variant_kind` (`policy`|`prompt`|`model`|`toolset`|`agent`), `bucket_version` (string),
+`salt_hex` (64 hex; absent after Concluded), `salt_kid`, `budget_bp` (`0..=10000`) and `arms`: an array of
+`{"variant_id", "weight_bp", "bundle": {"content_digest": <64 hex>, "payload": <JSON object>}}`. `payload` is an object
+only (the proto's `VariantBundle.payload` is a `Struct`); non-ASCII is allowed in it, since `doc_bytes` is signed as raw
+octets and never enters receipt bytes. `content_digest` is opaque to the SDK (the reference uses
+`sha256` of the payload's compact JSON). Unknown members of the document and of an experiment are ignored.
+
+### verification
+
+The SDK holds the configured tenant, its pinned document keys (the current key plus a previous-keys list) and, after
+the first success, the `version` and `config_digest` of its cached document. It checks a fetched body **in this
+order**; the first failure refuses the document with the named reason:
+
+- **R8.1** (envelope) The body is at most `max_document_bytes` (default 4 MiB), checked before parsing, else
+  `document_too_large`. It is strict JSON (§6: duplicate members refused) in UTF-8 with no BOM, an object with exactly the
+  members `doc`, `kid`, `sig`; `doc` is a string that has a UTF-8 encoding (a lone-surrogate escape has none); `sig` is
+  128 lowercase hex; `kid` is 43 base64url characters. Else `envelope_malformed`. Golden negatives: a missing member,
+  a non-object body, a BOM, a non-base64url and a short `kid`, a lone surrogate, a body one octet over the cap
+  (`document_too_large`) and one exactly at the cap (`accepted`, R8.1 is inclusive). The two size cases carry
+  `pad_to_bytes: N`: the body is the case's `envelope` followed by `0x20` up to N octets (JSON whitespace).
+- **R8.2** `kid` names a pinned document key, else `kid_unknown`.
+- **R8.3** The configured tenant matches `[A-Za-z0-9_-]{1,128}` (the CP tenant grammar, seam-control-plane
+  `src/core/service-tokens.ts:415`), else `tenant_invalid` — checked before the signature, since a tenant containing `\n`
+  could make one domain message valid for two (tenant, document) splits. Then `sig` verifies over the domain message
+  built with the **configured** tenant, else `sig_invalid`. A case may carry `tenant`, which overrides the golden's.
+- **R8.4** `doc_bytes` is strict JSON and an object, else `doc_malformed`.
+- **R8.5** `v` is the integer `1` and `kind` is `"branchpoint-sdk"`, else `doc_unsupported`.
+- **R8.6** `tenant` equals the configured tenant, else `tenant_mismatch`.
+- **R8.7** `version` is an integer `0 ..= 2^53−1`, else `version_invalid`. Below the cached version is `rollback`;
+  equal to it with a different `config_digest` is `version_conflict`; equal with the same digest is the
+  `unchanged` outcome (a successful no-op refresh) once R8.8–R8.10 pass.
+- **R8.8** `issued_at_ms` and `expires_at_ms` are integers `0 ..= 2^53−1` with `issued_at_ms < expires_at_ms`, else
+  `window_invalid`.
+- **R8.9** `now_wall ≤ expires_at_ms + 300 000`, else `expired`. The five minutes absorb clock skew; the bound is
+  inclusive.
+- **R8.10** `experiments` is an array, else `doc_malformed`. Every entry is an object whose `key` and `experiment_id`
+  are strings, else `unindexable` (it could not be found to be served as `config_invalid`). No two entries share a
+  `key`, an `experiment_id` or a `decision_point`, and no `key` equals another entry's `decision_point`, else
+  `ambiguous_lookup`. Then each entry is parsed on its own: an unknown enum string reads as the proto zero
+  (`unspecified`), and any other unreadable field (key grammar, salt hex, an arm without a well-formed bundle, …) marks
+  that experiment malformed. Neither rejects the document: that experiment evaluates as `config_invalid` (fail-soft
+  row 7) and the fixed row order still applies (a paused experiment with an unknown `mode` is `paused`).
+- **R8.11** (cache) Only `accepted` or `unchanged` replaces the cache. A refusal leaves the cached document, version and
+  digest untouched, and the SDK never caches a document that failed verification. So with no usable verified document
+  the SDK reports fail-soft row 1 `config_unavailable` whatever the fetch failure was (the failure kind is a `stats()`
+  field); row 2 `config_unverified` is reserved and this SDK never reports it (DECISIONS § AS-2).
+- **R8.12** (freshness) The cached document is stale — row 1 `config_unavailable` — when `mono_now −
+  last_successful_refresh > max_staleness_ms` (default 600 000 ms, ten 60 s polls) or when `now_wall > expires_at_ms +
+  300 000`. `last_successful_refresh` is the local monotonic time of the last fetch that returned an `accepted` or
+  `unchanged` document, or a TLS-authenticated `304` for the cached digest (a `304` carries no signature; it confirms
+  over TLS that the cached document is current). The monotonic bound means CP/SDK skew never stales a fresh document;
+  the wall bound stops a cold-started SDK, which has no version high-water mark, accepting an old validly signed
+  document indefinitely. The CP re-signs at least every `(expires_at_ms − issued_at_ms)/2` (recommended lifetime 24 h).
+
+## 9. Upload batch
+
+The SDK uploads receipts and outcomes to the collector as one JSON object (`upload_batch_golden.json`: the workload
+seeds, a batch built from the golden receipt chain plus one outcome with its exact signing input, an outcomes-only
+batch, the outcome cases, the SDK admit case, a collector sequence and the SDK dispositions):
+
+`{"cert": {"body_hex", "sig_hex", "issuer_kid"}, "receipts": [{"canonical": <JCS string>, "sig_hex"}], "outcomes":
+[<outcome>], "dropped": {"<cert_digest>:<experiment_id>": [[lo, hi], …]}, "batch_sig_hex": <128 hex>}` — the §6 batch
+plus `outcomes`, `dropped` and `batch_sig_hex`.
+
+- **R9.1** The batch is an object whose members are among `cert`, `receipts`, `outcomes`, `dropped`, `batch_sig_hex`;
+  `receipts` is present and an array (it may be empty); `outcomes`, when present, is an array. `cert` and the receipt
+  items are checked as in §6. A batch is **non-empty** when it has any receipt, outcome or `dropped` entry.
+  The SDK never puts two receipts with the same `receipt_id` in one batch (R9.6 requires distinct result ids).
+- **R9.2** A non-empty batch carries `cert` and `batch_sig_hex` (128 lowercase hex), else it fails R9.1.
+  `batch_sig_hex = hex(Ed25519(workload_sk, "seam.branchpoint.upload-batch.v1\n" ‖ JCS(batch without batch_sig_hex)))`,
+  signed by the workload key whose certificate the batch carries. JCS here is RFC 8785 over objects, arrays, strings and
+  integers `−(2^53−1) ..= 2^53−1` only: there are no floats, booleans or nulls in the signed form (R9.4 keeps them out).
+  One certificate per batch; receipts of several experiments may share it. So outcomes and `dropped` are attributable
+  to a certified workload, and an outcomes-only batch still needs a certificate: the SDK keeps an old certificate and its
+  workload key for as long as outcomes for that certificate's receipts may still be recorded.
+- **R9.3** `dropped`, when present, maps keys matching `[0-9a-f]{64}:[0-9A-HJKMNP-TV-Z]{26}` (`<cert_digest>:` then the
+  experiment ULID) to spans `[lo, hi]` of integers `0 ..= 2^53−1` with `lo ≤ hi`: the SDK's own buffer-overflow spans. It
+  is informational: the collector derives gaps from the chain (§6) and never trusts this list.
+- **R9.4** An outcome is an object with members among `receipt_id`, `experiment_id` (both required ULIDs), `reward`
+  (integer `−(2^53−1) ..= 2^53−1`), `metrics` (an object of at most 16 members whose keys match `[A-Za-z0-9_.:-]{1,63}`
+  and whose values are integers in the same range), `observed_at` (integer `0 ..= 2^53−1`) and `verified_by`
+  (`[A-Za-z0-9_.:/-]{1,128}`). A JSON number with a fraction or exponent is refused even when integral (`1.0`, `1e0`);
+  `reward` and metric values are **micro-units**: the wire integer is the measure × 10^6 (the SDK API takes a
+  number and sends `round_half_even(x × 10^6)`); a consumer maps it to the `double` in `branchpoint.v1 Outcome` and
+  `LearningOutcome` as `wire / 10^6`. One fixed scale, never caller-chosen, so every consumer reads the same value. A batch with an invalid outcome fails R9.1. The SDK
+  checks each recorded outcome against R9.4 and drops an invalid one before batching, counting it in `stats()`
+  (`outcomes_invalid_dropped`), so one bad outcome never refuses a batch of good receipts.
+
+### 9.1 Collector response
+
+- **R9.5** The collector answers in this order: a batch that fails R9.1–R9.4 is `400 {"error": "batch_malformed"}`; an
+  empty batch is `200 {"outcomes": [], "results": []}`; a certificate failure (§6) is `400 {"error": <cert reason>}`;
+  a `batch_sig_hex` that does not verify under the certificate's `pk` is `400 {"error": "batch_sig_invalid"}`. A refused
+  batch stores nothing. Otherwise `200 {"outcomes": [{"receipt_id", "status"}, …], "results": [{"receipt_id",
+  "status"}, …]}`, one entry per receipt and per outcome in batch order. A receipt `status` is `accepted`, `duplicate`
+  (a receipt with this `receipt_id` is already stored with byte-identical `canonical` and `sig_hex`) or the receipt's §6
+  reason (a different receipt under a stored `receipt_id` stays `duplicate_receipt_id`). An outcome is accepted only for
+  a receipt stored (in this or an earlier batch) under the **same certificate digest** and `experiment_id`, else
+  `outcome_receipt_unknown`; it is `duplicate` when a byte-identical outcome (compact JSON) is already stored for that
+  receipt, else `accepted` (several distinct outcomes per receipt are allowed).
+- **R9.6** On `200` the SDK first checks the body: an object whose `results` and `outcomes` arrays have exactly one
+  entry per receipt and per outcome of the batch, in batch order, each `receipt_id` equal to the one sent, the result
+  ids distinct, and each `status` a string from the R9.5 sets. A `200` that fails this — not JSON, wrong lengths, a
+  missing or reordered id, an unknown status — is a transient failure: the whole batch is retried as R9.8 and nothing is
+  counted (never an accept). Otherwise the SDK counts `accepted` and `duplicate` as succeeded (so a retry after a
+  timeout is idempotent) and every other status as rejected, separately for receipts and outcomes; none is retried.
+- **R9.7** On `400` or any other `4xx` not named in R9.8 every receipt and outcome in the batch is counted rejected and
+  the batch is not retried.
+- **R9.8** On `401`, `403` (the collector may not yet know a freshly issued certificate's issuer key), `408`, `429`,
+  `5xx` or a network failure the batch is retried with backoff and nothing is counted rejected.
+- **R9.9** HTTP redirects are never followed; a `1xx` or `3xx` answer is treated as R9.8.
+
+## 10. SDK-key token and routes
+
+The SDK authenticates to the CP with its SDK key (`bk_…` id, Ed25519) as a CP machine credential
+(`sdk_key_token_golden.json`: a fixed seed, `iat` and `jti` → the exact compact JWS, plus the default routes).
+
+- **R10.1** Each CP request carries `Authorization: Bearer <JWS>`, a compact JWS (`b64u(header) "." b64u(claims) "."
+  b64u(sig)`, Ed25519 over the ASCII signing input) whose header is `{"alg":"EdDSA","typ":"seam-mc+jwt","kid":<sdk_key_id>}`
+  and claims `{"iss":<sdk_key_id>,"sub":<sdk_key_id>,"aud":<configured CP audience>,"iat":<s>,"exp":iat+60,"jti":<b64u of
+  16 random bytes>}`, each compact JSON in exactly that key order.
+- **R10.2** The lifetime is 60 s, inside the CP's 300 s cap and leaving room for its ±30 s clock tolerance.
+- **R10.3** One token per request: a token is never reused, and every token has a fresh `jti` (the CP replay-caches it).
+- **R10.4** Tokens go to the CP routes only. **No SDK-key token is ever sent to the collector**: it authenticates a
+  batch by its certificate.
+- **R10.5** HTTP redirects are never followed on any route (a redirect could forward `Authorization`).
+- **R10.6** Routes, provisional and SDK configuration (so AS-1/AS-3 choosing other paths is a config change, not a
+  release): `GET {cp}/v1/branchpoint/sdk/document` (with `If-None-Match: <config_digest>`, answered `304` when current);
+  `POST {cp}/v1/branchpoint/sdk/certificates` with body `{"pk_hex": …}`, answered with the workload certificate JSON
+  `{"body_hex", "sig_hex", "issuer_kid"}`; `POST {collector}/v1/branchpoint/receipts` with the §9 batch.
+- **R10.7** CP route failures (the CP's error body is `{"error": <code>}`, seam-control-plane
+  `src/core/http/server.ts:608`; codes from `src/core/machine-auth.ts`). Golden: `cp_dispositions`.
+
+  | Status | `error` | SDK action |
+  |---|---|---|
+  | `200`, `304` | — | ok |
+  | `401` | `token_replayed` (`machine-auth.ts:167`) | retry once with a freshly minted token (new `jti`); a second `token_replayed` fails |
+  | `429` | `token_rate_limited` (`:169–173`) or any | back off (poll schedule), keep the cache |
+  | `401`/`403` | any other (`credential_inactive` `:158`, `unauthorized` `:242–249`, …) | fail with that code (`unauthorized`/`forbidden` when absent); no token retry |
+  | `5xx` | any (`503 identity_unavailable` `:111–115`) | back off |
+  | `3xx` | — | fail `redirect_refused` (R10.5) |
+  | other | any | fail with the code, else `http_<status>` |
+
+  Every non-ok action leaves the cached document and certificate untouched (R8.11); a failure kind is a `stats()` field.
