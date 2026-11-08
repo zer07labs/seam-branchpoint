@@ -205,7 +205,7 @@ ASCII, so no implementation exercises JCS escaping.
 - **Files:** `placeholders/python/{pyproject.toml,README.md}`, `placeholders/npm/{package.json,README.md}`,
   `.github/workflows/claim-names.yml`, `scripts/handoff/2026-11-08-npm-org-claim.sh`.
 - **Approach:** BSR: `buf registry module create buf.build/zer07labs/branchpoint --visibility private` (idempotent:
-  skip if `module info` succeeds). PyPI: hatchling wheel with no packages (`bypass-selection`), `twine upload` with
+  skip if `module info` succeeds). PyPI: hatchling wheel with no packages (`bypass-selection`), `uv build` + `uv publish` with
   `PYPI_API_TOKEN` in the workflow; must be dispatched from `main`, so it runs after merge. npm: the org `@zer07labs`
   must be created on npmjs.com by an account holder and an `NPM_TOKEN` org secret added — only the owner holds that
   account, so the handoff script checks both preconditions (`npm view`, `gh secret list`) and dispatches the npm job.
@@ -216,7 +216,7 @@ ASCII, so no implementation exercises JCS escaping.
   (outside the PR; PROGRESS marker `POST-MERGE: pypi-claim`): after the dispatch from `main`,
   `https://pypi.org/pypi/seam-branchpoint/json` returns 200 with version `0.0.0`. Note: a PyPI version is permanent
   (0.0.0 can never be re-uploaded), which is why it carries no code. (3) The npm handoff
-  dry-runs (`--dry-run`) and prints which precondition is missing. (4) `PROGRESS.md` carries
+  dry-runs by default (no `--apply`) and prints every missing precondition. (4) `PROGRESS.md` carries
   `AWAITING-HUMAN: scripts/handoff/2026-11-08-npm-org-claim.sh`.
 - **Tests:** workflow lint via `actionlint` if available; the dispatch itself is the test for PyPI.
 
