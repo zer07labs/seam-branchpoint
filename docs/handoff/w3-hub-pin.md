@@ -53,7 +53,9 @@ The seam-connectors copy path is left to AS-3, which adds it when the collector 
 1. The hub adds the five groups plus `vendored."seam-branchpoint"`
    (`{"manifest": "contract/golden-manifest.json", "script": "contract/scripts/golden_gate.py"}`, matching the
    other `contract/`-layout repos).
-2. This repo then vendors the canonical manifest and the gate script byte-identically, in its own PR.
+2. This repo then vendors the canonical manifest and the gate script byte-identically, in its own PR. **Done** in the AS-2 PR
+   (`contract/golden-manifest.json`, `contract/scripts/golden_gate.py`, copied from seam `main` after 2d13567; run in
+   the local gate and CI). Re-vendor both byte-identically whenever the hub manifest changes.
 3. The hub's cross-repo gate needs read access to this repo, which stays private until AS-2.
 
 ## How to confirm

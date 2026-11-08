@@ -92,6 +92,8 @@ jobs:
       - name: golden SHA256SUMS
         working-directory: contract/golden/branchpoint
         run: sha256sum --check --strict SHA256SUMS
+      - name: golden gate — local copies match the hub pins
+        run: python3 contract/scripts/golden_gate.py local --repo seam-branchpoint --manifest contract/golden-manifest.json
       - name: Python reference — regenerate (--check) + tests
         run: |
           uv run --script reference/python/branchpoint_ref.py --check

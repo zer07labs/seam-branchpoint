@@ -10,6 +10,7 @@ Private until AS-2. Plan of record: `seam-experiments/plans/attested-sdk.md`.
 ```
 buf lint && buf format --diff --exit-code
 (cd contract/golden/branchpoint && shasum -a 256 -c SHA256SUMS)
+python3 contract/scripts/golden_gate.py local --repo seam-branchpoint --manifest contract/golden-manifest.json
 uv run --script reference/python/branchpoint_ref.py --check
 uv run --script reference/python/test_branchpoint_ref.py
 node reference/ts/branchpoint_ref.ts --check          # Node >= 22.18 (type stripping)
