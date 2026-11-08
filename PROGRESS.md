@@ -44,3 +44,4 @@ PR strategy: one PR (waves rule: one PR per unit; CI-cost pass folded in). Risk:
   - R2: all closed.
   - Files: .github/{workflows/ci.yml,workflows/claim-names.yml,actionlint.yaml}, placeholders/, scripts/handoff/, docs/ci-cost.md, docs/handoff/w3-hub-pin.md, CLAUDE.md, plans/.
   - Next: finalization.
+- 2026-11-08 Finalization PASS — fresh Opus verify over the cumulative diff a6b1e85..HEAD in 1 round. The full gate is green: 37 Python and 43 TS tests, and both `--check` runs are byte-identical. AC3 grep (all 18 encodings labels in the spec) and AC5 (names and the 0.0.0 note) were confirmed; handoff sha256s equal SHA256SUMS; reason order matches spec §6 in both languages; mapping covers every field. Nothing new was added: phase-level tests already cover the seams through the cross-language byte identity and the hub handoff. Next: reconcile Q1–Q10.
