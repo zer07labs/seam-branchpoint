@@ -1,0 +1,12 @@
+# buf v2 module for the neutral branchpoint.v1 contract (AS-0). Lint STANDARD, breaking WIRE_JSON (seam-runtime
+# precedent, without its legacy naming excepts: this module has no legacy names).
+version: v2
+modules:
+  - path: proto
+    name: buf.build/zer07labs/branchpoint
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - WIRE_JSON

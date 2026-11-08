@@ -1,0 +1,30 @@
+# PROGRESS — AS-0 (`plans/as-0-contract.md`)
+
+Run: `/waves work 2` → `/drive`. Lock: `.drive.lock` (untracked). Branch: `feat/as-0-contract`. One PR.
+
+## Repo map
+- `LICENSE` — Apache-2.0 (only pre-existing file).
+- `plans/as-0-contract.md` — this plan (normative encodings table is the contract summary).
+- `docs/spec/branchpoint-v1.md` — normative spec (P1).
+- `docs/mapping.md` — branchpoint.v1 ↔ seam.event.v1 / AllocationView field map (P1).
+- `proto/branchpoint/v1/branchpoint.proto`, `buf.yaml` — contract + buf module (P1).
+- `reference/python/branchpoint_ref.py` — Python reference impl + generator (P2).
+- `reference/ts/branchpoint_ref.ts` — TS reference impl + generator (P3).
+- `contract/golden/branchpoint/` — golden vectors + SHA256SUMS (P2).
+- `placeholders/`, `.github/workflows/claim-names.yml` — name claims (P4).
+- `.github/workflows/ci.yml`, `docs/ci-cost.md` — CI + cost pass (P5).
+- `docs/handoff/w3-hub-pin.md` — handoff to the W3 seam row (P5).
+
+External anchors read (sibling repos, read-only):
+- `seam-experiments/plans/attested-sdk.md` §AS-0, _The SDK and provider_ (e1565f2).
+- `seam-experiments/plans/branchpoint.md:81-99` pinned interfaces; §BP-8 (Allocation fields), §BP-9 (bp2, tag).
+- `seam-runtime/crates/seamd/src/intermediate.rs:9-56` icert layout; `authorize.rs:1256-1268` framed.
+- `seam-runtime/crates/seam-api/proto/seam/event/v1/seam_event.proto` LearningDecision/LearningOutcome.
+- `seam-control-plane/src/machine-credentials.ts:293-314` OKP JWK + RFC 7638; `evidence-v1.ts:413` tenant grammar.
+- `seam/contract/golden-manifest.json` group format; `seam-runtime/.github/workflows/integration.yml:42-66` changes job.
+
+## Phase log
+- 2026-11-08 plan written; reviewed (Opus REVISE → applied; Fable encodings CHANGE → applied; owner not needed). Verdict SOUND. P4 placeholders, claim-names.yml, npm handoff and ci.yml drafted early (uncommitted).
+
+PR strategy: one PR (waves rule: one PR per unit; CI-cost pass folded in). Risk: P1-P3 complex (solo gates), P4+P5 simple (may batch).
+- 2026-11-08 P1 PASS — Opus verifier (complex phase: public contract shape), 2 rounds. R1 GAPS: no assigner field; fail-soft precedence undefined; UNSPECIFIED enums uncovered; split rules thin; seq reason overlap; duplicate_receipt_id scope; mapping weight row in holdout; casing note; issuer_kid format; unlogged reason codes. R2 all closed. Files: docs/spec/branchpoint-v1.md, docs/mapping.md, proto/, buf.yaml, README.md, CLAUDE.md, DECISIONS.md, ASSUMPTIONS.md (Q9, Q10 added), .gitignore, plans/. Next: P2.

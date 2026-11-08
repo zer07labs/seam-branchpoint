@@ -1,0 +1,173 @@
+// branchpoint.v1 — the neutral wire contract for attested-grade experiments (AS-0).
+//
+// Normative spec: docs/spec/branchpoint-v1.md. Golden vectors: contract/golden/branchpoint/.
+// Field map to seam.event.v1 / AllocationView: docs/mapping.md.
+//
+// IMPORTANT: the proto is the typed schema and the transport envelope. It is NOT the signed form.
+//   * A receipt is signed over "seam.branchpoint.receipt.v1" || JCS(receipt JSON), where the receipt JSON is the
+//     13-key object defined in the spec. It is never protojson of `Receipt` (protojson drops zero values such as
+//     seq = 0 and variant_id = "", and renders uint64 as strings), so `SignedReceipt.canonical` carries the exact
+//     signed bytes and `Receipt` is only a decoded, typed view of them.
+//   * A workload certificate is signed over sha256(body), where body is the framed byte layout in the spec.
+syntax = "proto3";
+
+package branchpoint.v1;
+
+import "google/protobuf/struct.proto";
+
+// How an experiment allocates units. Mirrors BP-7 `.mode` and Allocation trailer field 1.
+enum Mode {
+  MODE_UNSPECIFIED = 0;
+  // Arms own half-open intervals of cumulative weight_bp in arms[] order.
+  MODE_SPLIT = 1;
+  // bucket < budget_bp is held out (caller default); otherwise the single treatment arm.
+  MODE_HOLDOUT = 2;
+}
+
+// Published experiment state (BP-7 `.state`). Draft/Shadow/Concluded/Closed are never published.
+enum State {
+  STATE_UNSPECIFIED = 0;
+  STATE_LIVE = 1;
+  // Kill switch: every evaluation returns the caller default and writes no receipt.
+  STATE_PAUSED = 2;
+}
+
+// Who assigns units for an experiment (attested-sdk.md: exactly one assigner, fixed at Draft).
+enum Assigner {
+  ASSIGNER_UNSPECIFIED = 0;
+  // Assigned inside the runtime (sealed grade). The SDK never assigns it: default, ASSIGNED_BY_RUNTIME.
+  ASSIGNER_RUNTIME = 1;
+  // Assigned by the SDK from this document (attested grade).
+  ASSIGNER_SDK = 2;
+}
+
+// What a variant's payload configures (attested-sdk.md, "variant_kind").
+enum VariantKind {
+  VARIANT_KIND_UNSPECIFIED = 0;
+  VARIANT_KIND_POLICY = 1;
+  VARIANT_KIND_PROMPT = 2;
+  VARIANT_KIND_MODEL = 3;
+  VARIANT_KIND_TOOLSET = 4;
+  VARIANT_KIND_AGENT = 5;
+}
+
+// Evidence grade of an estimate row. String forms (the `evidence_grade` column, flagMetadata) are the lowercase
+// suffixes: "sealed", "bound", "attested", "observational". Rows of different grades never join by unit.
+enum EvidenceGrade {
+  EVIDENCE_GRADE_UNSPECIFIED = 0;
+  // Runtime-assigned; allocation in the sealed Commitment trailer (BP-9).
+  EVIDENCE_GRADE_SEALED = 1;
+  // SDK-assigned, receipt digests sealed into a Seam decision record (AS-7, deferred).
+  EVIDENCE_GRADE_BOUND = 2;
+  // SDK-assigned, receipts signed under a CP-certified workload key and hash-chained.
+  EVIDENCE_GRADE_ATTESTED = 3;
+  // No assignment guarantee (history, ungated rollouts).
+  EVIDENCE_GRADE_OBSERVATIONAL = 4;
+}
+
+// The SDK's view of one experiment, as carried in the signed `branchpoint-sdk` document (AS-1 defines the
+// document; this is the per-experiment shape the SDK evaluates).
+message ExperimentDef {
+  // ULID, ^[0-9A-HJKMNP-TV-Z]{26}$.
+  string experiment_id = 1;
+  // Flag key the OpenFeature provider resolves (experiment key).
+  string key = 2;
+  // Decision point name, when the experiment is bound to one.
+  optional string decision_point = 3;
+  Mode mode = 4;
+  State state = 5;
+  // "bpa1". An unknown value fails soft: default, no receipt (unsupported_bucket_version).
+  string bucket_version = 6;
+  // salt_e, exactly 32 bytes. Absent after Concluded: default, no receipt (salt_absent).
+  optional bytes salt = 7;
+  // hex(sha256(salt_e)[0..4]), 8 lowercase hex.
+  string salt_kid = 8;
+  // Split: the arms, weights summing to 10000. Holdout: exactly one arm (the treatment).
+  repeated Arm arms = 9;
+  // Holdout only: 0..10000; 0 is treated as paused by the SDK (spec, "holdout"). Must be 0 in split.
+  uint32 budget_bp = 10;
+  VariantKind variant_kind = 11;
+  // ASSIGNER_SDK for every experiment the SDK assigns.
+  Assigner assigner = 12;
+}
+
+// One arm of an experiment.
+message Arm {
+  // ^[A-Za-z0-9_.:-]{1,64}$.
+  string variant_id = 1;
+  // 0..10000.
+  uint32 weight_bp = 2;
+  VariantBundle bundle = 3;
+}
+
+// The variant's payload: the OpenFeature object-flag value. Content addressing is computed by the CP (AS-1).
+message VariantBundle {
+  // sha256 hex of the bundle's canonical bytes (defined by AS-1; not golden at AS-0).
+  string content_digest = 1;
+  google.protobuf.Struct payload = 2;
+}
+
+// Typed view of a receipt's 13 signed keys. Decoded from `SignedReceipt.canonical`; never re-serialised to sign.
+message Receipt {
+  // Uppercase Crockford ULID; compared byte-wise.
+  string receipt_id = 1;
+  string experiment_id = 2;
+  // sha256 hex of the signed SDK document bytes (doc_bytes) the evaluation used.
+  string config_digest = 3;
+  // "bpa1".
+  string bucket_version = 4;
+  string salt_kid = 5;
+  // "split" | "holdout".
+  string mode = 6;
+  // Arm id; "" when held out.
+  string variant_id = 7;
+  // Allocation probability in basis points, 1..10000. flagMetadata.propensity = propensity_bp / 10000.
+  uint32 propensity_bp = 8;
+  // hex(HMAC-SHA256(salt_e, "bpa1-tag\n" || unit)[0..16]).
+  string unit_tag = 9;
+  // sha256 hex of the workload certificate body.
+  string cert_digest = 10;
+  // 0-based, per (cert_digest, experiment_id); at most 2^53 - 1.
+  uint64 seq = 11;
+  // Genesis for seq 0, else receipt_hash(seq - 1).
+  string prev_hash = 12;
+  // Unix milliseconds.
+  uint64 evaluated_at = 13;
+}
+
+// A receipt as signed and uploaded.
+message SignedReceipt {
+  // The exact JCS (RFC 8785) bytes of the 13-key receipt object. A verifier re-canonicalises and requires equality.
+  bytes canonical = 1;
+  // Ed25519 (workload key) over "seam.branchpoint.receipt.v1" || canonical. 64 bytes.
+  bytes sig = 2;
+}
+
+// A CP-issued, short-lived certificate for one workload's in-process Ed25519 key.
+message WorkloadCertificate {
+  // The framed certificate body (spec, "workload cert").
+  bytes body = 1;
+  // Ed25519 (CP certificate key) over sha256(body). 64 bytes.
+  bytes sig = 2;
+  // RFC 7638 thumbprint of the CP signing key; selects among pinned CP keys across rotation. Not signed.
+  string issuer_kid = 3;
+}
+
+// An upload: one certificate, the receipts it signed, and any outcomes. Uploaded to the AS-3 collector.
+message ReceiptBatch {
+  WorkloadCertificate cert = 1;
+  repeated SignedReceipt receipts = 2;
+  repeated Outcome outcomes = 3;
+}
+
+// An outcome reported against a receipt. Unsigned in v1 (a signed form is additive). Caps mirror seam-outcome-v2:
+// at most 16 metrics, metric keys at most 63 bytes.
+message Outcome {
+  string receipt_id = 1;
+  string experiment_id = 2;
+  optional double reward = 3;
+  map<string, double> metrics = 4;
+  // Unix milliseconds.
+  optional uint64 observed_at = 5;
+  optional string verified_by = 6;
+}
