@@ -28,3 +28,10 @@ External anchors read (sibling repos, read-only):
 
 PR strategy: one PR (waves rule: one PR per unit; CI-cost pass folded in). Risk: P1-P3 complex (solo gates), P4+P5 simple (may batch).
 - 2026-11-08 P1 PASS — Opus verifier (complex phase: public contract shape), 2 rounds. R1 GAPS: no assigner field; fail-soft precedence undefined; UNSPECIFIED enums uncovered; split rules thin; seq reason overlap; duplicate_receipt_id scope; mapping weight row in holdout; casing note; issuer_kid format; unlogged reason codes. R2 all closed. Files: docs/spec/branchpoint-v1.md, docs/mapping.md, proto/, buf.yaml, README.md, CLAUDE.md, DECISIONS.md, ASSUMPTIONS.md (Q9, Q10 added), .gitignore, plans/. Next: P2.
+- 2026-11-08 P2 PASS. Opus verifier (complex: golden vectors become the hub-pinned contract), 4 rounds.
+  - R1 GAPS: no two-way chain_break golden; no held-out receipt signed; verifier crashed on bad hex/keys; evaluated_at<nb, length overrun and row 8 untested; verify did not recompute chain fields; weak AC1 test; spec strict-JSON and gap-overlap rules; holdout weight; plan drift; spec wrap.
+  - R2: all closed except the wrap; new gap: non-array `receipts` crashed.
+  - R3: closed except hex case (spec lowercase, code accepted upper).
+  - R4: lowercase-only `unhex`, RecursionError → receipt_schema (found by the P3 port).
+  - Files: reference/python/, contract/golden/branchpoint/, docs/spec, DECISIONS, plans/.
+- 2026-11-08 P3 PASS — Opus verifier (complex: cross-language byte identity), 1 round; 43 node:test tests; 5-seed differential fuzz (≈4.5k verifier + 7.5k evaluate cases) zero divergence. Files: reference/ts/{branchpoint_ref.ts,branchpoint_ref.test.ts,package.json}, plans/. Next: P4+P5.

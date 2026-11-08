@@ -176,7 +176,10 @@ ASCII, so no implementation exercises JCS escaping.
 
 ### P3 — TypeScript reference implementation, byte-identity across languages
 - **Risk:** complex
-- **Status:** TODO
+- **Status:** DONE (1 Opus verify round; differential fuzz across ~12k inputs found zero divergence from Python).
+  Divergence: the TS build mirrors the Python builders where bytes must match, so it is not fully independent of
+  P2. JCS and the golden `dump` are hand-written rather than `JSON.stringify`, because JS reorders integer-like
+  keys.
 - **Delivers:** `reference/ts/branchpoint_ref.ts` (zero dependencies: `node:crypto` HMAC/SHA-256/Ed25519, Node ≥ 22.18
   native type stripping, erasable syntax only) with the same `generate`/`--check`/`verify` modes; `node:test` tests.
 - **Depends on:** P2 (the committed vectors are the oracle).
