@@ -1,0 +1,102 @@
+# AS-0 contract gate: buf lint/format/breaking, both reference implementations regenerate the golden vectors
+# byte-identically (--check) and pass their tests, and SHA256SUMS holds. docs/ci-cost.md has the cost rules.
+#
+#   pull_request → runs (one job, seconds of work; one billed minute). Superseded pushes cancel.
+#   merge_group  → `changes` diffs the queue commit against merge_group.base_sha; the suite runs only when a
+#                  contract path changed, and FAILS CLOSED (any diff error, or a failed `changes`, runs it).
+#                  No queue is configured today; this is ready for one. The suite job always reports, so a
+#                  required check is never absent.
+#   push to main → nothing: the PR (or queue) already ran this tree.
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: changes (queue path filter)
+    if: github.event_name == 'merge_group'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 5
+    outputs:
+      relevant: ${{ steps.f.outputs.relevant }}
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - id: f
+        env:
+          BASE: ${{ github.event.merge_group.base_sha }}
+        run: |
+          if ! git fetch --no-tags --depth=1 origin "$BASE" >/dev/null 2>&1 \
+             || ! FILES=$(git diff --name-only "$BASE" HEAD) || [ -z "$FILES" ]; then
+            echo "::warning::could not diff the queue commit against its base — failing CLOSED (running the suite)"
+            echo "relevant=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "$FILES"
+          if grep -qE '^(proto/|buf\.yaml$|buf\.lock$|reference/|contract/|\.github/)' <<< "$FILES"; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  contract:
+    name: contract gate
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (github.event_name != 'merge_group' || needs.changes.result != 'success' || needs.changes.outputs.relevant != 'false')
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1
+        with:
+          version: "1.66.0"
+          github_token: ${{ github.token }}
+      - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.18"
+      - name: buf lint + format
+        run: |
+          buf lint
+          buf format --diff --exit-code
+      - name: buf breaking (against the base branch)
+        env:
+          BASE_REF: ${{ github.base_ref || 'main' }}
+        run: |
+          # A base ref that does not resolve is an error, never a silent skip.
+          git rev-parse --verify --quiet "origin/$BASE_REF^{commit}" >/dev/null \
+            || { echo "::error::base ref origin/$BASE_REF does not resolve"; exit 1; }
+          if [ -n "$(git ls-tree -d --name-only "origin/$BASE_REF" proto)" ]; then
+            buf breaking --against ".git#branch=origin/$BASE_REF"
+          else
+            echo "::notice::base origin/$BASE_REF has no proto/ — first contract PR, breaking check has nothing to compare"
+          fi
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+      - name: golden SHA256SUMS
+        working-directory: contract/golden/branchpoint
+        run: sha256sum --check --strict SHA256SUMS
+      - name: Python reference — regenerate (--check) + tests
+        run: |
+          uv run --script reference/python/branchpoint_ref.py --check
+          uv run --script reference/python/test_branchpoint_ref.py
+      - name: TypeScript reference — regenerate (--check) + tests
+        run: |
+          node reference/ts/branchpoint_ref.ts --check
+          node --test reference/ts/branchpoint_ref.test.ts

@@ -1,0 +1,67 @@
+# Publishes the 0.0.0 name-reservation placeholders (AS-0 P4). Dispatch only, from main.
+# The token is an org secret; it is never echoed. No code ships in either package.
+name: claim-names
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Registry to claim on"
+        required: true
+        type: choice
+        options: [pypi, npm]
+permissions:
+  contents: read
+concurrency:
+  group: claim-names-${{ inputs.target }}
+  cancel-in-progress: false
+jobs:
+  ref-guard:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 2
+    steps:
+      - name: Refuse a dispatch from any ref but main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then echo "::error::claim-names must be dispatched from main (got $REF)"; exit 1; fi
+  pypi:
+    needs: ref-guard
+    if: inputs.target == 'pypi'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+      - name: Refuse if the name already has a release
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://pypi.org/pypi/seam-branchpoint/json)
+          if [ "$code" = "200" ]; then echo "seam-branchpoint already exists on PyPI; nothing to claim"; exit 1; fi
+          if [ "$code" != "404" ]; then echo "::error::PyPI lookup returned $code; cannot tell whether the name is free"; exit 1; fi
+      - name: Build
+        working-directory: placeholders/python
+        run: uv build --out-dir dist
+      - name: Publish
+        working-directory: placeholders/python
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish dist/*
+  npm:
+    needs: ref-guard
+    if: inputs.target == 'npm'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: Refuse if the name already has a release
+        run: |
+          if npm view @zer07labs/seam-branchpoint version >/dev/null 2>&1; then
+            echo "@zer07labs/seam-branchpoint already exists on npm; nothing to claim"; exit 1; fi
+      - name: Publish
+        working-directory: placeholders/npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

@@ -1,0 +1,26 @@
+{
+  "salt_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "salt_kid": "630dcd29",
+  "tags": [
+    {
+      "unit": "subj-a",
+      "unit_tag": "f03df0d622c4111ce1ed13bee670f8c2",
+      "unit_utf8_hex": "7375626a2d61"
+    },
+    {
+      "unit": "subj-b",
+      "unit_tag": "4d764250f72d69320252aed42be450be",
+      "unit_utf8_hex": "7375626a2d62"
+    },
+    {
+      "unit": "dec:t-golden:s1",
+      "unit_tag": "df3ce1e48bf22bf54171b488f3ad0b61",
+      "unit_utf8_hex": "6465633a742d676f6c64656e3a7331"
+    },
+    {
+      "unit": "ünit-ß",
+      "unit_tag": "e11765b358301c560837294760e5a77d",
+      "unit_utf8_hex": "c3bc6e69742dc39f"
+    }
+  ]
+}

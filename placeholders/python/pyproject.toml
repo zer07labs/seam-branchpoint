@@ -1,0 +1,16 @@
+# Name reservation only (D15.1 as amended, AS-0). No code. The real SDK ships at AS-2 from this repo.
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "seam-branchpoint"
+version = "0.0.0"
+description = "Reserved name for the Seam Branchpoint SDK (attested experiments for AI decisions). No code yet."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+classifiers = ["Development Status :: 1 - Planning"]
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
