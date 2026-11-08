@@ -35,3 +35,12 @@ PR strategy: one PR (waves rule: one PR per unit; CI-cost pass folded in). Risk:
   - R4: lowercase-only `unhex`, RecursionError → receipt_schema (found by the P3 port).
   - Files: reference/python/, contract/golden/branchpoint/, docs/spec, DECISIONS, plans/.
 - 2026-11-08 P3 PASS — Opus verifier (complex: cross-language byte identity), 1 round; 43 node:test tests; 5-seed differential fuzz (≈4.5k verifier + 7.5k evaluate cases) zero divergence. Files: reference/ts/{branchpoint_ref.ts,branchpoint_ref.test.ts,package.json}, plans/. Next: P4+P5.
+- 2026-11-08 P4+P5 implemented (simple, batched gate). BSR module private, verified anonymously.
+  - AWAITING-HUMAN: scripts/handoff/2026-11-08-npm-org-claim.sh — needs the npm org `@zer07labs` and the `NPM_TOKEN` org secret; only the owner holds the npm account.
+  - POST-MERGE: pypi-claim — dispatch `claim-names` with target=pypi from main, then check that PyPI serves seam-branchpoint 0.0.0.
+- 2026-11-08 P4 PASS + P5 PASS (AC1 waits on the PR's CI). One Opus verifier with separate verdicts, because both phases are simple and were batched; 2 rounds.
+  - R1 P4: claim-names did not refuse a non-main ref; the handoff did not follow the lib.sh template; racy run id; secret visibility check too narrow.
+  - R1 P5: status said DONE before CI; no CLAUDE.md pointer; actionlint not in CI; an unresolved base ref passed silently; buf unpinned.
+  - R2: all closed.
+  - Files: .github/{workflows/ci.yml,workflows/claim-names.yml,actionlint.yaml}, placeholders/, scripts/handoff/, docs/ci-cost.md, docs/handoff/w3-hub-pin.md, CLAUDE.md, plans/.
+  - Next: finalization.

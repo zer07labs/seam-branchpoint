@@ -194,7 +194,8 @@ ASCII, so no implementation exercises JCS escaping.
 
 ### P4 — Claim the names (BSR, PyPI, npm)  — `human-run: partial`
 - **Risk:** simple
-- **Status:** TODO
+- **Status:** DONE. BSR module created private (an anonymous `module info` returns not-found). The PyPI claim is
+  post-merge (`POST-MERGE: pypi-claim`), and npm is the `AWAITING-HUMAN` handoff, whose dry-run reports the missing org, secret and workflow on main.
 - **Delivers:** BSR module `buf.build/zer07labs/branchpoint` created **private**; placeholder packages (no code)
   under `placeholders/`; `.github/workflows/claim-names.yml` (`workflow_dispatch`, input `target: pypi|npm`) that
   builds and publishes the 0.0.0 placeholder with the org secret (agent never reads a token); PyPI claim dispatched
@@ -220,7 +221,7 @@ ASCII, so no implementation exercises JCS escaping.
 
 ### P5 — CI (with the CI-cost pass) + W3 hub-pin handoff
 - **Risk:** simple
-- **Status:** TODO
+- **Status:** DONE pending AC1 (CI green), which only the PR's own run can show. The baseline is zero, because the repo had no runs and the billing endpoint returns 410.
 - **Delivers:** `.github/workflows/ci.yml`: one job on `blacksmith-2vcpu-ubuntu-2404` running buf lint/format/breaking,
   Python `--check` + tests, TS `--check` + tests, `SHA256SUMS`. Triggers `pull_request`, `merge_group`,
   `workflow_dispatch` (no push-to-main run); concurrency `cancel-in-progress` on PRs; a `merge_group` path filter on

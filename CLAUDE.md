@@ -21,6 +21,8 @@ Regenerate vectors (only for a deliberate contract change): `uv run --script ref
 generate`, then `--check` in TS must pass unchanged, then update `SHA256SUMS` and hand the new sha256s to the hub
 (`seam/contract/golden-manifest.json` is canonical once pinned; see `docs/handoff/w3-hub-pin.md`).
 
+CI runs the same gate as one job on the smallest runner; cost rules and the before/after are in `docs/ci-cost.md`.
+
 ## Gotchas
 
 - The signed receipt is JCS of the 13-key object in the spec — never protojson of `Receipt`.

@@ -1,0 +1,8 @@
+{
+  "name": "@zer07labs/seam-branchpoint",
+  "version": "0.0.0",
+  "description": "Reserved name for the Seam Branchpoint SDK (attested experiments for AI decisions). No code yet.",
+  "license": "Apache-2.0",
+  "files": ["README.md"],
+  "publishConfig": { "access": "public" }
+}
