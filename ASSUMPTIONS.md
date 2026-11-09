@@ -177,8 +177,8 @@ None of these reach the wire. SDK reasons beyond the spec table: `assigned`, `no
 `flag_not_found`, `internal_error` (`chain_exhausted`, `invalid_unit`, `config_unavailable` are spec). Certificate
 failures `cert_pk_mismatch|cert_subject_mismatch|cert_not_current|cert_malformed|superseded|closed`; a non-200 CP
 answer is reported per the R10.7 vector (`http_<status>`); every refused document is fetch-failure `unverified` with
-the reason in `document_refusal`. The `stats()` key list is pinned in both READMEs (TS adds only
-`receipts_dropped_error`/`outcomes_dropped_error`: TS drops-and-counts a batch whose signing throws, Python retries).
+the reason in `document_refusal`. The `stats()` key list is pinned in both READMEs and is identical, including
+`receipts_dropped_error`/`outcomes_dropped_error`: both SDKs drop and count a batch whose build or signing throws.
 Behaviours: one workload key per client, reused on renewal; outcomes route to their certificate by receipt-id range
 plus a bounded late set (32 certificates, 24 h); an outcome for an unknown receipt is dropped locally and counted;
 a pump sends at most 4 batches and `flush()` only what was buffered at its start; 1/10 of each batch is reserved for
@@ -195,3 +195,16 @@ never followed (uploads retry as `http_3xx`; CP routes fail as `redirect_refused
 (`*_dropped_error`) rather than retried, which would wedge the queue; Python now does the same. `If-None-Match` carries the raw
 digest per R10.6. `evaluate()` during `close()` stays attested until the final pass; those receipts are uploaded or
 counted, never silently lost.
+
+## AS2-Q24 — OpenFeature provider + OTel hook choices (Python P4, TS P7)
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+Both providers map `internal_error` to ERROR/GENERAL. The plan put it with DEFAULT, but an SDK fault is not a missing-config
+fail-soft, and operators should see it as an error. A typed (non-object) getter is ERROR/TYPE_MISMATCH with metadata
+`bp_reason: "type_mismatch"` and never evaluates, so it uses no seq and writes no receipt. The hook emits once per
+evaluation in the `finally` stage (Python `finally_after`), not in `after`/`error`, so SDK-level errors also produce exactly
+one event. Attributes are the plan's set plus `error.type`, with `feature_flag.result.reason` lowercased per OTel semconv;
+any value equal to the targeting key is dropped as a second guard. A boot timeout fails `initialize` with the SDK's
+not-ready error (status ERROR), and READY follows on the first verified document. Python is driven by a client listener API
+(`add_listener`); TS polls state on an unref'd 1 s interval, so CONFIGURATION_CHANGED is coalesced per interval. Floors:
+Python `openfeature-sdk>=0.8.1` (0.8.0 drops `flag_metadata` on error results), `opentelemetry-api>=1.0`; in TS both
+OpenFeature and OTel are optional peers.

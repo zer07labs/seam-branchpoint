@@ -1,4 +1,5 @@
-// Static guarantees: no import of the reference implementations, src imports only node:crypto and local modules,
+// Static guarantees: no import of the reference implementations, src imports only node:crypto and local modules (the
+// openfeature subpath adds only its peer),
 // zero runtime dependencies, and importing the package does no network, process or timer work.
 
 import assert from "node:assert/strict";
@@ -34,6 +35,32 @@ describe("static", () => {
   test("src imports only node:crypto and local .ts modules", () => {
     for (const f of files("src")) {
       for (const s of specifiers(f)) assert.ok(s === "node:crypto" || /^\.\/[a-z]+\.ts$/.test(s), `${f}: ${s}`);
+    }
+  });
+
+  test("src/openfeature imports only @openfeature/server-sdk and the core's local modules; the core never imports it", () => {
+    for (const f of files("src/openfeature")) {
+      for (const s of specifiers(f)) assert.ok(s === "@openfeature/server-sdk" || /^\.\.\/[a-z]+\.ts$/.test(s), `${f}: ${s}`);
+    }
+    for (const f of files("src")) {
+      for (const s of specifiers(f)) assert.ok(!/openfeature|otel/.test(s), `${f}: ${s}`);
+    }
+    // otel.ts reaches @opentelemetry/api only through its guarded lazy import (a variable specifier)
+    assert.match(readFileSync(join(SDK_DIR, "src", "otel.ts"), "utf8"), /const OTEL_API = "@opentelemetry\/api";/);
+  });
+
+  test("package.json: the ./openfeature export and its peers (OpenFeature and OTel both optional)", () => {
+    const pkg = JSON.parse(readFileSync(join(SDK_DIR, "package.json"), "utf8"));
+    assert.deepEqual(pkg.exports["./openfeature"], { types: "./dist/openfeature/index.d.ts",
+      default: "./dist/openfeature/index.js" });
+    assert.ok(pkg.peerDependencies["@openfeature/server-sdk"]);
+    assert.ok(pkg.peerDependencies["@opentelemetry/api"]);
+    assert.deepEqual(pkg.peerDependenciesMeta, {
+    "@openfeature/server-sdk": { optional: true },
+    "@opentelemetry/api": { optional: true },
+  });
+    for (const d of ["@openfeature/server-sdk", "@opentelemetry/api", "@opentelemetry/sdk-trace-base"]) {
+      assert.match(pkg.devDependencies[d], /^\d+\.\d+\.\d+$/, `${d} is pinned exactly`);
     }
   });
 

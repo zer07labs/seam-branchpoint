@@ -5,8 +5,11 @@ Attested-grade experiment assignment primitives for `branchpoint.v1`. The spec i
 The package is ESM only, needs Node >= 22, and has **zero runtime dependencies**: it uses `node:crypto` and nothing else.
 Importing it does no network, process or timer work.
 
-Status: AS-2 P6 (core primitives + `BranchpointClient`). The OpenFeature provider (`./openfeature` export) arrives in
-P7. Until then the package exports `"."` only.
+Status: AS-2 P7 (core primitives, `BranchpointClient`, and the OpenFeature provider + OTel hook). The package exports
+`"."` (the core: zero runtime dependencies, never imports OpenFeature or OTel) and `"./openfeature"` (the provider; peer
+`@openfeature/server-sdk` >= 1.17, tested on 1.17.0 and 1.23.0, and peer `@opentelemetry/api` >= 1.3). Both peers are
+optional (`peerDependenciesMeta`), so a core-only install pulls neither; install `@openfeature/server-sdk` to use
+`./openfeature`.
 
 ## Build and test
 
@@ -34,6 +37,7 @@ implementations under `reference/`.
 | `client` | `BranchpointClient`: the verified document cache, the workload certificate, chain state, the uploader and outcome reporting. See below. |
 | `transport` | The `Transport` interface (one method per route; the collector method has no token parameter) and `HttpTransport` (global `fetch`, `AbortSignal.timeout`, `redirect: "error"`, TLS only, capped bodies). `TransportError` carries a route and a kind (`timeout`, `network`, `tls`, `protocol`, `redirect`), never a URL, header or body. |
 | `uploader` | The bounded buffer, overflow spans, signing at flush, batching by certificate, §9.1 answer handling, full-jitter backoff. Used by the client; exported for tests. |
+| `openfeature` (subpath export) | `BranchpointProvider` (server SDK), `BranchpointOtelHook`, `toResolution`, `MetadataKey`, `EventAttribute`. See [OpenFeature provider](#openfeature-provider-zer07labsseam-branchpointopenfeature). |
 | `wire` | Shared primitives: strict JSON (duplicates refused, floats tagged, null-prototype objects), JCS, hashing, Ed25519 helpers, `toMicros` and `UlidGenerator`. |
 
 Clocks and randomness can be injected (`SdkKey`'s `now` and `randomFill` options, `UlidGenerator`'s), so tests are
@@ -170,3 +174,95 @@ Each worker thread or `cluster` worker constructs its own client: there is no st
 gets its own workload key, certificate and chain scopes. For tests, `src/fake.ts` (not exported from the package
 index) provides `FakeCP`, `FakeCollector` and `FakeTransport`, which serve signed documents and certificates and check
 uploads against the stateful half of §6.
+
+## OpenFeature provider (`@zer07labs/seam-branchpoint/openfeature`)
+
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { BranchpointProvider } from "@zer07labs/seam-branchpoint/openfeature";
+
+const provider = new BranchpointProvider(client);   // the provider owns the client from here on (one provider per client)
+await OpenFeature.setProviderAndWait(provider);     // starts the client; waits up to bootTimeoutMs for a document
+const of = OpenFeature.getClient();
+
+const d = await of.getObjectDetails("checkout", defaultPolicy, { targetingKey: userId });
+// d.value: the arm's bundle payload (or your default); d.variant; d.flagMetadata.receipt_id when attested
+if (d.flagMetadata.receipt_id) provider.client.reportOutcome(String(d.flagMetadata.receipt_id),
+  String(d.flagMetadata.experiment_id), { reward: 1 });
+
+await OpenFeature.close();                          // onClose -> client.close(), exactly once
+```
+
+Experiments are object bundles, so resolve them with `getObjectValue`/`getObjectDetails`. The boolean, string and
+number resolvers return the default with `ERROR`/`TYPE_MISMATCH` (`bp_reason: "type_mismatch"`) **without evaluating**,
+so a wrongly typed call consumes no seq and writes no receipt. `targetingKey` is the unit; a missing or non-string one
+takes the core's `empty_unit` path (the default, no exception). Resolution calls the synchronous `evaluate()`: zero
+network and no signing, exactly as through the client. The receipt is written by the core inside `evaluate()`, not by
+a hook, so `receipt_id` is already in `flagMetadata` at resolve time.
+
+### Reason mapping
+
+| Client `reason` | `outcome` | OpenFeature `reason` | `errorCode` | `value` | `variant` |
+|---|---|---|---|---|---|
+| `assigned` | variant / held_out | `SPLIT` | — | bundle payload / default when held out | variant id / absent when held out |
+| `no_certificate`, `receipt_dropped`, `chain_exhausted` | variant / held_out | `SPLIT` | — | as above | as above |
+| `paused` (incl. an experiment with every weight 0) | default | `DISABLED` | — | default | absent |
+| `flag_not_found` | default | `ERROR` | `FLAG_NOT_FOUND` | default | absent |
+| `internal_error` | default | `ERROR` | `GENERAL` | default | absent |
+| `config_unavailable`, `ASSIGNED_BY_RUNTIME`, `unsupported_bucket_version`, `salt_absent`, `config_invalid`, `empty_unit`, `invalid_unit`, any future reason | default | `DEFAULT` | — | default | absent |
+| (typed resolver: boolean / string / number) | not evaluated | `ERROR` | `TYPE_MISMATCH` | default | absent |
+
+For an `ERROR` row the OpenFeature SDK keeps the provider's `flagMetadata` but drops `variant`.
+
+### `flagMetadata` keys (the same as the Python provider)
+
+| Key | Present when |
+|---|---|
+| `bp_reason` | Always: the client `reason` above (`type_mismatch` for a typed resolver). |
+| `experiment_id` | The experiment was found. |
+| `variant_id` | An assignment was served: the variant id, `""` when held out. |
+| `propensity` | An assignment was served: `propensityBp / 10000` (the budget for a held-out unit). |
+| `receipt_id`, `evidence_grade` (`"attested"`) | A receipt was written (`assigned` only). |
+
+`flagMetadata` is built from the evaluation result alone and never contains the targeting key or the unit.
+
+### Provider lifecycle and events
+
+- `initialize()` starts the client and waits up to `bootTimeoutMs` (default 5 000) for the first verified document.
+  Without one it rejects with the SDK's `ProviderNotReadyError` (`errorCode` `PROVIDER_NOT_READY`, as in Python): the
+  SDK marks the provider `ERROR`, evaluations keep returning fail-soft defaults (`config_unavailable`), and
+  `PROVIDER_READY` follows once a document verifies. A rejected `initialize()` is not cached, so a later call retries.
+  The boot wait holds the event loop open, so a top-level `await OpenFeature.setProviderAndWait(provider)` rejects after
+  `bootTimeoutMs` instead of letting the process exit mid-boot.
+- One provider per client: the provider owns its client, and wrapping a client that another `BranchpointProvider`
+  already wraps throws a `TypeError` in the constructor. Create one client per provider.
+- After `onClose()` the provider cannot be reused: `initialize()` rejects with `ProviderFatalError` (the SDK reports
+  `FATAL`). Build a new client and provider instead.
+- Every `stateCheckIntervalMs` (default 1 000, an `unref()`ed timer; `checkState()` runs it now) the provider compares
+  document state: `PROVIDER_STALE` when the cache goes stale, `PROVIDER_READY` when it is fresh again, and
+  `PROVIDER_CONFIGURATION_CHANGED` when the document version has advanced. Events are coalesced per check: several
+  document versions that land within one interval produce a single `PROVIDER_CONFIGURATION_CHANGED`.
+- `onClose()` stops the timer and calls `client.close(closeTimeoutMs)` exactly once (repeated calls, `OpenFeature.close()`
+  and provider replacement share one promise).
+
+### OTel hook
+
+The provider registers `BranchpointOtelHook` as a provider hook (`{ otel: false }` turns it off; it can also be added
+at API or client level). In the `finally` stage it adds one `feature_flag.evaluation` event to
+`trace.getActiveSpan()`, so every evaluation, errors included, gets exactly one event:
+
+| Attribute | Value |
+|---|---|
+| `feature_flag.key` | The flag key. |
+| `feature_flag.provider.name` | `seam-branchpoint` |
+| `feature_flag.result.reason` | The OpenFeature reason, lower case (`split`, `disabled`, `default`, `error`). |
+| `feature_flag.result.variant` | When a variant was served. |
+| `error.type` | On an error: the lower-case error code (`flag_not_found`, `type_mismatch`, `general`, …). |
+| `seam.branchpoint.experiment_id`, `seam.branchpoint.receipt_id`, `seam.branchpoint.evidence_grade` | From `flagMetadata`, when present. |
+
+It never emits `feature_flag.context.id` or the targeting key, and as a second guard it drops any attribute equal to
+the targeting key. `@opentelemetry/api` is loaded lazily through a guarded dynamic `import()`. The specifier is a
+variable, so bundlers do not inline it: a fully bundled app shipped without `node_modules` gets no OTel events (the
+hook silently does nothing). Keep `@opentelemetry/api` external, as a runtime dependency, if you bundle. Without it, or without an
+active span, the hook does nothing, and an exception inside it never changes the flag result. Spans need a context
+manager (for example `@opentelemetry/context-async-hooks`) for `getActiveSpan()` to see the caller's span.
