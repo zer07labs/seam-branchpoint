@@ -31,3 +31,4 @@ PR strategy: one draft PR (CHARTER: one PR per unit; phases are commits). Risk: 
 | plan  | DONE | 2 review rounds (REVISE→applied) | – | plans/as-2-sdk.md |
 | P0 | DONE | 1 | (this commit) | vendored manifest + gate; tamper test fails as expected |
 | P1 | DONE | 3 | (this commit) | Opus verify, solo (contract one-way door, complex). R1 GAPS: malformed 200, unauthenticated outcomes, dropped key, R8.1 negatives, bad-outcome blast radius, tenant grammar, CP dispositions. R2 GAPS: outcome scale vs the proto double, domain table, unique receipt ids. R3 PASS. AS2-Q1a–Q17 UNCONFIRMED. Next: P2 ∥ P5 |
+| P2 | DONE | 3 | (this commit) | Opus verify, solo (complex: SDK foundation). R1 GAPS: inline signing vs sign-at-flush, ULID not thread-safe, append trusted its inputs, self-referential batch test, row 7/8 order, untyped pinned-key error. R2 GAPS: an injected ULID was not grammar-checked. R3 PASS. 477 tests (py3.11 + 3.14). AS2-Q18–Q20 |

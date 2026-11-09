@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "seam-branchpoint"
+version = "0.1.0.dev0"
+description = "Seam Branchpoint SDK: attested-grade experiments for AI decisions (local bpa1 assignment, signed hash-chained receipts)."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = ["cryptography>=50.0.2"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3",
+  "Typing :: Typed",
+]
+
+[dependency-groups]
+dev = ["pytest>=9.0", "hypothesis>=6.150"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/seam_branchpoint"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"

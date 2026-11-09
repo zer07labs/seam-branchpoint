@@ -205,7 +205,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** spec, mapping, `docs/handoff/w3-hub-pin.md` (one line: the sdk group pins later).
 
 ### P2 — Python core primitives
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 3 rounds. Diverged: signing is split from `ChainState.append` (`append` returns an unsigned record under one lock; `sign_receipt` signs at flush), the chain is a thread-safe multi-scope manager that validates its inputs, typed `ConfigError`/`TokenInputError`, and a `to_micros` primitive with a shared table (AS2-Q18–Q20). Extra files: `py.typed`, `conftest`, `_fakes`, `test_auth`, `test_import`, `micros_table.json`.
 - **Risk:** complex
 - **Delivers:** `sdk/python` package with pure, stateless primitives that reproduce **every** AS-0 vector and the P1
   vectors byte for byte.

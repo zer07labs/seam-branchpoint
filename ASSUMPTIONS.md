@@ -146,3 +146,20 @@ CP `{"error"}` body. Assumes AS-1 keeps the `machine-auth.ts` codes for `bk_…`
 ## AS2-Q17 — A malformed collector 200 is retried, never accepted
 Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
 Risks a retry loop against a persistently broken collector; bounded by the normal backoff and buffer overflow (`dropped`).
+
+## AS2-Q18 — `to_micros` rounds the shortest decimal form of the number
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+`round_half_even(Decimal(repr(x)) × 10^6)` in Python and the same over `String(x)` in TS, so both SDKs agree; 8 table
+rows differ from `round(x*1e6)`. −0 → 0; NaN/±inf and |x| > (2^53−1)/10^6 refused. Shared table:
+`sdk/python/tests/micros_table.json`.
+
+## AS2-Q19 — ULID random-part overflow advances one logical millisecond
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+Instead of waiting for the next wall millisecond (which would block a synchronous evaluate). Probability ~2^-80 per ms;
+the spec never ties the ULID time to `evaluated_at`.
+
+## AS2-Q20 — SDK-internal order and bounds choices
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+`invalid_unit` (lone surrogate) is checked right after `empty_unit`; a receipt at seq 2^53−1 is written, then the scope
+returns `chain_exhausted`; `cryptography>=50.0.2`; token `aud` is 1–256 visible ASCII without `"` or `\` and `kid` ASCII
+(both SDKs refuse others with `TokenInputError`, since JSON escaping differs across languages).
