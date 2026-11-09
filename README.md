@@ -4,7 +4,8 @@ The neutral `branchpoint.v1` contract and, from AS-2, the SDK cores and OpenFeat
 experiments**: the SDK assigns variants locally (`bpa1` buckets over a CP-signed config) and writes Ed25519-signed,
 hash-chained receipts that the Seam collector verifies.
 
-> **Private until AS-2.** This repository holds the contract and golden vectors only (AS-0). No SDK code yet.
+> **Private until the first release.** AS-0 landed the contract and golden vectors; AS-2 adds the SDK cores and
+> OpenFeature providers (`sdk/python`, `sdk/ts`). Not yet published to PyPI or npm.
 
 ## Names (D15.1)
 
@@ -14,7 +15,7 @@ hash-chained receipts that the Seam collector verifies.
 | npm | `@zer07labs/seam-branchpoint` | 0.0.0 placeholder, no code |
 | Buf (BSR) | `buf.build/zer07labs/branchpoint` | module `branchpoint.v1` |
 
-OpenFeature providers will ship as `seam_branchpoint.openfeature` and `@zer07labs/seam-branchpoint/openfeature`.
+The OpenFeature providers ship as `seam_branchpoint.openfeature` and `@zer07labs/seam-branchpoint/openfeature`.
 
 ## Document versions each SDK release reads (J1-R3)
 
@@ -34,6 +35,10 @@ Every release's notes repeat its row.
 | [`docs/mapping.md`](docs/mapping.md) | field map to `seam.event.v1` and the sealed Allocation trailer |
 | [`contract/golden/branchpoint/`](contract/golden/branchpoint/) | golden vectors shared by every SDK and the collector |
 | `reference/python`, `reference/ts` | independent reference implementations that regenerate the vectors byte-identically |
+| [`contract/golden/branchpoint-sdk/`](contract/golden/branchpoint-sdk/) | golden vectors for the §8–§10 SDK wires |
+| [`sdk/python`](sdk/python/README.md), [`sdk/ts`](sdk/ts/README.md) | the SDKs: client, uploader, OpenFeature provider, OTel hook |
+| [`docs/sdk/overview.md`](docs/sdk/overview.md) | SDK architecture: evaluate path vs background worker, failure semantics, privacy |
+| `tests/conformance/` | cross-SDK conformance: identical receipt bytes, uploads verify against the reference |
 
 ## License
 

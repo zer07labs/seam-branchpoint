@@ -16,6 +16,11 @@ import { SDK_DIR } from "./_golden.ts";
 import { EID, harness, tick, units } from "./_harness.ts";
 import { normalize, verifyBatches } from "./_verifier.ts";
 
+// The client's background timers are unref()ed by design, so a test awaiting a fake transport that only those
+// timers drive would let Node 22 end the event loop and cancel it. One ref'd handle keeps the file alive.
+const keepAlive = setInterval(() => {}, 1 << 30);
+after(() => clearInterval(keepAlive));
+
 const unhandled: unknown[] = [];
 const onUnhandled = (e: unknown): void => {
   unhandled.push(e);

@@ -102,6 +102,8 @@ export interface ClientOptions {
   logger?: Logger;
   /** Chain state to use (tests: a scope seeded near the seq limit). Default: a fresh one. */
   chain?: ChainState;
+  /** The client's one workload key (tests and conformance: a fixed seed). Default: a fresh random key. */
+  keyFactory?: () => WorkloadKey;
 }
 
 export interface ClientStats extends UploaderStats {
@@ -221,7 +223,7 @@ export class BranchpointClient {
     this.#flushAt = posInt("flushAt", o.flushAt ?? DEFAULT_FLUSH_AT);
     this.#backoffBase = o.backoffBaseMs ?? 500;
     this.#backoffCap = o.backoffCapMs ?? 60_000;
-    this.#key = WorkloadKey.generate(); // one key per client lifetime; never serialised or logged
+    this.#key = (o.keyFactory ?? WorkloadKey.generate)(); // one key per client lifetime; never serialised or logged
     const wall = (): number => {
       const t = Math.floor(this.#now());
       return Number.isSafeInteger(t) && t >= 0 ? t : Date.now();
@@ -382,8 +384,9 @@ export class BranchpointClient {
     this.#closing = (async () => {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const limit = new Promise<void>((res) => {
+        // Ref'd on purpose: a caller awaiting close() must see it settle within timeoutMs, even when nothing else
+        // (a hanging collector, a fake transport) holds the event loop open. It is cleared as soon as close settles.
         timer = setTimeout(res, Math.max(0, Math.min(timeoutMs, MAX_TIMER_MS)));
-        timer.unref();
       });
       // Exactly one final attempt: wait for a send in flight to settle, then one forced pass (stops at a failure).
       const once = (async () => {

@@ -428,7 +428,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** `sdk/ts/README.md`.
 
 ### P7 — TypeScript OpenFeature provider + OTel hook
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 2 rounds (9fce1e6). Diverged: both peers optional (server-sdk ^1.17.0, tested on 1.17.0 and 1.23.0); a provider owns its client; boot timeout raises the SDK's `ProviderNotReadyError`; state is polled on an unref'd 1 s check (AS2-Q24).
 - **Risk:** complex
 - **Delivers:** `@zer07labs/seam-branchpoint/openfeature`: `BranchpointProvider` (server SDK) + OTel hook.
 - **Depends on:** P6
@@ -444,7 +444,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** `sdk/ts/README.md`.
 
 ### P8 — CI, cross-language conformance, docs
-- **Status:** TODO
+- **Status:** DONE — Opus verify GAPS then fixed. Diverged: the conformance document is built from the golden SDK document plus AS-0 layouts L1–L14; receipts are compared by id (whole batch bodies differ only where timing differs); the TS client gained `keyFactory` (Python's `key_factory`) so conformance seeds the workload key; the verify found the TS suite cancelled on Node 22.18 (unref'd timers), fixed by a ref'd `close()` deadline and a test keep-alive.
 - **Risk:** complex
 - **Delivers:** the SDK suites in the gate, a cross-SDK conformance test, repo docs and commands.
 - **Depends on:** P0, P4, P7

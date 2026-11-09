@@ -156,3 +156,19 @@ case is asserted by `SdkDocument.test_every_case_has_its_named_outcome`.
 
 The whole group is pinned by `SdkGolden.test_sdk_group_bytes_match_generator` and `test_check_sdk_detects_one_byte_edit`,
 and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the AS-0 files still equal their hub-manifest sha256s.
+
+## AS-2 SDKs (2026-11-08, Opus)
+- **One PR, phase commits.** The SDK cores, clients and providers share one wire contract and land together; each
+  phase was verified by a fresh Opus agent before its commit (PROGRESS.md has the trail).
+- **Signing at flush, not at evaluate.** Evaluate builds the receipt and links the chain; each receipt's Ed25519
+  signature and the batch signature are made at send time. This keeps p99 evaluate under 50 µs; evaluate does only
+  HMACs and a SHA-256 chain hash.
+- **A batch that cannot be built or signed is dropped into declared gaps, never retried forever.** Retrying an
+  unbuildable batch wedged the Python queue (found by the P6 verifier). Both SDKs now turn its receipts into `dropped`
+  spans (the collector sees the matching gap), count them in `*_dropped_error`, and back off; a persistent streak
+  logs one static warning.
+- **The SDKs are interchangeable by construction.** `stats()` keys, SDK-local reason names, OpenFeature mapping and
+  `flag_metadata` keys are identical and pinned in both READMEs; the conformance script checks that both SDKs produce
+  identical evaluations and receipt bytes.
+- **CI stays one job** (the AS-0 cost rule): the SDK suites and conformance are steps in the existing job, and the
+  merge-queue filter adds `sdk/` and `tests/`, still failing closed (docs/ci-cost.md).

@@ -109,6 +109,7 @@ immutable snapshot swapped by reference, chain state needs no lock, and receipts
 | `receiptIndexSize` | max(100 000, `maxReceipts`) | Receipt id → certificate entries kept, so an outcome travels under its receipt's certificate after renewal. Must be ≥ `maxReceipts` (`RangeError`). An outcome for a receipt that is no longer indexed (or never buffered, or whose certificate was released: at most 32 replaced certificates are kept) is dropped and counted in `outcomes_unknown_receipt_dropped`; `reportOutcome` returns `false`. |
 | `now` / `monotonic` / `random` | `Date.now` / `performance.now` / `Math.random` | Injectable for tests. A non-finite `now` fails closed: stale and unattested. |
 | `logger` | `console.warn` | Rate-limited (one line per kind per minute) state-change warnings. Lines carry no URL, key, token, tenant or unit. |
+| `chain` / `keyFactory` | fresh | Injectable chain state and the client's one workload key (tests, conformance; Python `key_factory`). |
 
 ### Failure semantics
 
