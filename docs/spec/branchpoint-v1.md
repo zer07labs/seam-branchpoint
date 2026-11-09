@@ -360,7 +360,7 @@ plus `outcomes`, `dropped` and `batch_sig_hex`.
   and whose values are integers in the same range), `observed_at` (integer `0 ..= 2^53−1`) and `verified_by`
   (`[A-Za-z0-9_.:/-]{1,128}`). A JSON number with a fraction or exponent is refused even when integral (`1.0`, `1e0`);
   `reward` and metric values are **micro-units**: the wire integer is the measure × 10^6 (the SDK API takes a
-  number and sends `round_half_even(x × 10^6)`); a consumer maps it to the `double` in `branchpoint.v1 Outcome` and
+  number and sends `round_half_even(x × 10^6)`, with `x` read as the exact decimal of its shortest round-trip form (Python `repr`, JS `String`) so every language agrees; −0 → 0, and a non-finite or out-of-range value is refused); a consumer maps it to the `double` in `branchpoint.v1 Outcome` and
   `LearningOutcome` as `wire / 10^6`. One fixed scale, never caller-chosen, so every consumer reads the same value. A batch with an invalid outcome fails R9.1. The SDK
   checks each recorded outcome against R9.4 and drops an invalid one before batching, counting it in `stats()`
   (`outcomes_invalid_dropped`), so one bad outcome never refuses a batch of good receipts.

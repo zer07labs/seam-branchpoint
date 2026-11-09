@@ -172,3 +172,46 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the AS
   identical evaluations and receipt bytes.
 - **CI stays one job** (the AS-0 cost rule): the SDK suites and conformance are steps in the existing job, and the
   merge-queue filter adds `sdk/` and `tests/`, still failing closed (docs/ci-cost.md).
+
+### AS-2 reconcile of AS2-Q1a–Q25 (2026-11-08)
+Q1a–Q17 are wire and contract shapes (§8–§10), and Fable analyzed them. Q18–Q25 are SDK-internal, and Opus analyzed them. Opus
+decided all 26: the branchpoint-sdk group is unpinned until after W6 (`docs/handoff/w3-hub-pin.md`), nothing consumes it, and each
+change is a regeneration inside this repo (the AS-0 precedent). No entry touches the runtime binding path, D1, D6, D8 or the
+`reporter_class` set, and none conflicts with D15.x. No entry needed the owner.
+- **Q1a document envelope and domain: CONFIRMED.** It matches §8 and the reference, and its domain is distinct from the CP's
+  `TENANT_DOC_DOMAIN`. Which CP key signs it is AS-1's call; the SDK pins it by `kid`.
+- **Q1b batch and collector answer: CONFIRMED.** It matches §9/§9.1 and the AS-3 plan. Certificate-only auth is D15.4.
+- **Q1c token profile: CONFIRMED.** It is owner-backed (D15.4-amended, `bk_` distinct from `mc_`). The CP's id check must
+  accept `bk_`; that is already in `plans/cross-repo/seam-control-plane-as-1-sdk-wire.md`.
+- **Q1d routes: CONFIRMED.** These are config defaults; the vector pins only the defaults.
+- **Q2 `expires_at_ms` and the 5-minute skew: CONFIRMED** as a hard constant. A configurable skew would widen the replay window.
+- **Q3 `max_staleness_ms` = 600 000: CONFIRMED as the default; the number is DEFERRED.** It is SDK config; only freshness edges
+  pin it. Trigger: A-12 (60 s poll) settling. If it moves, re-derive 10× and regenerate before W6.
+- **Q4 refusal reason names: CONFIRMED.** Stable snake_case, disjoint from §6 reasons.
+- **Q5 whole-batch `batch_malformed`: CONFIRMED.** The batch is signed, so a collector cannot drop one outcome. The SDK drops
+  invalid outcomes before signing.
+- **Q6 unknown members ignored in the document, refused in the batch and envelope: CONFIRMED.** A consumed document stays
+  forward-compatible; a signed, produced batch has no unknown-meaning bytes.
+- **Q7 key grammar: CONFIRMED.** Widening it later is additive.
+- **Q8 opaque `content_digest`: CONFIRMED.**
+- **Q9 `aud` default `seam-control-plane`: CONFIRMED** (config).
+- **Q10 routes and no redirects pinned in the token vector: CONFIRMED.** It binds AS-1 to the same defaults, and refusing
+  redirects stops `Authorization` leaking.
+- **Q11 `batch_sig_hex` over JCS: CONFIRMED.** The JCS subset has no floats.
+- **Q12 integer micro-units: CONFIRMED.** This is the only float-free choice for a signed batch; ±(2^53−1) covers realistic
+  metrics.
+- **Q13 outcome scoped to the receipt's certificate: CONFIRMED.** It binds the reward to the attesting workload.
+- **Q14 byte-identical duplicates: CONFIRMED.** Idempotent retries that keep `duplicate_receipt_id`.
+- **Q15 `tenant_invalid` before the signature: CONFIRMED.** It closes `\n` smuggling into the domain message.
+- **Q16 CP failure dispositions: CONFIRMED.** They match the CP codes byte for byte.
+- **Q17 a malformed 200 is retried: CONFIRMED.** Safe because of Q14; the alternative loses receipts silently.
+- **Q18 `to_micros` over the shortest decimal form: CONFIRMED plus a spec sentence.** These are signed bytes, but the collector
+  never recomputes them. R9.4 now says how `x` is read (`docs/spec/branchpoint-v1.md`). The shared table stays SDK-local
+  (`sdk/python/tests/micros_table.json`); moving it into `contract/golden` is in DEFERRED.md.
+- **Q19 ULID overflow, Q20 order and bounds, Q21 non-finite clock fails closed: CONFIRMED.** The Q20 text was corrected (`kid`
+  is the `bk_…` pattern, not any ASCII).
+- **Q22 names and stats keys, Q23 TS client, Q24 OpenFeature and OTel: CONFIRMED.** Conformance enforces identical key sets.
+  The Q22 text now lists `cert_not_newer`, and the Python README now lists certificate refusals, like TS.
+- **Q25 bounded state and `cert_not_newer`: DEFERRED.** The mechanism is confirmed and tested. Gap: only a strictly older
+  `not_before` is refused, so a CP that repeats `not_before` could re-admit a certificate after 32 renewals. Trigger: AS-1
+  pins how the CP sets `not_before`; if it can repeat, refuse `<=` in both SDKs.

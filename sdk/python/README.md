@@ -143,6 +143,9 @@ pause (`no_certificate`) until a valid one is installed; assignments keep being 
   `document_fetches`, `documents_accepted`, `document_not_modified`, `document_failures`.
 - Certificate: `certificate_digest`, `certificate_expires_in_ms`, `certificate_failure`, `certificate_requests`,
   `certificates_installed`, `certificate_failures`.
+  `certificate_failure` names the last refusal: `cert_pk_mismatch`, `cert_subject_mismatch`, `cert_not_current`,
+  `cert_not_newer` (older than the current certificate, or one of the last 32 installed: a re-served certificate would
+  fork its chain), `cert_malformed`, or a CP code / transport kind.
 - Worker: `worker_alive`, `worker_errors`.
 
 Warnings go to the `seam_branchpoint` logger, at most once a minute per kind, and name routes and failure kinds only.
