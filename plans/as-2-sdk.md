@@ -385,7 +385,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** `sdk/python/README.md` (OpenFeature quickstart, metadata keys, OTel).
 
 ### P5 — TypeScript core primitives
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 2 rounds. Mirrors P2’s divergences: split signing (`signReceipt`), a validating multi-scope chain, the injected-ULID check and the aud/kid grammar. Python↔TS parity was spot-checked (18 document negatives, 80 evaluations, 60 tokens, 21 `to_micros` values, all identical). Verify found a NaN clock accepted an expired document in both tracks, so it now fails closed (AS2-Q21).
 - **Risk:** complex
 - **Delivers:** `sdk/ts` package mirroring P2: pure primitives reproducing every AS-0 and P1 vector.
 - **Depends on:** P1 (independent of P2–P4)

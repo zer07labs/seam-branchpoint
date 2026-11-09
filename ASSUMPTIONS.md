@@ -163,3 +163,10 @@ Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
 `invalid_unit` (lone surrogate) is checked right after `empty_unit`; a receipt at seq 2^53−1 is written, then the scope
 returns `chain_exhausted`; `cryptography>=50.0.2`; token `aud` is 1–256 visible ASCII without `"` or `\` and `kid` ASCII
 (both SDKs refuse others with `TokenInputError`, since JSON escaping differs across languages).
+
+## AS2-Q21 — A non-finite clock fails closed in both SDKs
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+A NaN or ±Infinity `now` refuses a document as `expired` (R8.9), makes `isStale`/`is_stale` true, and refuses a
+certificate as `cert_not_current`. No new reason code: a clock that cannot place the document in its window is treated
+as past it. TS-only API differences that never reach the wire: cert digest passed as hex, input errors are
+`TypeError`/`RangeError` (Python `ValueError`), and there is no lock (single-threaded event loop).
