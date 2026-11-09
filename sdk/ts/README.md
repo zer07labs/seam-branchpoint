@@ -123,7 +123,7 @@ immutable snapshot swapped by reference, chain state needs no lock, and receipts
 - **Certificate.** One workload key per client lifetime, generated in-process and never serialised. The certificate is
   verified (`checkIssuedCert`) before use and renewed at 2/3 of its window; a renewal starts new chain scopes at seq 0.
   A clock jump out of the window is noticed on the next poll, which renews at once. A refused certificate is
-  discarded (`cert_pk_mismatch`, `cert_subject_mismatch`, `cert_not_current`, `cert_malformed`, …); renewals follow
+  discarded (`cert_pk_mismatch`, `cert_subject_mismatch`, `cert_not_current`, `cert_not_newer` (older than the current certificate, or one of the last 32 installed: a re-served certificate would fork its chain), `cert_malformed`, …); renewals follow
   the same R10.7 fail-vs-backoff rule. `renewCertificate()` resolves `installed`, `closed` or the failure.
 - **SDK-key token.** A fresh token per CP request, on CP routes only. `401 token_replayed` is retried once with a new
   token. The collector request never carries `Authorization`.
@@ -140,7 +140,7 @@ immutable snapshot swapped by reference, chain state needs no lock, and receipts
   send in flight, then makes exactly one final attempt, then counts what is left as `*_dropped_close`. If the timeout
   runs out while a send is in flight, that batch settles first and only the rest is counted dropped.
 - **Background work.** Poll, renew and flush each run one at a time on `unref()`ed timers (the SDK never keeps a
-  process alive), and every chain ends in a catch that counts into `stats()`: no unhandled rejection is possible.
+  process alive, except a pending `close()` for at most its `timeoutMs`), and every chain ends in a catch that counts into `stats()`: no unhandled rejection is possible.
   `refresh()`, `renewCertificate()` and `flush()` run one now and never reject.
 
 ### `stats()`
@@ -165,7 +165,8 @@ Names match the Python SDK.
   - document: `document_version`, `document_age_ms`, `document_stale`, `document_fetch_failure`, `document_refusal`;
   - certificate: `certificate_expires_in_ms`, `certificate_digest`, `certificate_failure`;
   - `worker_alive` (true while the client is started and not closed: its timers are armed).
-- **TS only:** `receipts_dropped_error` and `outcomes_dropped_error` (see Upload above).
+- **Unbuildable batches:** `receipts_dropped_error` and `outcomes_dropped_error` (see Upload above; Python has them
+  too).
 
 Keys and values never contain a unit, tenant, URL or key.
 

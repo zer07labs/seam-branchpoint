@@ -426,7 +426,7 @@ def test_out_of_order_offers_keep_the_smallest_id_as_lo():
     d = doc.find("checkout")
     new = CertSlot(c._slot.cert, {}, c._slot.key)
     assert c._uploader.install(new)
-    r1, r2 = (c._chain.append(cert_digest=b"\x01" * 32, d=d, e=evaluate(d, u), config_digest=doc.config_digest,
+    r1, r2 = (c._chain.append(cert_digest=new.cert.digest, d=d, e=evaluate(d, u), config_digest=doc.config_digest,
                               evaluated_at=c._wall()) for u in ("a", "b"))
     assert r1.receipt_id < r2.receipt_id
     c._uploader.offer(new, r2)
@@ -567,3 +567,31 @@ def test_persistent_build_failures_log_one_static_warning(monkeypatch, caplog):
     msg = persistent[0].getMessage()
     assert a.receipt_id not in msg and EID_SPLIT not in msg and env.client.stats()["certificate_digest"] not in msg
     assert env.client.stats()["receipts_dropped_error"] == up.PERSISTENT_BUILD_FAILURES * 3
+
+
+def test_stats_dropped_spans_are_capped_most_recent_kept_and_the_wire_spans_are_not_truncated():
+    """Bounded stats on a long-lived worker (TS parity: uploader.test.ts): the stats copy keeps the most recent
+    MAX_DROPPED_SPANS spans; every span still goes on the wire."""
+    from dataclasses import replace
+
+    from seam_branchpoint.evaluate import evaluate
+    from seam_branchpoint.uploader import MAX_DROPPED_SPANS
+
+    env = ready(make_env(receipt_buffer=1, flush_at=10**6))
+    c = env.client
+    first = _units(env, 1)[0]
+    assert first.reason == "assigned"
+    doc = c._snap[0]
+    d = doc.find("checkout")
+    template = c._chain.append(cert_digest=c._slot.cert.digest, d=d, e=evaluate(d, "t"),
+                               config_digest=doc.config_digest, evaluated_at=c._wall())
+    n = MAX_DROPPED_SPANS + 10
+    for i in range(1, n + 1):  # non-adjacent seqs: one span each, all overflow
+        assert not c._uploader.offer(c._slot, replace(template, receipt_id=c._chain._ulid(), seq=1000 + 2 * i))
+    spans = [sp for v in c.stats()["dropped"].values() for sp in v]
+    assert len(spans) == MAX_DROPPED_SPANS
+    assert spans[0] == [1000 + 2 * 11, 1000 + 2 * 11] and spans[-1] == [1000 + 2 * n, 1000 + 2 * n]
+    assert c.stats()["receipts_dropped_overflow"] == n
+    c.flush()
+    wire = [sp for b in env.batches() for v in b.get("dropped", {}).values() for sp in v]
+    assert len(wire) == n

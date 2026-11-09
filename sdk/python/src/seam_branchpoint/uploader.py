@@ -48,6 +48,7 @@ DEFAULT_BACKOFF_BASE_MS = 500
 DEFAULT_BACKOFF_CAP_MS = 60_000
 DEFAULT_OUTCOME_RETENTION_MS = 24 * 3_600_000
 MAX_RETAINED_SLOTS = 32
+MAX_DROPPED_SPANS = 1_024  # stats copy of declared gaps: the most recent spans (the wire spans are never capped)
 OUTCOME_SHARE_DIV = 10  # up to 1/10 of a batch (at least 1 item) is kept for outcomes whose receipt has gone
 MAX_PUMP_BATCHES = 4  # a non-drain pump sends at most this many batches; the worker then polls and pumps again
 
@@ -215,8 +216,9 @@ class Uploader:
         self.n_outcomes = 0
         self.inflight: _Batch | None = None
         self.next_flush_ms = self.clock_ms() + self.flush_interval_ms
-        # cumulative declared-gap spans (overflow and unbuildable batches), for stats and tests
+        # declared-gap spans (overflow and unbuildable batches), for stats and tests: the most recent MAX_DROPPED_SPANS
         self.dropped_total: dict[str, list[list[int]]] = {}
+        self._dropped_total_spans = 0
         self.c = dict.fromkeys((
             "receipts_buffered_total", "receipts_dropped_overflow", "receipts_uploaded", "receipts_rejected",
             "receipts_dropped_close", "outcomes_queued", "outcomes_dropped_overflow", "outcomes_invalid_dropped",
@@ -234,6 +236,20 @@ class Uploader:
         self._reset()
 
     # --- certificates -------------------------------------------------------------------------------------------
+    def _record_drop(self, key: str, seq: int) -> None:
+        """Record a declared gap in the stats copy, forgetting the oldest spans beyond MAX_DROPPED_SPANS. Caller holds
+        `lock`."""
+        spans = self.dropped_total.setdefault(key, [])
+        before = len(spans)
+        add_to_spans(spans, seq)
+        self._dropped_total_spans += len(spans) - before
+        while self._dropped_total_spans > MAX_DROPPED_SPANS:  # dicts keep insertion order: the first key is oldest
+            k, first = next(iter(self.dropped_total.items()))
+            del first[0]
+            self._dropped_total_spans -= 1
+            if not first:
+                del self.dropped_total[k]
+
     def install(self, slot: CertSlot) -> bool:
         """Make `slot` current; the previous current certificate is retired (kept for its buffer and outcomes).
         False, and nothing changes, once `close` has begun."""
@@ -290,7 +306,7 @@ class Uploader:
                 slot.late.add(rid)
             if self.n_receipts >= self.receipt_capacity:
                 add_to_spans(slot.pending_dropped.setdefault(rec.experiment_id, []), rec.seq)
-                add_to_spans(self.dropped_total.setdefault(f"{slot.digest_hex}:{rec.experiment_id}", []), rec.seq)
+                self._record_drop(f"{slot.digest_hex}:{rec.experiment_id}", rec.seq)
                 self.c["receipts_dropped_overflow"] += 1
                 return False
             slot.receipts.append(rec)
@@ -499,7 +515,7 @@ class Uploader:
                 s.pending_dropped[eid] = merge_spans(s.pending_dropped.get(eid, []), spans)
             for r in b.records:
                 add_to_spans(s.pending_dropped.setdefault(r.experiment_id, []), r.seq)
-                add_to_spans(self.dropped_total.setdefault(f"{s.digest_hex}:{r.experiment_id}", []), r.seq)
+                self._record_drop(f"{s.digest_hex}:{r.experiment_id}", r.seq)
             self.c["receipts_dropped_error"] += len(b.records)
             self.c["outcomes_dropped_error"] += len(b.outcomes)  # a drop, not a retry: batches_retried untouched
             self.n_receipts -= len(b.records)

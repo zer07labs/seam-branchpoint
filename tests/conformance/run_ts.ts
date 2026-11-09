@@ -138,6 +138,7 @@ async function runOne(run: Run): Promise<unknown> {
       receipts_dropped_overflow: s.receipts_dropped_overflow, receipts_uploaded: s.receipts_uploaded,
       outcomes_uploaded: s.outcomes_uploaded, receipts_rejected: s.receipts_rejected,
       outcomes_rejected: s.outcomes_rejected, certificate_digest: s.certificate_digest },
+    stats_keys: Object.keys(s).sort(),
     logs,
   };
 }

@@ -620,6 +620,7 @@ def test_renewal_racing_close_never_leaves_a_slot():
         return ok
 
     c._uploader.install = install_then_close
+    env.clock.advance(1_000)  # a new certificate (the same instant would re-issue the same one: cert_not_newer)
     assert c.renew_certificate() == "closed"
     assert c._slot is None
 
@@ -839,3 +840,68 @@ def test_worker_reports_staleness_without_any_evaluate():
         assert seen[0] == "ready" and seen[-1] == "stale"
     finally:
         c.close(1)
+
+
+def test_renewals_release_old_chain_heads_and_a_stale_slot_is_never_chained_under():
+    """Bounded chain state on a long-lived worker (TS parity: client.test.ts). A thread that read the replaced
+    certificate's slot before a renewal is served unattested, never restarting the released scope at seq 0 (a
+    fork); an outcome for an old certificate's receipt still routes under it."""
+    env = ready(make_env(flush_at=10**6))
+    c = env.client
+    old_slot = c._slot
+    old = c.evaluate("checkout", "user-0").receipt_id
+    c.evaluate("ranker", "user-0")
+    c.flush()
+    for i in range(20):
+        env.clock.advance(1_000)
+        assert c.renew_certificate() == "installed"
+        assert {s[0] for s in c._chain._heads} <= {c._slot.cert.digest}
+        for u in range(3):
+            c.evaluate("checkout", f"r{i}-{u}")
+            c.evaluate("ranker", f"r{i}-{u}")
+        assert len(c._chain._heads) <= 2
+    current = c._slot
+    c._slot = old_slot  # what a racing evaluate thread holding the replaced slot sees
+    try:
+        r = c.evaluate("checkout", "late-thread")
+    finally:
+        c._slot = current
+    assert r.reason == "no_certificate" and r.receipt_id is None and r.served
+    assert c._chain.is_retired(old_slot.cert.digest) and not c._chain.is_retired(current.cert.digest)
+    assert c.report_outcome(old, EID_SPLIT, reward=1)
+    c.flush()
+    s = c.stats()
+    assert s["receipts_rejected"] == 0 and s["outcomes_uploaded"] == 1 and s["outcomes_rejected"] == 0
+    assert env.collector.verifier.all_gaps == []
+
+
+def test_a_re_served_or_older_certificate_is_refused_never_forking_its_chain():
+    """A control plane that serves certificate A again after B (a stale cache) must not reinstall A: its chain heads
+    were released, so it would restart at seq 0 (a duplicate seq). Refused as `cert_not_newer`; B stays current."""
+    env = ready(make_env(flush_at=10**6))
+    c = env.client
+    real, answers = env.transport.post_certificate, []
+
+    def record(tok, body):
+        answers.append(real(tok, body))
+        return answers[-1]
+
+    env.transport.post_certificate = record
+    c.evaluate("checkout", "a-0")
+    env.clock.advance(1_000)
+    assert c.renew_certificate() == "installed"  # A: its answer is recorded
+    a_slot = c._slot
+    c.evaluate("checkout", "a-1")
+    env.clock.advance(1_000)
+    assert c.renew_certificate() == "installed"  # B
+    b_slot = c._slot
+    c.evaluate("checkout", "b-0")
+    env.transport.post_certificate = lambda tok, body: answers[0]  # A again
+    failures = c.stats()["certificate_failures"]
+    assert c.renew_certificate() == "cert_not_newer"
+    assert c._slot is b_slot and c._slot is not a_slot and c.stats()["certificate_failures"] == failures + 1
+    assert c.evaluate("checkout", "b-1").reason == "assigned"
+    c.flush()
+    s = c.stats()
+    assert s["receipts_rejected"] == 0 and s["receipts_uploaded"] == s["receipts_written"]
+    assert env.collector.verifier.all_gaps == []

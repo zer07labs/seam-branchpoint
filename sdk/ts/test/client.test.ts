@@ -513,6 +513,38 @@ const until = async (cond: () => boolean, ms = 2_000): Promise<void> => {
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 describe("P6 gaps: receipts, certificates and chain scopes stay bounded", () => {
+  test("a re-served or older certificate is refused (cert_not_newer), never forking its released chain", async () => {
+    const h = harness({ client: { flushAt: 1_000_000 } });
+    await h.client.start();
+    const real = h.transport.postCertificate.bind(h.transport);
+    const answers: Awaited<ReturnType<typeof real>>[] = [];
+    h.transport.postCertificate = async (t, b) => { const r = await real(t, b); answers.push(r); return r; };
+    h.client.evaluate("checkout", "a-0", 0);
+    h.clock.wall += 1_000;
+    assert.equal(await h.client.renewCertificate(), "installed"); // A: its answer is recorded
+    const a = h.client.stats().certificate_digest;
+    h.client.evaluate("checkout", "a-1", 0);
+    h.clock.wall += 1_000;
+    assert.equal(await h.client.renewCertificate(), "installed"); // B
+    const b = h.client.stats().certificate_digest;
+    assert.notEqual(a, b);
+    h.client.evaluate("checkout", "b-0", 0);
+    h.transport.postCertificate = async () => answers[0]!; // A again (a stale cache)
+    const failures = h.client.stats().certificate_failures;
+    assert.equal(await h.client.renewCertificate(), "cert_not_newer");
+    const s0 = h.client.stats();
+    assert.equal(s0.certificate_digest, b);
+    assert.equal(s0.certificate_failures, failures + 1);
+    assert.equal(h.client.evaluate("checkout", "b-1", 0).reason, ASSIGNED);
+    await h.client.flush();
+    const s = h.client.stats();
+    assert.equal(s.receipts_rejected, 0);
+    assert.equal(s.receipts_uploaded, s.receipts_written);
+    const rep = verifyBatches(h.collector.batches, [h.cp.issuerPublicKey]);
+    assert.deepEqual({ ...rep.refused }, {});
+    await h.client.close();
+  });
+
   test("an outcome whose receipt was evicted from the index after renewal is dropped, counted and never sent", async () => {
     const h = harness({ client: { maxReceipts: 5, receiptIndexSize: 5, flushAt: 1_000_000 } });
     await h.client.start();
@@ -742,7 +774,7 @@ describe("P6 parity: pass cap continuation, serialised refreshes, result names",
     await h.client.start();
     assert.equal(h.client.stats().worker_alive, true);
     const keys = Object.keys(h.client.stats()).sort();
-    assert.deepEqual(keys, [...CANONICAL_KEYS, ...TS_ONLY_KEYS].sort());
+    assert.deepEqual(keys, [...CANONICAL_KEYS].sort());
     await h.client.close();
     assert.equal(h.client.stats().worker_alive, false);
   });
@@ -762,6 +794,5 @@ const CANONICAL_KEYS = [
   "document_failures", "certificate_requests", "certificates_installed", "certificate_failures", "worker_errors",
   "document_version", "document_age_ms", "document_stale", "document_fetch_failure", "document_refusal",
   "certificate_expires_in_ms", "certificate_digest", "certificate_failure", "worker_alive",
+  "receipts_dropped_error", "outcomes_dropped_error", // a batch whose build threw becomes declared gaps (both SDKs)
 ];
-/** TS-only: a batch whose build threw is never retried as-is (its receipts become declared gaps). */
-const TS_ONLY_KEYS = ["receipts_dropped_error", "outcomes_dropped_error"];

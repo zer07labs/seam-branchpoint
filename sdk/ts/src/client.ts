@@ -27,6 +27,9 @@ import {
   toMicros,
 } from "./wire.ts";
 
+/** Installed certificate digests remembered; a re-served one is refused (`cert_not_newer`), never a fork. */
+const CERT_HISTORY = 32;
+
 // SDK-level reasons (plan Q3): never in signed bytes, only in results and stats.
 /** Fail-soft row 1: no usable verified document (missing, stale, or every fetch refused). */
 export const CONFIG_UNAVAILABLE = "config_unavailable";
@@ -180,6 +183,8 @@ export class BranchpointClient {
   readonly #up: Uploader;
   #snap: Snapshot | null = null;
   #cert: CurrentCert | null = null;
+  /** Digests installed by this client, newest last (at most CERT_HISTORY): a re-served one is refused. */
+  readonly #installed: string[] = [];
 
   #started: Promise<void> | null = null;
   #closing: Promise<void> | null = null;
@@ -586,11 +591,17 @@ export class BranchpointClient {
     const nb = Number(cert.notBeforeMs);
     const na = Number(cert.notAfterMs);
     if (!Number.isSafeInteger(nb) || !Number.isSafeInteger(na)) return this.#certFail("cert_malformed");
+    // An older or re-served certificate: its released chain would restart at seq 0, a fork.
+    if (this.#installed.includes(cert.digestHex) || (this.#cert !== null && nb < this.#cert.notBeforeMs)) {
+      return this.#certFail("cert_not_newer");
+    }
     const e = env as CertEnvelope;
     const envelope = certEnvelope(Buffer.from(e.body_hex, "hex"), Buffer.from(e.sig_hex, "hex"), e.issuer_kid);
     this.#up.setCurrentCert(cert.digestHex, envelope);
     this.#cert = { digestHex: cert.digestHex, env: envelope, notBeforeMs: nb, notAfterMs: na };
     this.#chain.retainOnly(cert.digestHex); // the replaced certificate's scopes are never chained under again
+    this.#installed.push(cert.digestHex);
+    if (this.#installed.length > CERT_HISTORY) this.#installed.shift();
     this.#n.certificates_installed++;
     this.#certAttempt = 0;
     this.#certFailure = null;

@@ -207,7 +207,7 @@ def run_python(sc: dict, run: dict) -> dict:
     keep = ("dropped", "evaluations", "receipts_written", "receipts_dropped_overflow", "receipts_uploaded",
             "outcomes_uploaded", "receipts_rejected", "outcomes_rejected", "certificate_digest")
     return {"setup": setup, "evals": evals, "flushes": flushes, "outcomes": outcomes, "bodies": transport.bodies,
-            "stats": {k: s.get(k) for k in keep}}
+            "stats": {k: s.get(k) for k in keep}, "stats_keys": sorted(s)}
 
 
 def run_ts(sc: dict, tmp: Path) -> dict:
@@ -243,7 +243,7 @@ def by_receipt_id(name: str, side: str, canonicals: list[str]) -> dict[str, str]
 
 def compare_runs(name: str, run: dict, py: dict, ts: dict) -> dict:
     nk = len(run["keys"])
-    for field in ("setup", "flushes", "outcomes", "stats"):
+    for field in ("setup", "flushes", "outcomes", "stats", "stats_keys"):  # stats_keys: the full key set, both SDKs
         if py[field] != ts[field]:
             fail(f"{name}: {field} differ", f"python: {py[field]!r}"[:600], f"ts:     {ts[field]!r}"[:600])
     if len(py["evals"]) != len(ts["evals"]):

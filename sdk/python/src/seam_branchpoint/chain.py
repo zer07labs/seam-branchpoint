@@ -234,12 +234,30 @@ class ChainState:
     (receipt id, canonical bytes, hash and the head advance), so ids, seq and prev_hash advance together; input
     validation runs before the lock and signing after it (`sign_receipt`)."""
 
-    __slots__ = ("_heads", "_lock", "_ulid")
+    __slots__ = ("_current", "_heads", "_lock", "_ulid")
 
     def __init__(self, ulid: Callable[[], str] | None = None) -> None:
         self._heads: dict[tuple[bytes, str], tuple[int, bytes]] = {}
         self._lock = threading.Lock()
         self._ulid = ulid if ulid is not None else UlidGenerator()
+        self._current: bytes | None = None  # set by retain_only: the one certificate chained under from then on
+
+    def retain_only(self, cert_digest: bytes) -> None:
+        """Make `cert_digest` the only certificate chained under: every other scope's head is released (bounded state
+        on a long-lived worker) and `append` refuses any other certificate from now on, so a thread still holding a
+        replaced certificate can never restart its released scope at seq 0 (a fork). Receipts already chained carry
+        their own seq and prev_hash, so nothing else needs the released heads."""
+        if not isinstance(cert_digest, bytes) or len(cert_digest) != 32:
+            raise ValueError("cert_digest outside its grammar")
+        with self._lock:
+            self._current = cert_digest
+            for scope in [s for s in self._heads if s[0] != cert_digest]:
+                del self._heads[scope]
+
+    def is_retired(self, cert_digest: bytes) -> bool:
+        """True when `retain_only` named a different certificate (so `append` refuses this one)."""
+        cur = self._current
+        return cur is not None and cur != cert_digest
 
     def head(self, cert_digest: bytes, experiment_id: str) -> tuple[int, bytes] | None:
         """The (seq, prev_hash) the next receipt in this scope takes, or None when the scope is exhausted."""
@@ -256,7 +274,7 @@ class ChainState:
                receipt_id: str | None = None) -> ReceiptRecord | None:
         """Chain the (unsigned) receipt for a receipt-bearing evaluation of `d`. The receipt id comes from the
         injected ULID generator under the chain lock unless one is given. None when the scope reached seq 2^53-1
-        (`chain_exhausted`): the caller serves the evaluation unattested. Raises ValueError, without advancing, for
+        (`chain_exhausted`) or the certificate was replaced (`is_retired`): the caller serves it unattested. Raises ValueError, without advancing, for
         an invalid `d`, an evaluation that is not of `d`, or an id/digest/clock outside the receipt grammar."""
         why = evaluation_problem(d, e)
         if why is not None:
@@ -269,6 +287,8 @@ class ChainState:
             raise ValueError("evaluated_at outside 0..2^53-1")
         cd_hex, scope = cert_digest.hex(), (cert_digest, d.experiment_id)
         with self._lock:
+            if self._current is not None and self._current != cert_digest:
+                return None  # a replaced certificate (retain_only): its released scope is never restarted
             h = self._head(cert_digest, d.experiment_id)
             if h is None:
                 return None

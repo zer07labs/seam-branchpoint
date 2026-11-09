@@ -52,7 +52,7 @@ default where there is no verified assignment, and is counted in `stats()`.
 | no current certificate | the assignment, without a receipt | `evaluations.no_certificate` |
 | receipt buffer full | the assignment; receipt dropped and declared as a gap | `evaluations.receipt_dropped`, `receipts_dropped_overflow` |
 | a batch fails to build or sign | n/a (worker) | declared gap, `receipts_dropped_error` |
-| collector 4xx (except 401/403/408/429) / malformed 200 / 5xx, 401, 403, 408, 429 | n/a (worker) | rejected / whole batch retried / backed off and retried |
+| collector 4xx (except 401/403/408/429) / malformed 200 or 3xx (never followed) / 5xx, 401, 403, 408, 429 | n/a (worker) | rejected / whole batch retried / backed off and retried |
 
 A receipt is never silently lost: it is uploaded, rejected by the collector, or declared in a `dropped` span that the
 collector's verifier sees as the matching gap. `close()` flushes within a deadline and counts what is still buffered as dropped (a send already in flight at the

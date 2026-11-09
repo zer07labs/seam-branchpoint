@@ -132,7 +132,8 @@ pause (`no_certificate`) until a valid one is installed; assignments keep being 
 
 - `evaluations`: count per reason.
 - Receipts: `receipts_written`, `receipts_buffered`, `receipts_uploaded`, `receipts_rejected`,
-  `receipts_dropped_overflow`, `receipts_dropped_close`, `receipts_dropped_error`, `dropped` (spans keyed `"<cert_digest>:<experiment_id>"`).
+  `receipts_dropped_overflow`, `receipts_dropped_close`, `receipts_dropped_error`, `dropped` (the most recent 1 024 declared-gap spans, keyed
+  `"<cert_digest>:<experiment_id>"`; the wire spans are never capped).
 - Outcomes: `outcomes_queued`, `outcomes_buffered`, `outcomes_uploaded`, `outcomes_rejected`,
   `outcomes_dropped_overflow`, `outcomes_invalid_dropped`, `outcomes_unknown_receipt_dropped`, `outcomes_dropped_close`,
   `outcomes_dropped_error`.

@@ -29,6 +29,7 @@ import random
 import re
 import threading
 import weakref
+from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -83,6 +84,7 @@ EVENT_FRESH = "fresh"  # a refresh made a stale cache usable again
 DEFAULT_POLL_INTERVAL_MS = 60_000  # A-12
 POLL_JITTER = 0.10
 RENEW_FRACTION = 2 / 3
+CERT_HISTORY = 32  # installed digests remembered: a re-served one is refused (`cert_not_newer`), never a fork
 RETRY_BASE_MS = 1_000
 WARN_INTERVAL_MS = 60_000
 _ERROR_CODE_RE = re.compile(r"[a-z0-9_]{1,64}")
@@ -229,6 +231,7 @@ class BranchpointClient:
         self._key: Ed25519PrivateKey | None = self._key_factory()
         self._chain = ChainState(UlidGenerator(self._wall, self._rand_bytes))
         self._slot: CertSlot | None = None
+        self._installed: deque[bytes] = deque(maxlen=CERT_HISTORY)  # digests installed in this process, newest last
         self._count_lock = threading.Lock()
         self._reasons: dict[str, int] = {}
         self._n: dict[str, int] = dict.fromkeys((
@@ -348,8 +351,8 @@ class BranchpointClient:
             else:
                 rec = self._chain.append(cert_digest=slot.cert.digest, d=d, e=e, config_digest=doc.config_digest,
                                          evaluated_at=now)
-                if rec is None:
-                    reason = CHAIN_EXHAUSTED
+                if rec is None:  # a renewal between reading the slot and chaining: unattested, never a fork
+                    reason = NO_CERTIFICATE if self._chain.is_retired(slot.cert.digest) else CHAIN_EXHAUSTED
                 elif self._uploader.offer(slot, rec):
                     reason, rid = ASSIGNED, rec.receipt_id
                 else:
@@ -530,6 +533,10 @@ class BranchpointClient:
                     raise CertRefused("cert_subject_mismatch")
                 if not cert.covers(self._wall()):
                     raise CertRefused("cert_not_current")
+                cur = self._slot
+                if cert.digest in self._installed or (cur is not None and cert.not_before_ms < cur.cert.not_before_ms):
+                    # an older or re-served certificate: its released chain would restart at seq 0, a fork
+                    raise CertRefused("cert_not_newer")
             except CertRefused as e:
                 failure, cert = e.reason, None
             except (ValueError, RecursionError):
@@ -542,6 +549,8 @@ class BranchpointClient:
                        f"certificates: request failed ({self._cert_failure}); receipts pause until one is installed")
             return self._cert_failure
         slot = CertSlot(cert, {k: obj[k] for k in ("body_hex", "issuer_kid", "sig_hex")}, key)
+        self._chain.retain_only(cert.digest)  # bounded heads; the replaced certificate is never chained under again
+        self._installed.append(cert.digest)
         if not self._uploader.install(slot):  # retires the previous certificate (late receipts stay bound to it)
             return "closed"
         self._slot = slot
