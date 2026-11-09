@@ -4,6 +4,7 @@ configured tenant, the pinned keys and the clocks."""
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -196,7 +197,7 @@ def verify_document(
     issued, expires = d.get("issued_at_ms"), d.get("expires_at_ms")  # R8.8
     if not (is_int(issued, 0, MAX_SAFE) and is_int(expires, 0, MAX_SAFE) and issued < expires):
         raise DocumentRefused("window_invalid")
-    if now_ms > expires + EXPIRY_SKEW_MS:  # R8.9, inclusive bound
+    if not _finite(now_ms) or now_ms > expires + EXPIRY_SKEW_MS:  # R8.9, inclusive bound; a NaN/inf clock fails closed
         raise DocumentRefused("expired")
     exps = d.get("experiments")  # R8.10
     if not isinstance(exps, list):
@@ -218,8 +219,17 @@ def verify_document(
     return VerifiedDocument(UNCHANGED if unchanged else ACCEPTED, doc)
 
 
+def _finite(x: object) -> bool:
+    """A usable clock reading: an int or float (not bool) that is finite. Every comparison with NaN is false, so
+    an unchecked NaN clock would pass both R8.9 and R8.12; non-finite readings fail closed instead."""
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+
+
 def is_stale(since_refresh_ms: int, now_wall_ms: int, expires_at_ms: int,
              max_staleness_ms: int = DEFAULT_MAX_STALENESS_MS) -> bool:
     """R8.12: stale when the monotonic time since the last verified document (or TLS-authenticated 304) exceeds
-    `max_staleness_ms`, or the wall clock is past `expires_at_ms + 300 000`. Both bounds are inclusive-fresh."""
+    `max_staleness_ms`, or the wall clock is past `expires_at_ms + 300 000`. Both bounds are inclusive-fresh.
+    A non-finite (or non-numeric) `since_refresh_ms` or `now_wall_ms` reads stale (fail closed)."""
+    if not (_finite(since_refresh_ms) and _finite(now_wall_ms)):
+        return True
     return since_refresh_ms > max_staleness_ms or now_wall_ms > expires_at_ms + EXPIRY_SKEW_MS

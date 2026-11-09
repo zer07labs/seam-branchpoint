@@ -170,3 +170,18 @@ A NaN or ±Infinity `now` refuses a document as `expired` (R8.9), makes `isStale
 certificate as `cert_not_current`. No new reason code: a clock that cannot place the document in its window is treated
 as past it. TS-only API differences that never reach the wire: cert digest passed as hex, input errors are
 `TypeError`/`RangeError` (Python `ValueError`), and there is no lock (single-threaded event loop).
+
+## AS2-Q22 — SDK-local names, stats keys and client behaviours (both SDKs, Python canonical)
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+None of these reach the wire. SDK reasons beyond the spec table: `assigned`, `no_certificate`, `receipt_dropped`,
+`flag_not_found`, `internal_error` (`chain_exhausted`, `invalid_unit`, `config_unavailable` are spec). Certificate
+failures `cert_pk_mismatch|cert_subject_mismatch|cert_not_current|cert_malformed|superseded|closed`; a non-200 CP
+answer is reported per the R10.7 vector (`http_<status>`); every refused document is fetch-failure `unverified` with
+the reason in `document_refusal`. The `stats()` key list is pinned in both READMEs (TS adds only
+`receipts_dropped_error`/`outcomes_dropped_error`: TS drops-and-counts a batch whose signing throws, Python retries).
+Behaviours: one workload key per client, reused on renewal; outcomes route to their certificate by receipt-id range
+plus a bounded late set (32 certificates, 24 h); an outcome for an unknown receipt is dropped locally and counted;
+a pump sends at most 4 batches and `flush()` only what was buffered at its start; 1/10 of each batch is reserved for
+outcomes whose receipt has been sent; refreshes are serialised; a 304 renews cache age but never past expiry;
+`close()` splits its deadline between join and flush and counts drops only once an in-flight send settles;
+`report_outcome` raises on invalid caller input and also counts the drop (R9.4). SRM is tested without a certificate.

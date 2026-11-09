@@ -241,7 +241,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** `sdk/python/README.md` (install, supported document `v`).
 
 ### P3 — Python client: cache, certificates, chain state, uploader, transport, report_outcome
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 3 rounds. Diverged: `report_outcome` both raises on invalid input and counts the drop (the spec says drop and count, R9.4); routing is by receipt-id range plus a late set; a pump sends at most 4 batches and reserves 1/10 of each batch for outcomes; refreshes are serialised; `close()` settles an in-flight send before counting drops; the throughput test is best-of-3 at an unchanged 20k/s bar. The SDK-local names and `stats()` keys are canonical for TS too (AS2-Q22).
 - **Risk:** complex
 - **Delivers:** `BranchpointClient` usable without OpenFeature; `HttpTransport`; `FakeTransport`/`FakeCP`; the AS
   acceptance criteria for the Python core (zero network on evaluate, fail-soft, p99 < 50 µs, SRM).

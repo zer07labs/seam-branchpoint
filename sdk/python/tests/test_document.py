@@ -127,6 +127,17 @@ def test_expiry_bound_is_inclusive():
     assert reason(b, now_ms=exp_ms + 300_001) == "expired"
 
 
+@pytest.mark.parametrize("clock", [float("nan"), float("inf"), float("-inf"), None, "1", True])
+def test_non_finite_clock_refuses_an_expired_document(clock):
+    b = body(doc(issued_at_ms=1_000, expires_at_ms=2_000))  # long expired at any real clock
+    assert reason(b, now_ms=clock) == "expired"
+
+
+@pytest.mark.parametrize("clock", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_clock_refuses_even_a_fresh_document(clock):
+    assert reason(body(doc()), now_ms=clock) == "expired"
+
+
 def test_cache_mark_rules():
     b = body(doc())
     v = verify(b)
@@ -191,6 +202,13 @@ def test_envelope_member_order_and_whitespace_are_irrelevant():
 ])
 def test_is_stale_bounds(since, now, stale):
     assert is_stale(since, now, 1_000_000) is stale
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), None, True])
+def test_is_stale_non_finite_reads_stale(bad):
+    assert is_stale(bad, 0, 1_000_000) is True
+    assert is_stale(0, bad, 1_000_000) is True
+    assert is_stale(0.0, 0.0, 1_000_000) is False
 
 
 # --- malformed pinned keys are a configuration error, not a verdict --------------------------------------------------

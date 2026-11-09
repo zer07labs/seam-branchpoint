@@ -1,7 +1,8 @@
 """Seam Branchpoint SDK core: pure `branchpoint.v1` primitives (spec docs/spec/branchpoint-v1.md).
 
 Local bpa1 assignment, the workload certificate, signed hash-chained receipts, the signed SDK document, the upload
-batch and the SDK-key token. Nothing in this package does network I/O at import time or ever.
+batch and the SDK-key token; and `BranchpointClient`, the cached, certified, uploading client over an injected
+`Transport`. Importing the package loads no network module (`HttpTransport` imports `urllib` on construction).
 """
 
 from ._wire import (
@@ -21,6 +22,7 @@ from ._wire import (
 )
 from .auth import DEFAULT_ROUTES, TOKEN_LIFETIME_S, SdkKey, TokenInputError
 from .cert import Cert, CertRefused, build_wcert, check_pinned, key_id, parse_wcert, pin_keys, verify_cert, verify_cert_json
+from .client import Assignment, BranchpointClient, cp_disposition
 from .chain import (
     CHAIN_EXHAUSTED,
     ChainState,
@@ -53,11 +55,14 @@ from .document import (
     verify_document,
 )
 from .evaluate import Arm, Evaluation, ExperimentDef, evaluate
+from .transport import HttpTransport, Response, Transport, TransportError
+from .uploader import disposition
 
 __version__ = "0.1.0.dev0"
 
 __all__ = [
-    "CHAIN_EXHAUSTED", "DEFAULT_ROUTES", "MAX_SAFE", "SUPPORTED_DOCUMENT_VERSION", "TOKEN_LIFETIME_S", "Arm",
+    "Assignment", "BranchpointClient", "HttpTransport", "Response", "Transport", "TransportError", "cp_disposition",
+    "disposition", "CHAIN_EXHAUSTED", "DEFAULT_ROUTES", "MAX_SAFE", "SUPPORTED_DOCUMENT_VERSION", "TOKEN_LIFETIME_S", "Arm",
     "CacheMark", "Cert", "ConfigError", "ReceiptRecord", "check_pinned", "sign_receipt", "CertRefused", "ChainState", "Document", "DocumentRefused", "Evaluation", "ExperimentDef",
     "InvalidUnit", "JcsError", "Refusal", "SdkKey", "SignedReceipt", "TokenInputError", "UlidGenerator", "VerifiedDocument",
     "__version__", "admit_outcomes", "batch_message", "batch_nonempty", "batch_shape_ok", "bucket", "build_batch", "build_wcert",

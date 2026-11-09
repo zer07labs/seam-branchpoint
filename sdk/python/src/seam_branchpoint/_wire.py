@@ -197,10 +197,12 @@ def jcs_flat(obj: dict[str, object]) -> bytes:
     return ("{" + ",".join(parts) + "}").encode("ascii")
 
 
+_SURROGATE_RE = re.compile("[\ud800-\udfff]")
+
+
 def _tree_str(s: str) -> str:
-    for c in s:
-        if 0xD800 <= ord(c) <= 0xDFFF:
-            raise JcsError("lone surrogate")
+    if _SURROGATE_RE.search(s) is not None:
+        raise JcsError("lone surrogate")
     return json.dumps(s, ensure_ascii=False)  # RFC 8785 string escaping (short escapes, \u00xx lowercase)
 
 
