@@ -613,7 +613,7 @@ export class BranchpointClient {
     this.#certFailure = kind;
     this.#certBackoff = backoff;
     this.#n.certificate_failures++;
-    this.#warnOnce("cert", `seam-branchpoint: certificate request failed (${kind}); assignments continue unattested`);
+    this.#warnOnce("cert", `seam-branchpoint: certificate request failed (${kind}); the current certificate, if still valid, keeps attesting, otherwise assignments are unattested until one is installed`);
     return kind;
   }
 

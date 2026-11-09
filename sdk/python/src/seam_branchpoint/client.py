@@ -546,7 +546,8 @@ class BranchpointClient:
             with self._count_lock:
                 self._n["certificate_failures"] += 1
             self._warn("certificate_" + str(self._cert_failure),
-                       f"certificates: request failed ({self._cert_failure}); receipts pause until one is installed")
+                       f"certificates: request failed ({self._cert_failure}); the current certificate, if still valid, keeps "
+                       "attesting, otherwise assignments are unattested until one is installed")
             return self._cert_failure
         slot = CertSlot(cert, {k: obj[k] for k in ("body_hex", "issuer_kid", "sig_hex")}, key)
         self._chain.retain_only(cert.digest)  # bounded heads; the replaced certificate is never chained under again
