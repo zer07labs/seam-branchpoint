@@ -459,3 +459,324 @@ describe("certificate and receipts", () => {
     assert.deepEqual({ ...(bp.strictParse('{"a":0e0}') as object) }, { a: { $float: "0e0" } });
   });
 });
+
+// --- AS-2 wires (spec §8–§10), golden group contract/golden/branchpoint-sdk/ -----------------------------------
+const SDK_GOLDEN = bp.SDK_GOLDEN_DIR;
+const sdkLoad = (name: string): any => JSON.parse(readFileSync(join(SDK_GOLDEN, name), "utf8"));
+
+// Every §8 vector case and the outcome it must produce: pinned here independently of the generator.
+const DOC_EXPECT: Record<string, string> = {
+  valid: "accepted", valid_previous_key: "accepted", valid_newer_than_cache: "accepted",
+  unchanged_same_bytes: "unchanged", expiry_boundary: "accepted",
+  non_string_doc: "envelope_malformed", malformed_sig_hex: "envelope_malformed", short_sig_hex: "envelope_malformed",
+  envelope_duplicate_member: "envelope_malformed", envelope_extra_member: "envelope_malformed",
+  lone_surrogate_doc: "envelope_malformed", envelope_missing_member: "envelope_malformed",
+  envelope_not_object: "envelope_malformed", envelope_bom: "envelope_malformed", kid_not_base64url: "envelope_malformed",
+  kid_short: "envelope_malformed", oversized: "document_too_large", at_cap: "accepted", tenant_newline: "tenant_invalid",
+  unknown_kid: "kid_unknown", forged_sig: "sig_invalid",
+  wrong_tenant: "sig_invalid", wrong_domain: "sig_invalid", doc_duplicate_member: "doc_malformed",
+  doc_not_object: "doc_malformed", v2: "doc_unsupported", wrong_kind: "doc_unsupported",
+  body_tenant_mismatch: "tenant_mismatch", version_too_large: "version_invalid", version_not_integer: "version_invalid",
+  rollback: "rollback", version_conflict: "version_conflict", window_invalid: "window_invalid", expired: "expired",
+  experiments_not_array: "doc_malformed", unindexable_missing_key: "unindexable",
+  unindexable_experiment_id: "unindexable", duplicate_key: "ambiguous_lookup",
+  duplicate_experiment_id: "ambiguous_lookup", duplicate_decision_point: "ambiguous_lookup",
+  key_collides_decision_point: "ambiguous_lookup", unknown_enum: "accepted", bad_salt_hex: "accepted",
+  bad_arm_bundle: "accepted",
+};
+
+describe("sdk golden group", () => {
+  test("bytes match the generator and every vector recomputes", () => {
+    assert.deepEqual(readdirSync(SDK_GOLDEN).sort(),
+      ["SHA256SUMS", "sdk_document_golden.json", "sdk_key_token_golden.json", "upload_batch_golden.json"]);
+    for (const [n, data] of bp.renderSdk()) assert.ok(readFileSync(join(SDK_GOLDEN, n)).equals(data), n);
+    assert.deepEqual(bp.verifySdkCommitted(), []);
+  });
+
+  test("checkSdk detects a one-byte edit in every file", () => {
+    assert.deepEqual(bp.checkSdk(), []);
+    for (const name of readdirSync(SDK_GOLDEN).sort()) {
+      const d = mkdtempSync(join(tmpdir(), "bp-sdk-"));
+      try {
+        for (const f of readdirSync(SDK_GOLDEN)) copyFileSync(join(SDK_GOLDEN, f), join(d, f));
+        const raw = readFileSync(join(d, name));
+        raw[raw.indexOf("0")] = "1".charCodeAt(0);
+        writeFileSync(join(d, name), raw);
+        assert.deepEqual(bp.checkSdk(d), [name]);
+      } finally {
+        rmSync(d, { recursive: true, force: true });
+      }
+    }
+  });
+
+  test("AS-0 group untouched: every file equals its hub-manifest sha256", () => {
+    const m = JSON.parse(readFileSync(join(bp.REPO, "contract", "golden-manifest.json"), "utf8"));
+    const pinned: [string, string][] = m.groups.flatMap((g: any) =>
+      (g.copies["seam-branchpoint"] ?? []).map((p: string) => [g.sha256, p]));
+    assert.equal(pinned.length, 5);
+    for (const [sha, p] of pinned) {
+      assert.equal(createHash("sha256").update(readFileSync(join(bp.REPO, p))).digest("hex"), sha, p);
+    }
+    assert.equal(bp.render().size, 6);
+  });
+});
+
+describe("sdk document (§8)", () => {
+  const g = sdkLoad("sdk_document_golden.json");
+  const pinned = new Map<string, Buffer>(Object.entries(g.pinned_doc_keys).map(([k, v]) => [k, bp.unhex(v)]));
+  const by: Record<string, any> = Object.fromEntries(g.cases.map((c: any) => [c.name, c]));
+  const run = (c: any): any => bp.verifyDocument(bp.docCaseBody(c), c.tenant ?? g.tenant, pinned, c.now_ms, c.cached);
+
+  test("every case has its named outcome", () => {
+    assert.deepEqual(Object.keys(by).sort(), Object.keys(DOC_EXPECT).sort());
+    for (const [name, want] of Object.entries(DOC_EXPECT)) {
+      const got = run(by[name]);
+      assert.equal(got.reason ?? got.outcome, want, name);
+      assert.ok(bp.dump(got).equals(bp.dump(by[name].expect)), name);
+    }
+  });
+
+  test("experiment-level failures mark only that experiment", () => {
+    for (const [name, bad] of [["unknown_enum", "checkout-flow"], ["bad_salt_hex", "ranker-holdout"],
+      ["bad_arm_bundle", "ranker-holdout"]]) {
+      const ex = run(by[name]).experiments;
+      assert.equal(ex[bad], "config_invalid", name);
+      for (const k of Object.keys(ex)) if (k !== bad) assert.equal(ex[k], "ok", name);
+    }
+  });
+
+  test("positive document: message, digest, envelope, pinned keys, non-ASCII payload", () => {
+    const doc = g.document;
+    const db = Buffer.from(doc.doc_bytes, "utf8");
+    assert.ok(bp.unhex(doc.message_hex).equals(Buffer.concat([Buffer.from("seam.branchpoint.sdk-doc.v1\nt-golden\n"), db])));
+    assert.equal(doc.config_digest, createHash("sha256").update(db).digest("hex"));
+    assert.deepEqual(JSON.parse(doc.envelope), { doc: doc.doc_bytes, kid: doc.kid, sig: doc.sig });
+    assert.equal(pinned.size, 2);
+    assert.ok(/[^\x00-\x7f]/.test(doc.doc_bytes));
+  });
+
+  test("a refusal keeps the cache", () => {
+    const cache = bp.refreshCache(null, run(by.valid));
+    assert.deepEqual(cache, { config_digest: g.document.config_digest, version: 7 });
+    for (const name of Object.keys(DOC_EXPECT)) {
+      const r = run(by[name]);
+      if (r.outcome === "refused") assert.equal(bp.refreshCache(cache, r), cache, name);
+    }
+  });
+
+  test("size cap applies before parsing", () => {
+    const env = Buffer.from(by.valid.envelope, "utf8");
+    const atCap = Buffer.concat([env, Buffer.alloc(bp.DOC_MAX_BYTES - env.length, 0x20)]);
+    assert.equal(bp.verifyDocument(atCap, bp.TENANT, pinned, bp.DOC_NOW_MS).outcome, "accepted");
+    assert.deepEqual({ ...bp.verifyDocument(Buffer.concat([atCap, Buffer.from(" ")]), bp.TENANT, pinned, bp.DOC_NOW_MS) },
+      { outcome: "refused", reason: "document_too_large" });
+  });
+
+  test("size-cap vectors are compact: pad_to_bytes over the golden envelope", () => {
+    for (const [name, n] of [["oversized", bp.DOC_MAX_BYTES + 1], ["at_cap", bp.DOC_MAX_BYTES]] as [string, number][]) {
+      assert.equal(by[name].pad_to_bytes, n);
+      assert.equal(by[name].envelope, by.valid.envelope);
+      assert.equal(bp.docCaseBody(by[name]).length, n);
+    }
+  });
+
+  test("tenant grammar is checked before the signature", () => {
+    const c = by.tenant_newline;
+    assert.ok(c.tenant.includes("\n"));
+    const env = JSON.parse(c.envelope);
+    assert.ok(bp.edOk(pinned.get(env.kid)!, bp.docMessage(c.tenant, Buffer.from(env.doc, "utf8")), bp.unhex(env.sig)));
+    for (const bad of ["", "t".repeat(129), "t.golden", "t golden", "t-golden\n", "tënant"]) {
+      assert.equal(bp.verifyDocument(Buffer.from(by.valid.envelope, "utf8"), bad, pinned, bp.DOC_NOW_MS).reason,
+        "tenant_invalid", JSON.stringify(bad));
+    }
+  });
+
+  test("envelope bytes must be UTF-8 (a BOM or invalid byte is an envelope refusal)", () => {
+    const env = Buffer.from(by.valid.envelope, "utf8");
+    for (const raw of [Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), env]),
+      Buffer.from(by.valid.envelope.replace("concise", "conc\u0000se"), "utf8")]) {
+      assert.equal(bp.verifyDocument(raw, bp.TENANT, pinned, bp.DOC_NOW_MS).reason, "envelope_malformed");
+    }
+    const bad = Buffer.from(env);
+    bad[bad.indexOf("concise")] = 0xff;
+    assert.equal(bp.verifyDocument(bad, bp.TENANT, pinned, bp.DOC_NOW_MS).reason, "envelope_malformed");
+  });
+
+  test("unknown enum keeps the fail-soft row order", () => {
+    const e = (bp.strictParse(g.document.doc_bytes) as any).experiments[0];
+    assert.equal(bp.evaluate(bp.parseExperiment({ ...e, mode: "canary", state: "paused" }), "subj-a").reason, "paused");
+    assert.equal(bp.evaluate(bp.parseExperiment({ ...e, mode: "canary" }), "subj-a").reason, "config_invalid");
+    const { salt_hex: _s, ...noSalt } = e;
+    assert.equal(bp.evaluate(bp.parseExperiment(noSalt), "subj-a").reason, "salt_absent");
+  });
+
+  test("freshness (R8.12)", () => {
+    for (const f of g.freshness) assert.equal(bp.isStale(f.since_refresh_ms, f.now_ms, f.expires_at_ms), f.stale);
+    assert.deepEqual(g.freshness.map((f: any) => f.stale), [false, false, true, false, true]);
+  });
+});
+
+describe("upload batch (§9)", () => {
+  const u = sdkLoad("upload_batch_golden.json");
+
+  test("batch carries the golden chain plus one outcome and verifies", () => {
+    const chain = load("receipt_chain_golden.json").chains[0].receipts;
+    assert.deepEqual(u.batch.receipts, chain.map((c: any) => ({ canonical: c.canonical, sig_hex: c.sig_hex })));
+    assert.equal(u.batch_json, bp.compact(u.batch).toString("utf8"));
+    assert.ok(bp.outcomeOk(u.batch.outcomes[0]));
+    const v = new bp.Verifier(new Map(Object.entries(u.collector.pinned_cp_keys).map(([k, x]) => [k, bp.unhex(x)])));
+    assert.deepEqual(v.verifyBatch(u.batch), { cert: "ok", gaps: [], results: ["ok", "ok", "ok"] });
+  });
+
+  const pinnedCol = (): bp.Collector =>
+    new bp.Collector(new bp.Verifier(new Map(Object.entries(u.collector.pinned_cp_keys).map(([k, x]) => [k, bp.unhex(x)]))));
+  const wl = bp.privateKey(bp.WORKLOAD_SEED);
+  const steps: Record<string, any> = Object.fromEntries(u.collector.steps.map((s: any) => [s.name, s]));
+
+  test("batch signature: workload key over the domain and the JCS without batch_sig_hex", () => {
+    const b = u.batch;
+    assert.deepEqual(bp.signBatch(wl, b), b);
+    assert.match(b.batch_sig_hex, /^[0-9a-f]{128}$/);
+    const msg = Buffer.from(u.batch_signing_input, "utf8");
+    assert.ok(msg.subarray(0, 34).equals(Buffer.from("seam.branchpoint.upload-batch.v1\n{")));
+    assert.ok(msg.equals(bp.batchMessage(b)));
+    assert.ok(!u.batch_signing_input.includes("batch_sig_hex"));
+    const cert = bp.parseWcert(bp.unhex(b.cert.body_hex));
+    assert.ok(bp.batchSigOk(b, cert.pk));
+    assert.ok(!bp.batchSigOk({ ...b, outcomes: [{ ...b.outcomes[0], reward: 2 }] }, cert.pk));
+  });
+
+  test("jcsTree: RFC 8785 escaping, no floats/bools/null", () => {
+    assert.equal(bp.jcsTree({ b: [1, -2, "é\n\"\\\x01"], a: {} }).toString("utf8"),
+      '{"a":{},"b":[1,-2,"é\\n\\"\\\\\\u0001"]}');
+    for (const bad of [0.5, true, null, 2 ** 53, -(2 ** 53), "\ud800", { $float: "1.0" }]) {
+      assert.throws(() => bp.jcsTree({ x: bad }), bp.JcsError, String(bad));
+    }
+    assert.throws(() => bp.jcsTree({ "\ud800": 1 }), bp.JcsError);
+  });
+
+  test("a non-empty batch needs cert and batch_sig_hex", () => {
+    const oo = u.outcomes_only_batch;
+    assert.deepEqual(Object.keys(oo).sort(), ["batch_sig_hex", "cert", "dropped", "outcomes", "receipts"]);
+    assert.ok(bp.batchShapeOk(oo));
+    for (const k of ["cert", "batch_sig_hex"]) {
+      const { [k]: _drop, ...rest } = oo;
+      assert.ok(!bp.batchShapeOk(rest), k);
+    }
+    assert.ok(bp.batchShapeOk({ receipts: [] }));
+    assert.ok(!bp.batchShapeOk({ receipts: [], dropped: oo.dropped }));
+    assert.ok(!bp.batchShapeOk({ ...oo, zz: 1 }));
+  });
+
+  test("dropped keys are <cert_digest>:<experiment_id>", () => {
+    const oo = u.outcomes_only_batch;
+    const cd = createHash("sha256").update(bp.unhex(oo.cert.body_hex)).digest("hex");
+    assert.deepEqual(Object.keys(oo.dropped), [`${cd}:${bp.EXPERIMENT_ID}`]);
+    for (const k of [bp.EXPERIMENT_ID, `${cd}${bp.EXPERIMENT_ID}`, `${cd.toUpperCase()}:${bp.EXPERIMENT_ID}`,
+      `${cd}:${bp.EXPERIMENT_ID.toLowerCase()}`, `${cd.slice(0, -1)}:${bp.EXPERIMENT_ID}`, `${cd}:${bp.EXPERIMENT_ID}:x`]) {
+      assert.ok(!bp.batchShapeOk({ ...oo, dropped: { [k]: [[4, 9]] } }), k);
+    }
+  });
+
+  test("collector steps: receipts, outcomes, batch signature, refusals", () => {
+    const ans = (n: string): [number, any] => [steps[n].status, steps[n].response];
+    assert.deepEqual(ans("retry_with_more")[1].results.map((r: any) => r.status),
+      ["duplicate", "accepted", "receipt_sig_invalid"]);
+    assert.equal(ans("retry_with_more")[1].outcomes[0].status, "accepted");
+    assert.deepEqual(ans("outcomes_only")[1].outcomes.map((o: any) => o.status), ["accepted"]);
+    assert.deepEqual(ans("outcomes_only_retry")[1].outcomes.map((o: any) => o.status), ["duplicate"]);
+    assert.deepEqual(ans("outcome_receipt_unknown")[1].outcomes.map((o: any) => o.status),
+      Array(3).fill("outcome_receipt_unknown"));
+    assert.equal(ans("outcome_other_cert")[1].outcomes[0].status, "outcome_receipt_unknown");
+    assert.deepEqual(ans("empty_batch"), [200, { outcomes: [], results: [] }]);
+    for (const n of ["batch_sig_missing", "cert_missing", "receipts_without_cert", "batch_sig_uppercase", "bad_outcome",
+      "dropped_bad_key"]) assert.deepEqual(ans(n), [400, { error: "batch_malformed" }], n);
+    for (const n of ["batch_sig_invalid", "batch_sig_wrong_key"]) assert.deepEqual(ans(n), [400, { error: "batch_sig_invalid" }], n);
+    assert.deepEqual(ans("cert_sig_invalid"), [400, { error: "cert_sig_invalid" }]);
+  });
+
+  test("a refused batch stores nothing", () => {
+    const col = pinnedCol();
+    for (const n of ["batch_sig_invalid", "batch_sig_wrong_key", "batch_sig_missing"]) {
+      assert.equal(col.receive(steps[n].batch)[0], 400, n);
+    }
+    assert.equal(col.stored.size + col.scope.size + col.verifier.receiptIds.size, 0);
+  });
+
+  test("outcome cases: integers only, floats refused even when integral", () => {
+    const okNames = new Set(["full", "minimal", "reward_negative", "sixteen_metrics", "metric_key_63"]);
+    const floats = new Set(["reward_fraction", "reward_integral_float", "reward_exponent", "reward_2p53",
+      "metric_value_fraction"]);
+    for (const oc of u.outcome_cases) {
+      const o = Object.hasOwn(oc, "outcome") ? oc.outcome : bp.strictParse(oc.outcome_json);
+      assert.equal(Object.hasOwn(oc, "outcome_json"), floats.has(oc.name), oc.name);
+      assert.equal(bp.outcomeOk(o), okNames.has(oc.name), oc.name);
+      assert.equal(oc.ok, okNames.has(oc.name), oc.name);
+    }
+    for (const v of [0.5, Infinity, 2 ** 53]) {
+      assert.ok(!bp.outcomeOk({ experiment_id: bp.EXPERIMENT_ID, receipt_id: bp.rid("", 1), reward: v }), String(v));
+    }
+  });
+
+  test("the SDK admits only valid outcomes", () => {
+    const a = u.sdk_admit_outcomes;
+    assert.deepEqual(bp.sdkAdmitOutcomes(a.outcomes), a.expect);
+    assert.equal(a.expect.invalid_dropped, 10);
+    const b = bp.signBatch(wl, { cert: u.batch.cert, outcomes: a.expect.admitted, receipts: [] });
+    assert.equal(pinnedCol().receive(b)[0], 200);
+  });
+
+  test("SDK dispositions: a malformed 200 is a whole-batch retry", () => {
+    const got: Record<string, any> = Object.fromEntries(u.sdk_dispositions.map((d: any) => [d.name, d.expect]));
+    const retry = { outcomes_rejected: 0, outcomes_succeeded: 0, rejected: 0, retry: true, succeeded: 0 };
+    assert.deepEqual(got.ok, { outcomes_rejected: 0, outcomes_succeeded: 1, rejected: 1, retry: false, succeeded: 2 });
+    const malformed = Object.keys(got).filter((n) => n.startsWith("malformed_"));
+    assert.equal(malformed.length, 10);
+    for (const n of [...malformed, "unauthorized", "forbidden", "timeout", "rate_limited", "server_error", "unavailable",
+      "redirect"]) assert.deepEqual(got[n], retry, n);
+    for (const d of u.sdk_dispositions) {
+      assert.deepEqual(bp.sdkDisposition(d.status, d.body, d.receipt_ids, d.outcome_receipt_ids), d.expect, d.name);
+    }
+  });
+});
+
+describe("sdk-key token (§10)", () => {
+  const t = sdkLoad("sdk_key_token_golden.json");
+  const sk = bp.privateKey(bp.unhex(t.sdk_key_seed_hex));
+  const pk = bp.unhex(t.public_key_hex);
+
+  test("vector reproduces and verifies", () => {
+    assert.equal(bp.sdkKeyToken(sk, t.sdk_key_id, t.aud, t.iat, bp.unhex(t.jti_bytes_hex)), t.token);
+    assert.deepEqual(Object.keys(JSON.parse(t.claims_json)), ["iss", "sub", "aud", "iat", "exp", "jti"]);
+    assert.equal(t.exp - t.iat, 60);
+    assert.equal(bp.verifyToken(t.token, pk, t.aud, t.iat).jti, t.jti);
+  });
+
+  test("refusals: audience, expiry, signature, shape", () => {
+    for (const [tok, aud, now] of [[t.token, "other-aud", t.iat], [t.token, t.aud, t.exp + 31],
+      [t.token.slice(0, -2) + "AA", t.aud, t.iat], [t.token + ".x", t.aud, t.iat]] as [string, string, number][]) {
+      refusal(() => bp.verifyToken(tok, pk, aud, now), "token_invalid");
+    }
+  });
+
+  test("routes send the token to the CP only; redirects are not followed", () => {
+    assert.equal(t.follow_redirects, false);
+    assert.deepEqual(Object.fromEntries(Object.entries(t.routes).map(([k, r]: [string, any]) => [k, [r.base, r.auth]])),
+      { certificates: ["cp", "sdk_key_token"], document: ["cp", "sdk_key_token"], receipts: ["collector", "certificate"] });
+    assert.deepEqual(t.routes, bp.ROUTES);
+  });
+
+  test("CP route failures (machine-auth.ts)", () => {
+    const got = new Map<string, any>(t.cp_dispositions.map((d: any) => [`${d.status}|${d.error}|${d.retried}`, d.expect]));
+    assert.equal(got.get("401|token_replayed|false").action, "retry_fresh_token");
+    assert.deepEqual(got.get("401|token_replayed|true"), { action: "fail", reason: "token_replayed" });
+    assert.equal(got.get("429|token_rate_limited|false").action, "backoff");
+    assert.deepEqual(got.get("403|null|false"), { action: "fail", reason: "forbidden" });
+    for (const d of t.cp_dispositions) assert.deepEqual(bp.cpDisposition(d.status, d.error, d.retried), d.expect);
+  });
+
+  test("a fresh jti per token", () => {
+    assert.notEqual(bp.sdkKeyToken(sk, bp.SDK_KEY_ID, "a", 1, Buffer.alloc(16)),
+      bp.sdkKeyToken(sk, bp.SDK_KEY_ID, "a", 1, Buffer.concat([Buffer.alloc(15), Buffer.from([1])])));
+  });
+});

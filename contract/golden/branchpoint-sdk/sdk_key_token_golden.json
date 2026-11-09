@@ -1,0 +1,155 @@
+{
+  "aud": "seam-control-plane",
+  "claims_json": "{\"iss\":\"bk_0123456789abcdefghjkmnpqrs\",\"sub\":\"bk_0123456789abcdefghjkmnpqrs\",\"aud\":\"seam-control-plane\",\"iat\":1762560000,\"exp\":1762560060,\"jti\":\"AAECAwQFBgcICQoLDA0ODw\"}",
+  "cp_dispositions": [
+    {
+      "error": null,
+      "expect": {
+        "action": "ok",
+        "reason": ""
+      },
+      "retried": false,
+      "status": 200
+    },
+    {
+      "error": null,
+      "expect": {
+        "action": "ok",
+        "reason": ""
+      },
+      "retried": false,
+      "status": 304
+    },
+    {
+      "error": "token_replayed",
+      "expect": {
+        "action": "retry_fresh_token",
+        "reason": "token_replayed"
+      },
+      "retried": false,
+      "status": 401
+    },
+    {
+      "error": "token_replayed",
+      "expect": {
+        "action": "fail",
+        "reason": "token_replayed"
+      },
+      "retried": true,
+      "status": 401
+    },
+    {
+      "error": "token_rate_limited",
+      "expect": {
+        "action": "backoff",
+        "reason": "token_rate_limited"
+      },
+      "retried": false,
+      "status": 429
+    },
+    {
+      "error": "unauthorized",
+      "expect": {
+        "action": "fail",
+        "reason": "unauthorized"
+      },
+      "retried": false,
+      "status": 401
+    },
+    {
+      "error": "credential_inactive",
+      "expect": {
+        "action": "fail",
+        "reason": "credential_inactive"
+      },
+      "retried": false,
+      "status": 401
+    },
+    {
+      "error": null,
+      "expect": {
+        "action": "fail",
+        "reason": "unauthorized"
+      },
+      "retried": false,
+      "status": 401
+    },
+    {
+      "error": null,
+      "expect": {
+        "action": "fail",
+        "reason": "forbidden"
+      },
+      "retried": false,
+      "status": 403
+    },
+    {
+      "error": "identity_unavailable",
+      "expect": {
+        "action": "backoff",
+        "reason": "identity_unavailable"
+      },
+      "retried": false,
+      "status": 503
+    },
+    {
+      "error": null,
+      "expect": {
+        "action": "backoff",
+        "reason": "server_error"
+      },
+      "retried": false,
+      "status": 500
+    },
+    {
+      "error": null,
+      "expect": {
+        "action": "fail",
+        "reason": "redirect_refused"
+      },
+      "retried": false,
+      "status": 302
+    },
+    {
+      "error": null,
+      "expect": {
+        "action": "fail",
+        "reason": "http_404"
+      },
+      "retried": false,
+      "status": 404
+    }
+  ],
+  "exp": 1762560060,
+  "follow_redirects": false,
+  "header_json": "{\"alg\":\"EdDSA\",\"typ\":\"seam-mc+jwt\",\"kid\":\"bk_0123456789abcdefghjkmnpqrs\"}",
+  "iat": 1762560000,
+  "jti": "AAECAwQFBgcICQoLDA0ODw",
+  "jti_bytes_hex": "000102030405060708090a0b0c0d0e0f",
+  "public_key_hex": "13d9908a70925992ed546007d27f50da68ba7217ef62ac3cca784529ff10471c",
+  "routes": {
+    "certificates": {
+      "auth": "sdk_key_token",
+      "base": "cp",
+      "method": "POST",
+      "path": "/v1/branchpoint/sdk/certificates"
+    },
+    "document": {
+      "auth": "sdk_key_token",
+      "base": "cp",
+      "method": "GET",
+      "path": "/v1/branchpoint/sdk/document"
+    },
+    "receipts": {
+      "auth": "certificate",
+      "base": "collector",
+      "method": "POST",
+      "path": "/v1/branchpoint/receipts"
+    }
+  },
+  "sdk_key_id": "bk_0123456789abcdefghjkmnpqrs",
+  "sdk_key_seed_hex": "e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+  "signature_b64u": "dhibdt_5GOTwEElggjuc0AjKHvd5WEpx8n2FnU0lFLPwjsccNCmFcY8B3IKNByORmKDMJyDcc1HXvn8F7DxkBg",
+  "signing_input": "eyJhbGciOiJFZERTQSIsInR5cCI6InNlYW0tbWMrand0Iiwia2lkIjoiYmtfMDEyMzQ1Njc4OWFiY2RlZmdoamttbnBxcnMifQ.eyJpc3MiOiJia18wMTIzNDU2Nzg5YWJjZGVmZ2hqa21ucHFycyIsInN1YiI6ImJrXzAxMjM0NTY3ODlhYmNkZWZnaGprbW5wcXJzIiwiYXVkIjoic2VhbS1jb250cm9sLXBsYW5lIiwiaWF0IjoxNzYyNTYwMDAwLCJleHAiOjE3NjI1NjAwNjAsImp0aSI6IkFBRUNBd1FGQmdjSUNRb0xEQTBPRHcifQ",
+  "token": "eyJhbGciOiJFZERTQSIsInR5cCI6InNlYW0tbWMrand0Iiwia2lkIjoiYmtfMDEyMzQ1Njc4OWFiY2RlZmdoamttbnBxcnMifQ.eyJpc3MiOiJia18wMTIzNDU2Nzg5YWJjZGVmZ2hqa21ucHFycyIsInN1YiI6ImJrXzAxMjM0NTY3ODlhYmNkZWZnaGprbW5wcXJzIiwiYXVkIjoic2VhbS1jb250cm9sLXBsYW5lIiwiaWF0IjoxNzYyNTYwMDAwLCJleHAiOjE3NjI1NjAwNjAsImp0aSI6IkFBRUNBd1FGQmdjSUNRb0xEQTBPRHcifQ.dhibdt_5GOTwEElggjuc0AjKHvd5WEpx8n2FnU0lFLPwjsccNCmFcY8B3IKNByORmKDMJyDcc1HXvn8F7DxkBg"
+}

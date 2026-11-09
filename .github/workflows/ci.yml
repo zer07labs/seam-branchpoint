@@ -1,9 +1,10 @@
-# AS-0 contract gate: buf lint/format/breaking, both reference implementations regenerate the golden vectors
-# byte-identically (--check) and pass their tests, and SHA256SUMS holds. docs/ci-cost.md has the cost rules.
+# The full gate, as one job: the AS-0 contract checks (buf lint/format/breaking, both reference implementations
+# regenerate the golden vectors byte-identically and pass their tests, SHA256SUMS holds), plus the AS-2 SDK suites
+# (Python, TypeScript) and the cross-SDK conformance check. docs/ci-cost.md has the cost rules.
 #
-#   pull_request → runs (one job, seconds of work; one billed minute). Superseded pushes cancel.
+#   pull_request → runs (one job, about 4 billed minutes). Superseded pushes cancel.
 #   merge_group  → `changes` diffs the queue commit against merge_group.base_sha; the suite runs only when a
-#                  contract path changed, and FAILS CLOSED (any diff error, or a failed `changes`, runs it).
+#                  contract or SDK path changed, and FAILS CLOSED (any diff error, or a failed `changes`, runs it).
 #                  No queue is configured today; this is ready for one. The suite job always reports, so a
 #                  required check is never absent.
 #   push to main → nothing: the PR (or queue) already ran this tree.
@@ -43,7 +44,7 @@ jobs:
             echo "relevant=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "$FILES"
-          if grep -qE '^(proto/|buf\.yaml$|buf\.lock$|reference/|contract/|\.github/)' <<< "$FILES"; then
+          if grep -qE '^(proto/|buf\.yaml$|buf\.lock$|reference/|contract/|sdk/|tests/|\.github/)' <<< "$FILES"; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
           else
             echo "relevant=false" >> "$GITHUB_OUTPUT"
@@ -56,7 +57,7 @@ jobs:
       !cancelled()
       && (github.event_name != 'merge_group' || needs.changes.result != 'success' || needs.changes.outputs.relevant != 'false')
     runs-on: blacksmith-2vcpu-ubuntu-2404
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
         with:
@@ -66,9 +67,14 @@ jobs:
           version: "1.66.0"
           github_token: ${{ github.token }}
       - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: sdk/python/uv.lock
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22.18"
+          cache: npm
+          cache-dependency-path: sdk/ts/package-lock.json
       - name: buf lint + format
         run: |
           buf lint
@@ -90,8 +96,9 @@ jobs:
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
       - name: golden SHA256SUMS
-        working-directory: contract/golden/branchpoint
-        run: sha256sum --check --strict SHA256SUMS
+        run: (cd contract/golden/branchpoint && sha256sum --check --strict SHA256SUMS) && (cd contract/golden/branchpoint-sdk && sha256sum --check --strict SHA256SUMS)
+      - name: golden gate — local copies match the hub pins
+        run: python3 contract/scripts/golden_gate.py local --repo seam-branchpoint --manifest contract/golden-manifest.json
       - name: Python reference — regenerate (--check) + tests
         run: |
           uv run --script reference/python/branchpoint_ref.py --check
@@ -100,3 +107,21 @@ jobs:
         run: |
           node reference/ts/branchpoint_ref.ts --check
           node --test reference/ts/branchpoint_ref.test.ts
+      - name: Python SDK — tests (3.11 floor; extras, then core only, then the openfeature-sdk floor)
+        working-directory: sdk/python
+        env:
+          UV_PYTHON: "3.11"
+        run: |
+          uv sync --frozen
+          uv run --frozen pytest -q
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/bp-core" uv run --frozen --no-dev --with pytest --with hypothesis pytest -q
+          uv run --frozen --with openfeature-sdk==0.8.1 pytest -q tests/test_openfeature.py tests/test_otel.py
+      - name: TypeScript SDK — typecheck, build, tests
+        working-directory: sdk/ts
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+          npm test
+      - name: cross-SDK conformance
+        run: uv run --script tests/conformance/conformance.py

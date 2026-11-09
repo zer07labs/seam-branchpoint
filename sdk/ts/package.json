@@ -1,0 +1,53 @@
+{
+  "name": "@zer07labs/seam-branchpoint",
+  "version": "0.1.0-dev.0",
+  "description": "Seam Branchpoint SDK: attested, locally evaluated experiments for AI decisions (branchpoint.v1), with an OpenFeature provider.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./openfeature": {
+      "types": "./dist/openfeature/index.d.ts",
+      "default": "./dist/openfeature/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "node --test test/*.test.ts"
+  },
+  "peerDependencies": {
+    "@openfeature/server-sdk": "^1.17.0",
+    "@opentelemetry/api": "^1.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@openfeature/server-sdk": {
+      "optional": true
+    },
+    "@opentelemetry/api": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@openfeature/core": "1.12.0",
+    "@openfeature/server-sdk": "1.23.0",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-trace-base": "2.12.0",
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

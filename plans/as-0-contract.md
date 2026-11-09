@@ -26,7 +26,7 @@ Verified facts this plan builds on:
 - Runtime `framed` = `u32le(len) ‖ bytes` per part (`seam-runtime/crates/seamd/src/authorize.rs:1256-1268`).
 - Runtime intermediate cert pattern: `framed(domain) ‖ framed(pk32) ‖ le64(nb_ms) ‖ le64(na_ms) ‖ framed(aid)`, root
   signs `sha256(icert)`, never the preimage (`seam-runtime/crates/seamd/src/intermediate.rs:9-17`, `encode_cert` `:108-120`).
-- CP machine keys are OKP Ed25519 JWKs; thumbprint is RFC 7638 over `crv,kty,x` (`seam-control-plane/src/machine-credentials.ts:293-314`).
+- CP machine keys are OKP Ed25519 JWKs; thumbprint is RFC 7638 over `crv,kty,x` (`seam-control-plane/src/core/machine-credentials.ts:293-314`).
 - CP tenant id grammar `^[A-Za-z0-9_-]{1,128}$` (`seam-control-plane/src/evidence-v1.ts:413`, roster's own per `service-tokens.ts:414`).
 - `bp2` / tag / Allocation trailer fields 1–14: `seam-experiments/plans/branchpoint.md` BP-8 (lines 820-852) — the
   `Allocation` proto is not on runtime main yet. `seam.event.v1` `LearningDecision` tags 1–14, `LearningOutcome` 1–7
@@ -70,7 +70,7 @@ normalisation.
 Receipt fields (JSON types, 13 keys): `receipt_id` string (26-char Crockford ULID, uppercase, compared byte-wise,
 never case-folded), `experiment_id` string (ULID, `^[0-9A-HJKMNP-TV-Z]{26}$`), `config_digest` string (64 hex = sha256
 of `doc_bytes`: the exact octets under the CP's detached signature, excluding the `seam-config-tenant.v1` domain prefix
-and tenant id, before any parse — `seam-control-plane/src/signing.ts:304-305`), `bucket_version` string `"bpa1"`,
+and tenant id, before any parse — `seam-control-plane/src/core/signing.ts:304-305`), `bucket_version` string `"bpa1"`,
 `salt_kid` string (8 hex), `mode` string `"split"` | `"holdout"`, `variant_id` string (`^[A-Za-z0-9_.:-]{1,64}$`, or
 `""` when held out), `propensity_bp` integer `1..10000` (`flagMetadata.propensity` / `allocation_propensity` =
 `propensity_bp/10000`, derived, never signed), `unit_tag` string (32 hex), `cert_digest` string (64 hex), `seq`

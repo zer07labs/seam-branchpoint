@@ -1,0 +1,275 @@
+{
+  "note": "to_micros(x) = round_half_even(x × 10^6), x read as its shortest round-trip decimal (Python repr == ECMAScript String). Parse `x` with float()/Number() (kind float) or int()/Number() (kind int); expect `micros`, or a refusal: not_finite or out_of_range. Shared by the Python and TS SDKs.",
+  "rows": [
+    {
+      "kind": "int",
+      "micros": 0,
+      "note": "zero",
+      "x": "0"
+    },
+    {
+      "kind": "int",
+      "micros": 1000000,
+      "note": "one unit",
+      "x": "1"
+    },
+    {
+      "kind": "int",
+      "micros": -1000000,
+      "note": "minus one",
+      "x": "-1"
+    },
+    {
+      "kind": "int",
+      "micros": 9007199254000000,
+      "note": "largest int in range",
+      "x": "9007199254"
+    },
+    {
+      "kind": "int",
+      "micros": -9007199254000000,
+      "note": "smallest int in range",
+      "x": "-9007199254"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "int",
+      "note": "int just out of range",
+      "x": "9007199255"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "int",
+      "note": "negative int just out of range",
+      "x": "-9007199255"
+    },
+    {
+      "kind": "float",
+      "micros": 0,
+      "note": "zero",
+      "x": "0.0"
+    },
+    {
+      "kind": "float",
+      "micros": 0,
+      "note": "negative zero reads as 0",
+      "x": "-0.0"
+    },
+    {
+      "kind": "float",
+      "micros": 1000000,
+      "note": "integral float",
+      "x": "1.0"
+    },
+    {
+      "kind": "float",
+      "micros": 100000,
+      "note": "0.1 is 100000 exactly (decimal reading)",
+      "x": "0.1"
+    },
+    {
+      "kind": "float",
+      "micros": 300000,
+      "note": "0.30000000000000004: shortest repr, rounds to 300000",
+      "x": "0.30000000000000004"
+    },
+    {
+      "kind": "float",
+      "micros": 1,
+      "note": "one micro-unit",
+      "x": "1e-06"
+    },
+    {
+      "kind": "float",
+      "micros": 0,
+      "note": "below half a micro-unit",
+      "x": "1e-07"
+    },
+    {
+      "kind": "float",
+      "micros": 0,
+      "note": "tie 0.5 to even: 0",
+      "x": "5e-07"
+    },
+    {
+      "kind": "float",
+      "micros": 2,
+      "note": "tie 1.5 to even: 2",
+      "x": "1.5e-06"
+    },
+    {
+      "kind": "float",
+      "micros": 2,
+      "note": "tie 2.5 to even: 2",
+      "x": "2.5e-06"
+    },
+    {
+      "kind": "float",
+      "micros": -2,
+      "note": "negative tie to even: -2",
+      "x": "-2.5e-06"
+    },
+    {
+      "kind": "float",
+      "micros": -2,
+      "note": "negative tie to even: -2",
+      "x": "-1.5e-06"
+    },
+    {
+      "kind": "float",
+      "micros": 7812,
+      "note": "exact binary tie 7812.5 to even: 7812",
+      "x": "0.0078125"
+    },
+    {
+      "kind": "float",
+      "micros": 1000000,
+      "note": "tie 1000000.5 to even",
+      "x": "1.0000005"
+    },
+    {
+      "kind": "float",
+      "micros": 1000002,
+      "note": "tie 1000001.5 to even",
+      "x": "1.0000015"
+    },
+    {
+      "kind": "float",
+      "micros": -1000000,
+      "note": "negative tie",
+      "x": "-1.0000005"
+    },
+    {
+      "kind": "float",
+      "micros": 123456,
+      "note": "tie 123456.5 to even: 123456",
+      "x": "0.1234565"
+    },
+    {
+      "kind": "float",
+      "micros": 123458,
+      "note": "tie 123457.5 to even: 123458",
+      "x": "0.1234575"
+    },
+    {
+      "kind": "float",
+      "micros": 126,
+      "note": "float multiply gives 125.49999…: decimal tie rounds to 126",
+      "x": "0.0001255"
+    },
+    {
+      "kind": "float",
+      "micros": 126,
+      "note": "float multiply gives 126.50000…1: decimal tie rounds to 126",
+      "x": "0.0001265"
+    },
+    {
+      "kind": "float",
+      "micros": 248,
+      "note": "float multiply gives 248.50000…1: decimal tie rounds to 248",
+      "x": "0.0002485"
+    },
+    {
+      "kind": "float",
+      "micros": 254,
+      "note": "float multiply gives 253.49999…: decimal tie rounds to 254",
+      "x": "0.0002535"
+    },
+    {
+      "kind": "float",
+      "micros": 492,
+      "note": "float multiply 491.49999…: decimal tie 492",
+      "x": "0.0004915"
+    },
+    {
+      "kind": "float",
+      "micros": 490,
+      "note": "float multiply 490.50000…1: decimal tie 490",
+      "x": "0.0004905"
+    },
+    {
+      "kind": "float",
+      "micros": 123456789,
+      "note": "ordinary value",
+      "x": "123.456789"
+    },
+    {
+      "kind": "float",
+      "micros": -42000001,
+      "note": "negative ordinary value",
+      "x": "-42.000001"
+    },
+    {
+      "kind": "float",
+      "micros": 0,
+      "note": "smallest subnormal reads as 0",
+      "x": "5e-324"
+    },
+    {
+      "kind": "float",
+      "micros": 0,
+      "note": "negative subnormal reads as 0",
+      "x": "-5e-324"
+    },
+    {
+      "kind": "float",
+      "micros": 9007199254740990,
+      "note": "largest float in range",
+      "x": "9007199254.74099"
+    },
+    {
+      "kind": "float",
+      "micros": -9007199254740990,
+      "note": "smallest float in range",
+      "x": "-9007199254.74099"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "float",
+      "note": "9007199254740992 micro-units: one past 2^53-1",
+      "x": "9007199254.740992"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "float",
+      "note": "9007199254740992 micro-units: one past -(2^53-1)",
+      "x": "-9007199254.740992"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "float",
+      "note": "far out of range",
+      "x": "10000000000.0"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "float",
+      "note": "far out of range (negative)",
+      "x": "-10000000000.0"
+    },
+    {
+      "error": "out_of_range",
+      "kind": "float",
+      "note": "largest double",
+      "x": "1.7976931348623157e+308"
+    },
+    {
+      "error": "not_finite",
+      "kind": "float",
+      "note": "not a number",
+      "x": "NaN"
+    },
+    {
+      "error": "not_finite",
+      "kind": "float",
+      "note": "positive infinity",
+      "x": "Infinity"
+    },
+    {
+      "error": "not_finite",
+      "kind": "float",
+      "note": "negative infinity",
+      "x": "-Infinity"
+    }
+  ]
+}

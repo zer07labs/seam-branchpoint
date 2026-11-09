@@ -370,5 +370,359 @@ class CertAndReceipts(unittest.TestCase):
                 bp._strict_load(raw)
 
 
+# --- AS-2 wires (spec §8–§10), golden group contract/golden/branchpoint-sdk/ -------------------------------------
+SDK_GOLDEN = bp.SDK_GOLDEN_DIR
+
+
+def sdk_load(name: str) -> dict:
+    return json.loads((SDK_GOLDEN / name).read_text("utf-8"))
+
+
+# Every §8 vector case and the outcome it must produce: pinned here independently of the generator.
+DOC_EXPECT = {
+    "valid": "accepted", "valid_previous_key": "accepted", "valid_newer_than_cache": "accepted",
+    "unchanged_same_bytes": "unchanged", "expiry_boundary": "accepted",
+    "non_string_doc": "envelope_malformed", "malformed_sig_hex": "envelope_malformed",
+    "short_sig_hex": "envelope_malformed", "envelope_duplicate_member": "envelope_malformed",
+    "envelope_extra_member": "envelope_malformed", "lone_surrogate_doc": "envelope_malformed",
+    "envelope_missing_member": "envelope_malformed", "envelope_not_object": "envelope_malformed",
+    "envelope_bom": "envelope_malformed", "kid_not_base64url": "envelope_malformed", "kid_short": "envelope_malformed",
+    "oversized": "document_too_large", "at_cap": "accepted", "tenant_newline": "tenant_invalid",
+    "unknown_kid": "kid_unknown", "forged_sig": "sig_invalid", "wrong_tenant": "sig_invalid",
+    "wrong_domain": "sig_invalid", "doc_duplicate_member": "doc_malformed", "doc_not_object": "doc_malformed",
+    "v2": "doc_unsupported", "wrong_kind": "doc_unsupported", "body_tenant_mismatch": "tenant_mismatch",
+    "version_too_large": "version_invalid", "version_not_integer": "version_invalid", "rollback": "rollback",
+    "version_conflict": "version_conflict", "window_invalid": "window_invalid", "expired": "expired",
+    "experiments_not_array": "doc_malformed", "unindexable_missing_key": "unindexable",
+    "unindexable_experiment_id": "unindexable", "duplicate_key": "ambiguous_lookup",
+    "duplicate_experiment_id": "ambiguous_lookup", "duplicate_decision_point": "ambiguous_lookup",
+    "key_collides_decision_point": "ambiguous_lookup", "unknown_enum": "accepted", "bad_salt_hex": "accepted",
+    "bad_arm_bundle": "accepted",
+}
+
+
+class SdkGolden(unittest.TestCase):
+    def test_sdk_group_bytes_match_generator(self) -> None:
+        self.assertEqual(sorted(p.name for p in SDK_GOLDEN.iterdir()),
+                         ["SHA256SUMS", "sdk_document_golden.json", "sdk_key_token_golden.json",
+                          "upload_batch_golden.json"])
+        for name, data in bp.render_sdk().items():
+            self.assertEqual((SDK_GOLDEN / name).read_bytes(), data, name)
+        self.assertEqual(bp.verify_sdk_committed(), [])
+
+    def test_check_sdk_detects_one_byte_edit(self) -> None:
+        self.assertEqual(bp.check_sdk(), [])
+        for name in sorted(p.name for p in SDK_GOLDEN.iterdir()):
+            with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
+                d = Path(tmp)
+                for f in SDK_GOLDEN.iterdir():
+                    shutil.copy(f, d / f.name)
+                raw = bytearray((d / name).read_bytes())
+                raw[raw.index(b"0")] = ord("1")
+                (d / name).write_bytes(bytes(raw))
+                self.assertEqual(bp.check_sdk(d), [name])
+
+    def test_as0_group_untouched(self) -> None:
+        # The AS-0 files are hub-pinned: their bytes must equal the vendored manifest's sha256 for every group.
+        manifest = json.loads((bp.REPO / "contract" / "golden-manifest.json").read_text("utf-8"))
+        pinned = [(g["sha256"], p) for g in manifest["groups"] for p in g["copies"].get("seam-branchpoint", [])]
+        self.assertEqual(len(pinned), 5)
+        for sha, path in pinned:
+            self.assertEqual(hashlib.sha256((bp.REPO / path).read_bytes()).hexdigest(), sha, path)
+        self.assertEqual(set(bp.render()), {p.name for p in GOLDEN.iterdir()})
+
+
+class SdkDocument(unittest.TestCase):
+    def setUp(self) -> None:
+        self.g = sdk_load("sdk_document_golden.json")
+        self.pinned = {k: bytes.fromhex(v) for k, v in self.g["pinned_doc_keys"].items()}
+        self.by = {c["name"]: c for c in self.g["cases"]}
+
+    def run_case(self, c: dict) -> dict:
+        return bp.verify_document(bp.doc_case_body(c), c.get("tenant", self.g["tenant"]), self.pinned, c["now_ms"],
+                                  c["cached"])
+
+    def test_every_case_has_its_named_outcome(self) -> None:
+        self.assertEqual(set(self.by), set(DOC_EXPECT))
+        for name, want in DOC_EXPECT.items():
+            with self.subTest(name):
+                got = self.run_case(self.by[name])
+                self.assertEqual(got, self.by[name]["expect"])
+                self.assertEqual(got.get("reason", got["outcome"]), want)
+
+    def test_experiment_level_failures_mark_only_that_experiment(self) -> None:
+        for name, bad in (("unknown_enum", "checkout-flow"), ("bad_salt_hex", "ranker-holdout"),
+                          ("bad_arm_bundle", "ranker-holdout")):
+            ex = self.run_case(self.by[name])["experiments"]
+            self.assertEqual(ex[bad], "config_invalid", name)
+            self.assertEqual([k for k, v in ex.items() if v == "ok"], [k for k in ex if k != bad], name)
+
+    def test_positive_document(self) -> None:
+        doc = self.g["document"]
+        db = doc["doc_bytes"].encode("utf-8")
+        self.assertEqual(bytes.fromhex(doc["message_hex"]), b"seam.branchpoint.sdk-doc.v1\nt-golden\n" + db)
+        self.assertEqual(doc["config_digest"], hashlib.sha256(db).hexdigest())
+        self.assertEqual(json.loads(doc["envelope"]), {"doc": doc["doc_bytes"], "kid": doc["kid"], "sig": doc["sig"]})
+        self.assertIn(bp.key_id(bytes.fromhex(self.g["doc_public_key_hex"])), self.pinned)
+        self.assertEqual(len(self.pinned), 2, "current plus one previous key")
+        self.assertTrue(any(ord(ch) > 0x7F for ch in doc["doc_bytes"]), "non-ASCII payload is allowed")
+
+    def test_document_evaluates_like_the_as0_layouts(self) -> None:
+        ev = {(e["key"], e["unit"]): e for e in self.g["document"]["evaluations"]}
+        for e in load("bpa1_golden.json")["evaluations"]:
+            if e["layout"] == "L1":
+                got = {k: v for k, v in ev[("checkout-flow", e["unit"])].items() if k not in ("key", "unit")}
+                self.assertEqual(got, {k: v for k, v in e.items() if k not in ("layout", "unit")}, e["unit"])
+        self.assertEqual({e["outcome"] for (k, _), e in ev.items() if k == "ranker-holdout"},
+                         {"held_out", "variant", "default"})
+
+    def test_refusal_keeps_the_cache(self) -> None:
+        cache = bp.refresh_cache(None, self.run_case(self.by["valid"]))
+        self.assertEqual(cache, {"config_digest": self.g["document"]["config_digest"], "version": 7})
+        for name, want in DOC_EXPECT.items():
+            r = self.run_case(self.by[name])
+            if r["outcome"] == "refused":
+                self.assertIs(bp.refresh_cache(cache, r), cache, name)
+        self.assertEqual(bp.refresh_cache(cache, self.run_case(self.by["unchanged_same_bytes"])), cache)
+
+    def test_size_cap_applies_before_parsing(self) -> None:
+        env = self.by["valid"]["envelope"].encode("utf-8")
+        at_cap = env + b" " * (bp.DOC_MAX_BYTES - len(env))
+        r = bp.verify_document(at_cap, bp.TENANT, self.pinned, bp.DOC_NOW_MS)
+        self.assertEqual(r["outcome"], "accepted")
+        r = bp.verify_document(at_cap + b" ", bp.TENANT, self.pinned, bp.DOC_NOW_MS)
+        self.assertEqual(r, {"outcome": "refused", "reason": "document_too_large"})
+        self.assertEqual(bp.verify_document(b"{" * (bp.DOC_MAX_BYTES + 1), bp.TENANT, self.pinned, 0)["reason"],
+                         "document_too_large")
+
+    def test_size_cap_vectors_are_compact(self) -> None:
+        for name, n in (("oversized", bp.DOC_MAX_BYTES + 1), ("at_cap", bp.DOC_MAX_BYTES)):
+            c = self.by[name]
+            self.assertEqual((c["pad_to_bytes"], c["envelope"]), (n, self.by["valid"]["envelope"]))
+            self.assertEqual(len(bp.doc_case_body(c)), n)
+
+    def test_tenant_grammar_before_signature(self) -> None:
+        c = self.by["tenant_newline"]
+        self.assertIn("\n", c["tenant"])
+        # The envelope is validly signed for that tenant, so only the grammar check can refuse it.
+        env = json.loads(c["envelope"])
+        msg = bp.doc_message(c["tenant"], env["doc"].encode("utf-8"))
+        bp.Ed25519PublicKey.from_public_bytes(self.pinned[env["kid"]]).verify(bytes.fromhex(env["sig"]), msg)
+        for bad in ("", "t" * 129, "t.golden", "t golden", "t-golden\n", "tënant"):
+            self.assertEqual(bp.verify_document(self.by["valid"]["envelope"].encode("utf-8"), bad, self.pinned,
+                                                bp.DOC_NOW_MS)["reason"], "tenant_invalid", repr(bad))
+        self.assertEqual(bp.TENANT_RE.pattern, "[A-Za-z0-9_-]{1,128}")  # seam-control-plane src/core/service-tokens.ts:415
+
+    def test_envelope_bytes_must_be_utf8(self) -> None:
+        env = self.by["valid"]["envelope"].encode("utf-8")
+        for raw in (b"\xef\xbb\xbf" + env, env.replace(b"concise", b"conc\xffse")):
+            self.assertEqual(bp.verify_document(raw, bp.TENANT, self.pinned, bp.DOC_NOW_MS)["reason"],
+                             "envelope_malformed")
+
+    def test_unknown_enum_keeps_fail_soft_row_order(self) -> None:
+        e = json.loads(self.g["document"]["doc_bytes"])["experiments"][0]
+        paused = bp.parse_experiment({**e, "mode": "canary", "state": "paused"})
+        self.assertEqual(bp.evaluate(paused, "subj-a").reason, "paused")  # row 4 precedes row 7
+        self.assertEqual(bp.evaluate(bp.parse_experiment({**e, "mode": "canary"}), "subj-a").reason, "config_invalid")
+        no_salt = {k: v for k, v in e.items() if k != "salt_hex"}
+        self.assertEqual(bp.evaluate(bp.parse_experiment(no_salt), "subj-a").reason, "salt_absent")  # row 6
+        self.assertEqual(bp.evaluate(bp.parse_experiment({**e, "budget_bp": "0"}), "subj-a").reason, "config_invalid")
+
+    def test_freshness(self) -> None:
+        for f in self.g["freshness"]:
+            self.assertEqual(bp.is_stale(f["since_refresh_ms"], f["now_ms"], f["expires_at_ms"]), f["stale"], f)
+        self.assertEqual([f["stale"] for f in self.g["freshness"]], [False, False, True, False, True])
+        self.assertEqual((self.g["max_staleness_ms"], self.g["expiry_skew_ms"]), (600000, 300000))
+
+
+class SdkUploadBatch(unittest.TestCase):
+    def setUp(self) -> None:
+        self.u = sdk_load("upload_batch_golden.json")
+
+    def test_batch_carries_the_golden_chain_and_one_outcome(self) -> None:
+        b = self.u["batch"]
+        chain = load("receipt_chain_golden.json")["chains"][0]["receipts"]
+        self.assertEqual(b["receipts"], [{"canonical": c["canonical"], "sig_hex": c["sig_hex"]} for c in chain])
+        self.assertEqual(len(b["outcomes"]), 1)
+        self.assertTrue(bp.outcome_ok(b["outcomes"][0]))
+        self.assertEqual(self.u["batch_json"], bp.compact(b).decode("utf-8"))
+        self.assertEqual(json.loads(self.u["batch_json"]), b)
+        v = bp.Verifier({k: bytes.fromhex(x) for k, x in self.u["collector"]["pinned_cp_keys"].items()})
+        self.assertEqual(v.verify_batch(b), {"cert": "ok", "gaps": [], "results": ["ok"] * 3})
+
+    def pinned_col(self) -> bp.Collector:
+        return bp.Collector(bp.Verifier({k: bytes.fromhex(x) for k, x in self.u["collector"]["pinned_cp_keys"].items()}))
+
+    def test_batch_signature(self) -> None:
+        b, wl = self.u["batch"], bp._keys()[1]
+        self.assertEqual(bp.sign_batch(wl, b), b)
+        self.assertRegex(b["batch_sig_hex"], "^[0-9a-f]{128}$")
+        msg = self.u["batch_signing_input"].encode("utf-8")
+        self.assertTrue(msg.startswith(b"seam.branchpoint.upload-batch.v1\n{"))
+        self.assertEqual(msg, bp.batch_message(b))
+        self.assertNotIn(b"batch_sig_hex", msg)
+        cert = bp.parse_wcert(bytes.fromhex(b["cert"]["body_hex"]))
+        bp.Ed25519PublicKey.from_public_bytes(cert.pk).verify(bytes.fromhex(b["batch_sig_hex"]), msg)
+        self.assertTrue(bp.batch_sig_ok(b, cert.pk))
+        changed = {**b, "outcomes": [{**b["outcomes"][0], "reward": 2}]}  # outcomes are covered by the signature
+        self.assertFalse(bp.batch_sig_ok(changed, cert.pk))
+
+    def test_jcs_tree(self) -> None:
+        self.assertEqual(bp.jcs_tree({"b": [1, -2, "é\n\"\\\x01"], "a": {}}),
+                         '{"a":{},"b":[1,-2,"é\\n\\"\\\\\\u0001"]}'.encode("utf-8"))
+        for bad in (1.0, 0.5, True, None, 2 ** 53, -(2 ** 53), "\ud800", {"\ud800": 1}, {1: 1}):
+            with self.assertRaises(bp.JcsError, msg=repr(bad)):
+                bp.jcs_tree({"x": bad} if not isinstance(bad, dict) else bad)
+
+    def test_non_empty_batch_needs_cert_and_batch_sig(self) -> None:
+        oo = self.u["outcomes_only_batch"]
+        self.assertEqual(set(oo), {"batch_sig_hex", "cert", "dropped", "outcomes", "receipts"})
+        self.assertTrue(bp.batch_shape_ok(oo))
+        for k in ("cert", "batch_sig_hex"):
+            self.assertFalse(bp.batch_shape_ok({x: v for x, v in oo.items() if x != k}), k)
+        self.assertTrue(bp.batch_shape_ok({"receipts": []}))
+        self.assertFalse(bp.batch_shape_ok({"receipts": [], "dropped": oo["dropped"]}))  # dropped alone is non-empty
+        self.assertFalse(bp.batch_shape_ok({**oo, "dropped": {next(iter(oo["dropped"])): [[2, 1]]}}))
+        self.assertFalse(bp.batch_shape_ok({**oo, "zz": 1}))
+
+    def test_dropped_key_form(self) -> None:
+        oo = self.u["outcomes_only_batch"]
+        cd = bp.sha256(bytes.fromhex(oo["cert"]["body_hex"])).hex()
+        self.assertEqual(list(oo["dropped"]), [f"{cd}:{bp.EXPERIMENT_ID}"])
+        for k in (bp.EXPERIMENT_ID, f"{cd}{bp.EXPERIMENT_ID}", f"{cd.upper()}:{bp.EXPERIMENT_ID}",
+                  f"{cd}:{bp.EXPERIMENT_ID.lower()}", f"{cd[:-1]}:{bp.EXPERIMENT_ID}", f"{cd}:{bp.EXPERIMENT_ID}:x"):
+            self.assertFalse(bp.batch_shape_ok({**oo, "dropped": {k: [[4, 9]]}}), k)
+
+    def test_collector_steps(self) -> None:
+        steps = {s["name"]: s for s in self.u["collector"]["steps"]}
+        ans = {n: (s["status"], s["response"]) for n, s in steps.items()}
+        self.assertEqual([r["status"] for r in ans["retry_with_more"][1]["results"]],
+                         ["duplicate", "accepted", "receipt_sig_invalid"])
+        self.assertEqual(ans["retry_with_more"][1]["outcomes"][0]["status"], "accepted")  # receipt stored first
+        self.assertEqual([o["status"] for o in ans["outcomes_only"][1]["outcomes"]], ["accepted"])
+        self.assertEqual([o["status"] for o in ans["outcomes_only_retry"][1]["outcomes"]], ["duplicate"])
+        self.assertEqual({o["status"] for o in ans["outcome_receipt_unknown"][1]["outcomes"]},
+                         {"outcome_receipt_unknown"})
+        self.assertEqual(len(ans["outcome_receipt_unknown"][1]["outcomes"]), 3)
+        self.assertEqual(ans["outcome_other_cert"][1]["outcomes"][0]["status"], "outcome_receipt_unknown")
+        self.assertEqual(ans["empty_batch"], (200, {"outcomes": [], "results": []}))
+        for n in ("batch_sig_missing", "cert_missing", "receipts_without_cert", "batch_sig_uppercase", "bad_outcome",
+                  "dropped_bad_key"):
+            self.assertEqual(ans[n], (400, {"error": "batch_malformed"}), n)
+        for n in ("batch_sig_invalid", "batch_sig_wrong_key"):
+            self.assertEqual(ans[n], (400, {"error": "batch_sig_invalid"}), n)
+        self.assertEqual(ans["cert_sig_invalid"], (400, {"error": "cert_sig_invalid"}))
+        for n, s in steps.items():
+            self.assertEqual(set(s["response"]), {"outcomes", "results"} if s["status"] == 200 else {"error"}, n)
+
+    def test_refused_batch_stores_nothing(self) -> None:
+        col = self.pinned_col()
+        steps = {s["name"]: s for s in self.u["collector"]["steps"]}
+        for n in ("batch_sig_invalid", "batch_sig_wrong_key", "batch_sig_missing"):
+            self.assertEqual(col.receive(steps[n]["batch"])[0], 400)
+        self.assertEqual((col.stored, col.scope, col.verifier.receipt_ids), ({}, {}, set()))
+
+    def test_duplicate_requires_identical_bytes(self) -> None:
+        wl = bp._keys()[1]
+        col = self.pinned_col()
+        b = self.u["batch"]
+        self.assertEqual(col.receive(bp.sign_batch(wl, {"cert": b["cert"], "receipts": b["receipts"][:1]}))[0], 200)
+        other = {**b["receipts"][0], "sig_hex": "00" * 64}  # same receipt_id, different bytes: not a duplicate
+        got = col.receive(bp.sign_batch(wl, {"cert": b["cert"], "receipts": [other]}))
+        self.assertEqual(got[1]["results"][0]["status"], "receipt_sig_invalid")
+
+    def test_outcome_cases(self) -> None:
+        want_ok = {"full", "minimal", "reward_negative", "sixteen_metrics", "metric_key_63"}
+        floats = {"reward_fraction", "reward_integral_float", "reward_exponent", "reward_2p53", "metric_value_fraction"}
+        self.assertTrue(floats <= {oc["name"] for oc in self.u["outcome_cases"]})
+        for oc in self.u["outcome_cases"]:
+            o = oc["outcome"] if "outcome" in oc else bp._strict_load(oc["outcome_json"].encode("utf-8"))
+            self.assertEqual(("outcome_json" in oc), oc["name"] in floats, oc["name"])
+            self.assertEqual(bp.outcome_ok(o), oc["name"] in want_ok, oc["name"])
+            self.assertEqual(oc["ok"], oc["name"] in want_ok, oc["name"])
+        for v in (0.5, 1.0, float("inf"), 2 ** 53):
+            self.assertFalse(bp.outcome_ok({"experiment_id": bp.EXPERIMENT_ID, "receipt_id": bp._rid("", 1),
+                                            "reward": v}), v)
+
+    def test_sdk_admits_only_valid_outcomes(self) -> None:
+        a = self.u["sdk_admit_outcomes"]
+        self.assertEqual(bp.sdk_admit_outcomes(a["outcomes"]), a["expect"])
+        self.assertEqual(a["expect"]["invalid_dropped"], len(a["outcomes"]) - len(a["expect"]["admitted"]))
+        self.assertEqual(a["expect"]["invalid_dropped"], 10)
+        self.assertTrue(all(bp.outcome_ok(o) for o in a["expect"]["admitted"]))
+        # Admitted outcomes never 400 a batch: the collector check is the same function.
+        wl = bp._keys()[1]
+        b = bp.sign_batch(wl, {"cert": self.u["batch"]["cert"], "outcomes": a["expect"]["admitted"], "receipts": []})
+        self.assertEqual(self.pinned_col().receive(b)[0], 200)
+
+    def test_sdk_dispositions(self) -> None:
+        got = {d["name"]: d["expect"] for d in self.u["sdk_dispositions"]}
+        retry = {"outcomes_rejected": 0, "outcomes_succeeded": 0, "rejected": 0, "retry": True, "succeeded": 0}
+        self.assertEqual(got["ok"], {"outcomes_rejected": 0, "outcomes_succeeded": 1, "rejected": 1, "retry": False,
+                                     "succeeded": 2})
+        self.assertEqual(got["bad_request"], {"outcomes_rejected": 1, "outcomes_succeeded": 0, "rejected": 3,
+                                              "retry": False, "succeeded": 0})
+        malformed = [n for n in got if n.startswith("malformed_")]
+        self.assertEqual(len(malformed), 10)
+        for n in malformed + ["unauthorized", "forbidden", "timeout", "rate_limited", "server_error", "unavailable",
+                              "redirect"]:
+            self.assertEqual(got[n], retry, n)
+        for d in self.u["sdk_dispositions"]:
+            self.assertEqual(bp.sdk_disposition(d["status"], d["body"], d["receipt_ids"], d["outcome_receipt_ids"]),
+                             d["expect"], d["name"])
+
+
+class SdkKeyToken(unittest.TestCase):
+    def setUp(self) -> None:
+        self.t = sdk_load("sdk_key_token_golden.json")
+        self.sk = bp.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(self.t["sdk_key_seed_hex"]))
+        self.pk = bytes.fromhex(self.t["public_key_hex"])
+
+    def test_vector_reproduces_and_verifies(self) -> None:
+        t = self.t
+        self.assertEqual(bp.sdk_key_token(self.sk, t["sdk_key_id"], t["aud"], t["iat"], bytes.fromhex(t["jti_bytes_hex"])),
+                         t["token"])
+        self.assertEqual(t["header_json"], '{"alg":"EdDSA","typ":"seam-mc+jwt","kid":"%s"}' % t["sdk_key_id"])
+        self.assertEqual(list(json.loads(t["claims_json"])), ["iss", "sub", "aud", "iat", "exp", "jti"])
+        self.assertEqual(t["exp"] - t["iat"], 60)
+        self.assertEqual(t["token"], t["signing_input"] + "." + t["signature_b64u"])
+        claims = bp.verify_token(t["token"], self.pk, t["aud"], t["iat"])
+        self.assertEqual((claims["iss"], claims["sub"], claims["jti"]), (t["sdk_key_id"], t["sdk_key_id"], t["jti"]))
+
+    def test_token_refusals(self) -> None:
+        t = self.t
+        for tok, aud, now in ((t["token"], "other-aud", t["iat"]), (t["token"], t["aud"], t["exp"] + 31),
+                              (t["token"][:-2] + "AA", t["aud"], t["iat"]), (t["token"] + ".x", t["aud"], t["iat"])):
+            with self.assertRaises(bp.Refusal):
+                bp.verify_token(tok, self.pk, aud, now)
+
+    def test_fresh_jti_per_token(self) -> None:
+        a = bp.sdk_key_token(self.sk, bp.SDK_KEY_ID, "a", 1, bytes(16))
+        b = bp.sdk_key_token(self.sk, bp.SDK_KEY_ID, "a", 1, bytes(15) + b"\x01")
+        self.assertNotEqual(a, b)
+
+    def test_cp_dispositions(self) -> None:
+        got = {(d["status"], d["error"], d["retried"]): d["expect"] for d in self.t["cp_dispositions"]}
+        self.assertEqual(got[(401, "token_replayed", False)]["action"], "retry_fresh_token")
+        self.assertEqual(got[(401, "token_replayed", True)], {"action": "fail", "reason": "token_replayed"})
+        self.assertEqual(got[(429, "token_rate_limited", False)]["action"], "backoff")
+        self.assertEqual(got[(401, "credential_inactive", False)], {"action": "fail", "reason": "credential_inactive"})
+        self.assertEqual(got[(403, None, False)], {"action": "fail", "reason": "forbidden"})
+        self.assertEqual(got[(503, "identity_unavailable", False)]["action"], "backoff")
+        self.assertEqual(got[(302, None, False)]["action"], "fail")
+        for d in self.t["cp_dispositions"]:
+            self.assertEqual(bp.cp_disposition(d["status"], d["error"], d["retried"]), d["expect"])
+
+    def test_routes_send_the_token_to_the_cp_only(self) -> None:
+        t = json.loads((bp.SDK_GOLDEN_DIR / "sdk_key_token_golden.json").read_text("utf-8"))
+        self.assertIs(t["follow_redirects"], False)
+        self.assertEqual({k: (r["base"], r["auth"]) for k, r in t["routes"].items()},
+                         {"certificates": ("cp", "sdk_key_token"), "document": ("cp", "sdk_key_token"),
+                          "receipts": ("collector", "certificate")})
+        self.assertEqual(t["routes"]["document"]["path"], "/v1/branchpoint/sdk/document")
+        self.assertEqual(t["routes"]["certificates"]["path"], "/v1/branchpoint/sdk/certificates")
+        self.assertEqual(t["routes"]["receipts"]["path"], "/v1/branchpoint/receipts")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -1,0 +1,349 @@
+{
+  "version": 1,
+  "vendored": {
+    "seam-learning": {
+      "manifest": "fixtures/golden-manifest.json",
+      "script": "scripts/golden_gate.py"
+    },
+    "seam-runtime": {
+      "manifest": "fixtures/golden-manifest.json",
+      "script": "scripts/golden_gate.py"
+    },
+    "seam-connectors": {
+      "manifest": "contract/golden-manifest.json",
+      "script": "contract/scripts/golden_gate.py"
+    },
+    "seam-control-plane": {
+      "manifest": "contract/golden-manifest.json",
+      "script": "contract/scripts/golden_gate.py"
+    },
+    "seam-aegis": {
+      "manifest": "contract/golden-manifest.json",
+      "script": "contract/scripts/golden_gate.py"
+    },
+    "seam-branchpoint": {
+      "manifest": "contract/golden-manifest.json",
+      "script": "contract/scripts/golden_gate.py"
+    }
+  },
+  "groups": [
+    {
+      "name": "arm_key",
+      "sha256": "0eb4cf5342cdf41706179021f36d3ed87a503ea53e2e352b130587d2c2988b58",
+      "copies": {
+        "seam-learning": [
+          "fixtures/arm_key_golden.json"
+        ],
+        "seam-runtime": [
+          "fixtures/arm_key_golden.json"
+        ],
+        "seam-connectors": [
+          "contract/golden/arm-key/arm_key_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "experiment_config",
+      "sha256": "03b011787ec65807b7a474f9aae90238b4999d42f8e9db235ec07a0d6c0b9783",
+      "copies": {
+        "seam-learning": [
+          "fixtures/experiment_config_golden.json"
+        ],
+        "seam-runtime": [
+          "fixtures/experiment_config_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "experiment_assignment",
+      "sha256": "c33d2b2d3b04b22c1da5f660b6e05c795bf5f68813270db86d425f8db21607fa",
+      "copies": {
+        "seam-learning": [
+          "fixtures/experiment_assignment_golden.json"
+        ],
+        "seam-runtime": [
+          "fixtures/experiment_assignment_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "seam_event",
+      "sha256": "62f4291976b24ae9318fb1b43a56ff3a1e67c083166e87734cdea08c9c53fd29",
+      "copies": {
+        "seam-learning": [
+          "fixtures/golden_seam_event_json.json"
+        ],
+        "seam-runtime": [
+          "crates/seam-store/tests/golden_seam_event_json.json"
+        ]
+      }
+    },
+    {
+      "name": "seam_event_descriptor",
+      "sha256": "70d996e0e3fce6d2ecfa677d1dc8978b087e99c927ba37150eef2412ae9c0650",
+      "copies": {
+        "seam-runtime": [
+          "fixtures/seam_event_descriptor.json"
+        ],
+        "seam-connectors": [
+          "contract/golden/seam-event.v1/descriptor/seam_event_descriptor.json"
+        ]
+      }
+    },
+    {
+      "name": "history_table_schema",
+      "sha256": "7d67c7ac00b1282c4d6eebedcdd1b2f4483b6efa0f893587e6e056dac31cad5d",
+      "copies": {
+        "seam-learning": [
+          "fixtures/history_table_schema_golden.json"
+        ],
+        "seam-connectors": [
+          "contract/golden/history-table/history_table_schema_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "learning_outcome_wire",
+      "sha256": "908b85844accb8413ec312f5e78d81ae28702ff2f6a3a32620ad1be16a58e5d4",
+      "copies": {
+        "seam-learning": [
+          "fixtures/learning_outcome_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seam-store/tests/learning_outcome_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "learning_decision_enriched_wire",
+      "sha256": "58d1372526315f9074fefe24ea960da5d0b4ae833f223f983abc3bf1c7940acd",
+      "copies": {
+        "seam-learning": [
+          "fixtures/learning_decision_enriched_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seam-store/tests/learning_decision_enriched_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "seam_event_kinds",
+      "sha256": "de75ee3533aa7e5feef9ce70547cf1b68ef6cb72b53d068bf781374b9b68a228",
+      "copies": {
+        "seam-learning": [
+          "fixtures/seam_event_kinds.json"
+        ],
+        "seam-runtime": [
+          "fixtures/seam_event_kinds.json"
+        ],
+        "seam-connectors": [
+          "contract/golden/seam-event.v1/kinds/seam_event_kinds.json"
+        ]
+      }
+    },
+    {
+      "name": "cp_route_inventory",
+      "sha256": "c8cbd9eb7c036f8f5bccb56bec19786f094c14cd5c92a5708617c4c29d43f84d",
+      "copies": {
+        "seam-control-plane": [
+          "contract/route-inventory.json"
+        ],
+        "seam-aegis": [
+          "aegis/cp_contract/route-inventory.json"
+        ]
+      }
+    },
+    {
+      "name": "golden_posteriors",
+      "sha256": "ae4aab5a3d4811b787e1682b1f5ec47d9fea538d88e838e50dca79479c410c29",
+      "copies": {
+        "seam-learning": [
+          "fixtures/golden_posteriors.json"
+        ],
+        "seam-aegis": [
+          "aegis/golden/golden_posteriors.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_golden",
+      "sha256": "f0a59526df8814ca58b7b1f0d81b8847ba0d9ead5f45c29935a2f0b1fa84aaad",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_operator_keys_golden",
+      "sha256": "e31e34c2daecf69a5a829e8b565df41ff6ef4e0b68c72897d0d5e7b33d02b19a",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_operator_keys_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_operator_keys_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_policy_rules_golden",
+      "sha256": "2cf3a1930f9bea1da649c8c407d8a9ee5b7bda690f0d766552d97abe727fb637",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_policy_rules_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_policy_rules_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_remove_sections_golden",
+      "sha256": "81223b02560c5c02001ecdd48da2406cee53d5cb31617294365499e1225bafe1",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_remove_sections_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_remove_sections_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_namespaces_golden",
+      "sha256": "bcc16e72a9e2c5c5585efcfcac3e50d2165ef1b66b8dc72672e75de8b8ed7162",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_namespaces_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_namespaces_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_sections_golden",
+      "sha256": "5e361425e1221a9d0e55e8d7b333a050c536b82888b1393d4d642096f31c61c8",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_sections_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_sections_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "registry_snapshot_experiments",
+      "sha256": "58ef3f9b91713bf2f6fa5541eca542152521376a98aa43ee7bca6d882fcd2e6a",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/registry_snapshot_experiments_golden.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/registry_snapshot_experiments_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "tenant_roster_golden",
+      "sha256": "6571ae9b87637c58189b32803c1723b7ffe0ab0197cd671632e91c215cbf4604",
+      "copies": {
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/tenant_roster_golden.json"
+        ],
+        "seam-control-plane": [
+          "fixtures/tenant_roster_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "tenant_roster_cells_golden",
+      "sha256": "c2ad6b43301ef9747baa634ed3d08b78497e847662c29af940a0377e8fc7453f",
+      "copies": {
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/tenant_roster_cells_golden.json"
+        ],
+        "seam-control-plane": [
+          "fixtures/tenant_roster_cells_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "learning_bp2_wire",
+      "sha256": "3cfea5d71d1b73a07f9faba15feda881048103ef115d48bf7f7f312b2b84ac21",
+      "copies": {
+        "seam-runtime": [
+          "fixtures/learning_bp2_wire.json"
+        ]
+      }
+    },
+    {
+      "name": "outcome_digest_vectors",
+      "sha256": "78037ee9c2a19dcfda68c6dbe6ea3942d5a640a7829904eebac638f5718b8b22",
+      "copies": {
+        "seam-runtime": [
+          "fixtures/outcome_digest_vectors.json"
+        ]
+      }
+    },
+    {
+      "name": "tenant_snapshot_vectors",
+      "sha256": "edcab946aba384878d15b5617745f5507658296d1b8e8f330925182c6ddb66d3",
+      "copies": {
+        "seam-control-plane": [
+          "fixtures/vectors/tenant-snapshot-vectors.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_bpa1",
+      "sha256": "c7b1b16599a2fdcaf2633f3c90e7e8cf2862a678e5cdf2e22a950d432dda1a80",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint/bpa1_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_unit_tag",
+      "sha256": "75ef6bfed41b6ae261e052af8b0bba7aba3abe64aad7d557db91a360b4cec682",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint/unit_tag_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_workload_cert",
+      "sha256": "ce545efd79d4b0612cd464b4c1e099dfcfb707a465d8a837b25fc21ce6820e79",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint/workload_cert_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_receipt_chain",
+      "sha256": "12a9ae5b8be106631674397cf854ade9d3a26218c27d2f6a1d8a68d5d9228d3c",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint/receipt_chain_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_receipt_negative",
+      "sha256": "d67f941862c662622157cfe5063ff1b844ad39aeb1ebc655b0f23ae04b153b69",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint/receipt_negative_golden.json"
+        ]
+      }
+    }
+  ]
+}

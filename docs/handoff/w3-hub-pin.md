@@ -16,6 +16,16 @@ writes into `seam`. This file is everything that row needs.
 These sha256s equal `contract/golden/branchpoint/SHA256SUMS` at the merge of the AS-0 PR. `SHA256SUMS` is the
 source; if this table and that file ever disagree, the file wins and this table is stale.
 
+The AS-2 group `contract/golden/branchpoint-sdk/` is **not** part of W3: it pins later (after W6, once AS-1/AS-3 conform).
+Its current sha256s, for that later pin (provisional; `contract/golden/branchpoint-sdk/SHA256SUMS` is the source and
+wins on any disagreement):
+
+| File (`contract/golden/branchpoint-sdk/`) | sha256 |
+|---|---|
+| `sdk_document_golden.json` | `106dbf546732a3b777a4c9b7f0f9667a8d323290a143225694fde51dfebf7b8a` |
+| `sdk_key_token_golden.json` | `8bb5f0b90aa33b32d8018a2587bc9d706210108486cee06672135c1746e9bb23` |
+| `upload_batch_golden.json` | `f338b05ef4e14dfca2d5587d2082500341d3660ef2ee43e68051c6115837c391` |
+
 ## Proposed `groups[]` entries for `seam/contract/golden-manifest.json`
 
 ```json
@@ -53,7 +63,9 @@ The seam-connectors copy path is left to AS-3, which adds it when the collector 
 1. The hub adds the five groups plus `vendored."seam-branchpoint"`
    (`{"manifest": "contract/golden-manifest.json", "script": "contract/scripts/golden_gate.py"}`, matching the
    other `contract/`-layout repos).
-2. This repo then vendors the canonical manifest and the gate script byte-identically, in its own PR.
+2. This repo then vendors the canonical manifest and the gate script byte-identically, in its own PR. **Done** in the AS-2 PR
+   (`contract/golden-manifest.json`, `contract/scripts/golden_gate.py`, copied from seam `main` after 2d13567; run in
+   the local gate and CI). Re-vendor both byte-identically whenever the hub manifest changes.
 3. The hub's cross-repo gate needs read access to this repo, which stays private until AS-2.
 
 ## How to confirm

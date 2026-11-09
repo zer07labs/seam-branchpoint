@@ -1,0 +1,685 @@
+{
+  "cases": [
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "valid",
+      "now_ms": 1762560060000,
+      "why": "the golden document, cold start"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"7c_8cf3VPZjtkqQSzpjXvbhEeMBVVWow5j-JOgj_uu8\",\"sig\":\"64cdd7db5c9ec1efa52e9c7ea486215492a60ac746de92e54761b6467fba1d9aa42da79c28d608772f1f730945422b911c9b144b2d2654d2f59c4dfe037b5308\"}",
+      "expect": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "valid_previous_key",
+      "now_ms": 1762560060000,
+      "why": "signed by the previous document key, still pinned"
+    },
+    {
+      "cached": {
+        "config_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "version": 6
+      },
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "valid_newer_than_cache",
+      "now_ms": 1762560060000,
+      "why": "a higher version than the cached one"
+    },
+    {
+      "cached": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "version": 7
+      },
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "unchanged",
+        "version": 7
+      },
+      "name": "unchanged_same_bytes",
+      "now_ms": 1762560060000,
+      "why": "equal version, identical bytes: a no-op refresh"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "expiry_boundary",
+      "now_ms": 1762646700000,
+      "why": "now is exactly expires_at_ms + 300000"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":{\"experiments\":[{\"arms\":[{\"bundle\":{\"content_digest\":\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\",\"payload\":{\"prompt\":\"concise\",\"temperature_pct\":20}},\"variant_id\":\"A\",\"weight_bp\":5000},{\"bundle\":{\"content_digest\":\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\",\"payload\":{\"prompt\":\"grüß dich, ausführlich\",\"temperature_pct\":70}},\"variant_id\":\"B\",\"weight_bp\":5000}],\"assigner\":\"sdk\",\"bucket_version\":\"bpa1\",\"budget_bp\":0,\"decision_point\":\"dp:checkout\",\"experiment_id\":\"01JBP9000000000000000000AB\",\"key\":\"checkout-flow\",\"mode\":\"split\",\"salt_hex\":\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\",\"salt_kid\":\"630dcd29\",\"state\":\"live\",\"variant_kind\":\"prompt\"},{\"arms\":[{\"bundle\":{\"content_digest\":\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\",\"payload\":{\"model\":\"ranker-v2\"}},\"variant_id\":\"T\",\"weight_bp\":0}],\"assigner\":\"sdk\",\"bucket_version\":\"bpa1\",\"budget_bp\":2500,\"experiment_id\":\"01JBP9000000000000000000AC\",\"key\":\"ranker-holdout\",\"mode\":\"holdout\",\"salt_hex\":\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\",\"salt_kid\":\"630dcd29\",\"state\":\"live\",\"variant_kind\":\"model\"}],\"expires_at_ms\":1762646400000,\"issued_at_ms\":1762560000000,\"kind\":\"branchpoint-sdk\",\"tenant\":\"t-golden\",\"v\":1,\"version\":7},\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "non_string_doc",
+      "now_ms": 1762560060000,
+      "why": "doc is a JSON object, not a string"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664CDD03FA2AF05154D0C408F63FB9F880A001375E0C7A369A256748F7C2E78CDEFA68C60C81E2FEE408E8DCD2124163C618277F5C61DA68FDCA5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "malformed_sig_hex",
+      "now_ms": 1762560060000,
+      "why": "sig in uppercase hex"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca50\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "short_sig_hex",
+      "now_ms": 1762560060000,
+      "why": "a 63-byte sig"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "envelope_duplicate_member",
+      "now_ms": 1762560060000,
+      "why": "kid given twice"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"alg\":\"EdDSA\",\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "envelope_extra_member",
+      "now_ms": 1762560060000,
+      "why": "a fourth envelope member"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "envelope_missing_member",
+      "now_ms": 1762560060000,
+      "why": "no kid member"
+    },
+    {
+      "cached": null,
+      "envelope": "[]",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "envelope_not_object",
+      "now_ms": 1762560060000,
+      "why": "the envelope is a JSON array"
+    },
+    {
+      "cached": null,
+      "envelope": "﻿{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "envelope_bom",
+      "now_ms": 1762560060000,
+      "why": "a UTF-8 BOM before the envelope"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"+I__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "kid_not_base64url",
+      "now_ms": 1762560060000,
+      "why": "kid is 43 characters but carries '+' (base64, not base64url)"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "kid_short",
+      "now_ms": 1762560060000,
+      "why": "kid is 42 base64url characters"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "document_too_large"
+      },
+      "name": "oversized",
+      "now_ms": 1762560060000,
+      "pad_to_bytes": 4194305,
+      "why": "the golden envelope padded with spaces to max_document_bytes + 1"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "at_cap",
+      "now_ms": 1762560060000,
+      "pad_to_bytes": 4194304,
+      "why": "the golden envelope padded with spaces to exactly max_document_bytes (trailing JSON whitespace)"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"\\ud800-checkout\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"7aeb90ea36c1a07b148665519cd55263f0318f9ddcfb15ef669cc7708106068a23f90349640a1de2b9835c1d76afacec392c1942e7d024d739f22300f242a209\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "envelope_malformed"
+      },
+      "name": "lone_surrogate_doc",
+      "now_ms": 1762560060000,
+      "why": "doc carries a lone-surrogate escape: it has no UTF-8 encoding"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"D8xQ33i2CARBcsSNdTOpI4W35swVVKhlFC5R-GqjZoc\",\"sig\":\"9839984968a119f3f644ad2126c3366aaca3d0a207284b989736987c7ce3f36293a838de77811a6f7cfc95894ef1cb8172f24a53c68d6657845ac7a57bbde300\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "kid_unknown"
+      },
+      "name": "unknown_kid",
+      "now_ms": 1762560060000,
+      "why": "signed by a key that is not pinned"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5004\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "sig_invalid"
+      },
+      "name": "forged_sig",
+      "now_ms": 1762560060000,
+      "why": "signature bit flipped"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-other\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"1e9c185dd20843305d70ba64d9363572b6c7b7252a59b10f9c5bc2323e9fd128265635ddb18e7b03707b87ebedc8b84b7374c69d49ef19675742af87b496500c\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "sig_invalid"
+      },
+      "name": "wrong_tenant",
+      "now_ms": 1762560060000,
+      "why": "signed for another tenant (domain message and body)"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\\nx\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"b796b92ae69269736efc64ce2d42aa928a0f24e3f0b0b275c93a07dc923734213f3ce0be40ccfcd578c77760431b56e8bf0e005e2b42309909f8299fcbd74700\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "tenant_invalid"
+      },
+      "name": "tenant_newline",
+      "now_ms": 1762560060000,
+      "tenant": "t-golden\nx",
+      "why": "the configured tenant carries a newline (outside the CP grammar); validly signed for it"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"0c8801e28e9cbe4228882b0828da1f2e1fd9b0bccac0c01b2261a4c1b0b2492734fb181273ba8344618b4ead0e78e12a544a9764ca8ff083bde4c0fe95db8108\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "sig_invalid"
+      },
+      "name": "wrong_domain",
+      "now_ms": 1762560060000,
+      "why": "signed under the CP tenant-config domain"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7,\\\"version\\\":8}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"6b06d0299d9abb2ed7fefc0c2ff1b761143f71fc26749c23b484666e0ca39eeb515aec516f6bcbd94f83fb8f83daacd4b15ed7d15b093d81cb1644e6deb3b301\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "doc_malformed"
+      },
+      "name": "doc_duplicate_member",
+      "now_ms": 1762560060000,
+      "why": "doc_bytes gives version twice (validly signed)"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"[]\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"89fc5780eee136270b03578029b63cfac508ac2cd646237381998d4a9cef390737f8071b98202265bccc1963ce97a474f7c6c359d512e5047499bad13c041a09\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "doc_malformed"
+      },
+      "name": "doc_not_object",
+      "now_ms": 1762560060000,
+      "why": "doc_bytes is a JSON array (validly signed)"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":2,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"dbe71bf0134142ff1307a396c6594918bc16229a30f2b987742c263c2b98ea7cd6da7af3b8b06073bb89b041cac19f604c3ed97db941fa7bee7cf267ea19050f\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "doc_unsupported"
+      },
+      "name": "v2",
+      "now_ms": 1762560060000,
+      "why": "v is 2"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-runtime\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"928eb59c8e5a99b3477bd80caa583e542328459de2fedaedda49543888a88b8a35398635f1e457e47ab586a55a99fdbda85aed19272d13b59eea81a302caca01\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "doc_unsupported"
+      },
+      "name": "wrong_kind",
+      "now_ms": 1762560060000,
+      "why": "kind names another document"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-other\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"512848d58a4e9c5d5203729b83bfe1cd22f2e4c819b677c8f5ba36a185a55ff5f8673eddff8d66bd27b3d07e92b8572169cbdda68b0240d171cd55b3fee15702\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "tenant_mismatch"
+      },
+      "name": "body_tenant_mismatch",
+      "now_ms": 1762560060000,
+      "why": "signed for the configured tenant, body names another"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":9007199254740992}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"affb451881029e7e3d84b008f60bf1e280866b3afed793c9cd8aa8b4680dd425ba0f5b415f82f3f73e789bf8aa4d0612c86f8c639a3e056fa434d4a2c3a9a20d\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "version_invalid"
+      },
+      "name": "version_too_large",
+      "now_ms": 1762560060000,
+      "why": "version is 2^53"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":\\\"7\\\"}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"3bd2941aab570ec18c0346d5126d3c0f3d69399ccc44eec3ffad1d1bcf7ea96004e4e5e3aa1b8250c36dfb3cf17c22b46602978175344620d538a374aa65920d\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "version_invalid"
+      },
+      "name": "version_not_integer",
+      "now_ms": 1762560060000,
+      "why": "version is a string"
+    },
+    {
+      "cached": {
+        "config_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "version": 8
+      },
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "rollback"
+      },
+      "name": "rollback",
+      "now_ms": 1762560060000,
+      "why": "version lower than the cached one"
+    },
+    {
+      "cached": {
+        "config_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "version": 7
+      },
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "version_conflict"
+      },
+      "name": "version_conflict",
+      "now_ms": 1762560060000,
+      "why": "equal version, different bytes"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762560000000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"657812e3ad4c3e6892989ab91324b888a9857d2dd7535b467bfc0c057daa748cfe063924e2d87e3b429a56b0a9e8cec433ab47bfc9d8706be538b7dcec932a03\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "window_invalid"
+      },
+      "name": "window_invalid",
+      "now_ms": 1762560060000,
+      "why": "expires_at_ms equals issued_at_ms"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "expired"
+      },
+      "name": "expired",
+      "now_ms": 1762646700001,
+      "why": "now is expires_at_ms + 300001"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":{},\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"a0bf0c616c600a04f3a13f5d2cfd05211a9db31bcbec95e5f16f3cba679e26c914f1e152554f205172b7b329245054a39a8ec702c582996c37e62e377cfc980f\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "doc_malformed"
+      },
+      "name": "experiments_not_array",
+      "now_ms": 1762560060000,
+      "why": "experiments is an object"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"37b79e130442b551fd16fc892877bbcebf3cb1b2b43311e36118f992ff40caed005ea3b65383917c63315b9d8d844b454acd8010ffea561693244de7e229160c\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "unindexable"
+      },
+      "name": "unindexable_missing_key",
+      "now_ms": 1762560060000,
+      "why": "an experiment without key"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":12,\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"acd84030cf27e2a03d422065d0c7a32001b11bf7f2b8dc161fa4bbe6c831e545816025086a08bd49ca8cf7a9b088f546632923d3314cb2234bd35a410903df09\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "unindexable"
+      },
+      "name": "unindexable_experiment_id",
+      "now_ms": 1762560060000,
+      "why": "an experiment whose experiment_id is a number"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"8f8c58a365b8b934e4c97e7322ab61b58464307e332a883176c51d82e25ce8029fbd3dfb461f44f767aaa832fb2c8fe27684de75dd7e2276e6cbe52441ab7708\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "ambiguous_lookup"
+      },
+      "name": "duplicate_key",
+      "now_ms": 1762560060000,
+      "why": "two experiments share a key"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"9d05c5a90b8c79f77df5dd295e229631aa412de6ce216bf38d65f279076ebde3ccd4033c98eb24e554ec3b8c8c09cee9725274bfe10a49d16deb6185e4dfa707\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "ambiguous_lookup"
+      },
+      "name": "duplicate_experiment_id",
+      "now_ms": 1762560060000,
+      "why": "two experiments share an experiment_id"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"636cdb5241d349a27f317c374a0b78d95831ad1d5116c88034d5850060704faf72fe757675e9f09d74c3456658e577833dcdbe397bc52d407f38cfb3ec3ef006\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "ambiguous_lookup"
+      },
+      "name": "duplicate_decision_point",
+      "now_ms": 1762560060000,
+      "why": "two experiments share a decision_point"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"dp:checkout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"a3e2d86e6e22df9bf37acecf0ae03eb6b507e7b6dca6b6c17c03522d7c1b49bbe76534998f1231977d68182ca26fd4afaa596addd7cd27e43a1ada29a72a3e01\"}",
+      "expect": {
+        "outcome": "refused",
+        "reason": "ambiguous_lookup"
+      },
+      "name": "key_collides_decision_point",
+      "now_ms": 1762560060000,
+      "why": "a key equals another experiment's decision_point"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"canary\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"bccc5e631865c9db2f0c1441a7205300e660d555edb01c95bf1a5d204b70fbbc20a527473e2ee21b326ea7f4f11306d1a8016f1d95667920a649de9879545a09\"}",
+      "expect": {
+        "config_digest": "6b3119a929de225333c8f526cd119757cbf1fb592134ab8e5e867e0d5d758b65",
+        "experiments": {
+          "checkout-flow": "config_invalid",
+          "ranker-holdout": "ok"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "unknown_enum",
+      "now_ms": 1762560060000,
+      "why": "mode is an unknown string: document accepted, that experiment config_invalid"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"79a063fd50cfadbb3522744fb4af87d360b0f175f0037aaa066331c391916ec8e7e9578106d1dd9868fd9d863b00d1799d575969eb7f7708010467809aa3130e\"}",
+      "expect": {
+        "config_digest": "aedb531931922c85a2489c87d42c2a21ce16bed9b026c2e4847c5167bf6e1744",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "config_invalid"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "bad_salt_hex",
+      "now_ms": 1762560060000,
+      "why": "salt_hex in uppercase: document accepted, that experiment config_invalid"
+    },
+    {
+      "cached": null,
+      "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"cd02a8f83b44b01ee7894e3ed92a9fd7e3fe47db080e167e19c6d2acb862fe5ff3a6a4560c93e80782d228d8a7bd45f318b9f7aecc7e3df45b0a510b625ec402\"}",
+      "expect": {
+        "config_digest": "1eb3d6594592115f897526ec2a2bab86715c240524eccb3edb4e6ec1fd503d27",
+        "experiments": {
+          "checkout-flow": "ok",
+          "ranker-holdout": "config_invalid"
+        },
+        "outcome": "accepted",
+        "version": 7
+      },
+      "name": "bad_arm_bundle",
+      "now_ms": 1762560060000,
+      "why": "an arm without bundle: document accepted, that experiment config_invalid"
+    }
+  ],
+  "doc_public_key_hex": "cd14b37f956e953194ff7fb73b3d81dcc561d61a7538094b7c3e1a643ee5f3aa",
+  "doc_seed_hex": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+  "document": {
+    "config_digest": "3dfa9fd102aa93df043857c3d0d917251b50422c02a76852b001f5a37cfc39bb",
+    "doc_bytes": "{\"experiments\":[{\"arms\":[{\"bundle\":{\"content_digest\":\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\",\"payload\":{\"prompt\":\"concise\",\"temperature_pct\":20}},\"variant_id\":\"A\",\"weight_bp\":5000},{\"bundle\":{\"content_digest\":\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\",\"payload\":{\"prompt\":\"grüß dich, ausführlich\",\"temperature_pct\":70}},\"variant_id\":\"B\",\"weight_bp\":5000}],\"assigner\":\"sdk\",\"bucket_version\":\"bpa1\",\"budget_bp\":0,\"decision_point\":\"dp:checkout\",\"experiment_id\":\"01JBP9000000000000000000AB\",\"key\":\"checkout-flow\",\"mode\":\"split\",\"salt_hex\":\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\",\"salt_kid\":\"630dcd29\",\"state\":\"live\",\"variant_kind\":\"prompt\"},{\"arms\":[{\"bundle\":{\"content_digest\":\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\",\"payload\":{\"model\":\"ranker-v2\"}},\"variant_id\":\"T\",\"weight_bp\":0}],\"assigner\":\"sdk\",\"bucket_version\":\"bpa1\",\"budget_bp\":2500,\"experiment_id\":\"01JBP9000000000000000000AC\",\"key\":\"ranker-holdout\",\"mode\":\"holdout\",\"salt_hex\":\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\",\"salt_kid\":\"630dcd29\",\"state\":\"live\",\"variant_kind\":\"model\"}],\"expires_at_ms\":1762646400000,\"issued_at_ms\":1762560000000,\"kind\":\"branchpoint-sdk\",\"tenant\":\"t-golden\",\"v\":1,\"version\":7}",
+    "envelope": "{\"doc\":\"{\\\"experiments\\\":[{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"04a25f9601c4d32700e2f317f3dbfb0646e5a364dffc3ba7b12733b30a2b2845\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"concise\\\",\\\"temperature_pct\\\":20}},\\\"variant_id\\\":\\\"A\\\",\\\"weight_bp\\\":5000},{\\\"bundle\\\":{\\\"content_digest\\\":\\\"69cc910e79351b09c27677d62802a73d5698f2aee16c8a94dd95bcee035c6fc4\\\",\\\"payload\\\":{\\\"prompt\\\":\\\"grüß dich, ausführlich\\\",\\\"temperature_pct\\\":70}},\\\"variant_id\\\":\\\"B\\\",\\\"weight_bp\\\":5000}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":0,\\\"decision_point\\\":\\\"dp:checkout\\\",\\\"experiment_id\\\":\\\"01JBP9000000000000000000AB\\\",\\\"key\\\":\\\"checkout-flow\\\",\\\"mode\\\":\\\"split\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"prompt\\\"},{\\\"arms\\\":[{\\\"bundle\\\":{\\\"content_digest\\\":\\\"6a2b548406e3c612ff1ae8f757d61eefba0307bc7aeea54cd3dd85fc438e2e2b\\\",\\\"payload\\\":{\\\"model\\\":\\\"ranker-v2\\\"}},\\\"variant_id\\\":\\\"T\\\",\\\"weight_bp\\\":0}],\\\"assigner\\\":\\\"sdk\\\",\\\"bucket_version\\\":\\\"bpa1\\\",\\\"budget_bp\\\":2500,\\\"experiment_id\\\":\\\"01JBP9000000000000000000AC\\\",\\\"key\\\":\\\"ranker-holdout\\\",\\\"mode\\\":\\\"holdout\\\",\\\"salt_hex\\\":\\\"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\\\",\\\"salt_kid\\\":\\\"630dcd29\\\",\\\"state\\\":\\\"live\\\",\\\"variant_kind\\\":\\\"model\\\"}],\\\"expires_at_ms\\\":1762646400000,\\\"issued_at_ms\\\":1762560000000,\\\"kind\\\":\\\"branchpoint-sdk\\\",\\\"tenant\\\":\\\"t-golden\\\",\\\"v\\\":1,\\\"version\\\":7}\",\"kid\":\"qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8\",\"sig\":\"97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005\"}",
+    "evaluations": [
+      {
+        "key": "checkout-flow",
+        "outcome": "variant",
+        "propensity_bp": 5000,
+        "receipt": true,
+        "unit": "subj-a",
+        "variant_id": "A"
+      },
+      {
+        "key": "checkout-flow",
+        "outcome": "variant",
+        "propensity_bp": 5000,
+        "receipt": true,
+        "unit": "subj-b",
+        "variant_id": "B"
+      },
+      {
+        "key": "checkout-flow",
+        "outcome": "variant",
+        "propensity_bp": 5000,
+        "receipt": true,
+        "unit": "dec:t-golden:s1",
+        "variant_id": "B"
+      },
+      {
+        "key": "checkout-flow",
+        "outcome": "variant",
+        "propensity_bp": 5000,
+        "receipt": true,
+        "unit": "ünit-ß",
+        "variant_id": "A"
+      },
+      {
+        "key": "checkout-flow",
+        "outcome": "default",
+        "propensity_bp": 10000,
+        "reason": "empty_unit",
+        "receipt": false,
+        "unit": "",
+        "variant_id": ""
+      },
+      {
+        "key": "ranker-holdout",
+        "outcome": "held_out",
+        "propensity_bp": 2500,
+        "receipt": true,
+        "unit": "subj-a",
+        "variant_id": ""
+      },
+      {
+        "key": "ranker-holdout",
+        "outcome": "variant",
+        "propensity_bp": 7500,
+        "receipt": true,
+        "unit": "subj-b",
+        "variant_id": "T"
+      },
+      {
+        "key": "ranker-holdout",
+        "outcome": "variant",
+        "propensity_bp": 7500,
+        "receipt": true,
+        "unit": "dec:t-golden:s1",
+        "variant_id": "T"
+      },
+      {
+        "key": "ranker-holdout",
+        "outcome": "variant",
+        "propensity_bp": 7500,
+        "receipt": true,
+        "unit": "ünit-ß",
+        "variant_id": "T"
+      },
+      {
+        "key": "ranker-holdout",
+        "outcome": "default",
+        "propensity_bp": 10000,
+        "reason": "empty_unit",
+        "receipt": false,
+        "unit": "",
+        "variant_id": ""
+      }
+    ],
+    "kid": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8",
+    "message_hex": "7365616d2e6272616e6368706f696e742e73646b2d646f632e76310a742d676f6c64656e0a7b226578706572696d656e7473223a5b7b2261726d73223a5b7b2262756e646c65223a7b22636f6e74656e745f646967657374223a2230346132356639363031633464333237303065326633313766336462666230363436653561333634646666633362613762313237333362333061326232383435222c227061796c6f6164223a7b2270726f6d7074223a22636f6e63697365222c2274656d70657261747572655f706374223a32307d7d2c2276617269616e745f6964223a2241222c227765696768745f6270223a353030307d2c7b2262756e646c65223a7b22636f6e74656e745f646967657374223a2236396363393130653739333531623039633237363737643632383032613733643536393866326165653136633861393464643935626365653033356336666334222c227061796c6f6164223a7b2270726f6d7074223a226772c3bcc39f20646963682c2061757366c3bc68726c696368222c2274656d70657261747572655f706374223a37307d7d2c2276617269616e745f6964223a2242222c227765696768745f6270223a353030307d5d2c2261737369676e6572223a2273646b222c226275636b65745f76657273696f6e223a2262706131222c226275646765745f6270223a302c226465636973696f6e5f706f696e74223a2264703a636865636b6f7574222c226578706572696d656e745f6964223a2230314a4250393030303030303030303030303030303030304142222c226b6579223a22636865636b6f75742d666c6f77222c226d6f6465223a2273706c6974222c2273616c745f686578223a2230303031303230333034303530363037303830393061306230633064306530663130313131323133313431353136313731383139316131623163316431653166222c2273616c745f6b6964223a223633306463643239222c227374617465223a226c697665222c2276617269616e745f6b696e64223a2270726f6d7074227d2c7b2261726d73223a5b7b2262756e646c65223a7b22636f6e74656e745f646967657374223a2236613262353438343036653363363132666631616538663735376436316565666261303330376263376165656135346364336464383566633433386532653262222c227061796c6f6164223a7b226d6f64656c223a2272616e6b65722d7632227d7d2c2276617269616e745f6964223a2254222c227765696768745f6270223a307d5d2c2261737369676e6572223a2273646b222c226275636b65745f76657273696f6e223a2262706131222c226275646765745f6270223a323530302c226578706572696d656e745f6964223a2230314a4250393030303030303030303030303030303030304143222c226b6579223a2272616e6b65722d686f6c646f7574222c226d6f6465223a22686f6c646f7574222c2273616c745f686578223a2230303031303230333034303530363037303830393061306230633064306530663130313131323133313431353136313731383139316131623163316431653166222c2273616c745f6b6964223a223633306463643239222c227374617465223a226c697665222c2276617269616e745f6b696e64223a226d6f64656c227d5d2c22657870697265735f61745f6d73223a313736323634363430303030302c226973737565645f61745f6d73223a313736323536303030303030302c226b696e64223a226272616e6368706f696e742d73646b222c2274656e616e74223a22742d676f6c64656e222c2276223a312c2276657273696f6e223a377d",
+    "sig": "97310268664cdd03fa2af05154d0c408f63fb9f880a001375e0c7a369a256748f7c2e78cdefa68c60c81e2fee408e8dcd2124163c618277f5c61da68fdca5005"
+  },
+  "expiry_skew_ms": 300000,
+  "freshness": [
+    {
+      "expires_at_ms": 1762646400000,
+      "now_ms": 1762560060000,
+      "since_refresh_ms": 0,
+      "stale": false
+    },
+    {
+      "expires_at_ms": 1762646400000,
+      "now_ms": 1762560060000,
+      "since_refresh_ms": 600000,
+      "stale": false
+    },
+    {
+      "expires_at_ms": 1762646400000,
+      "now_ms": 1762560060000,
+      "since_refresh_ms": 600001,
+      "stale": true
+    },
+    {
+      "expires_at_ms": 1762646400000,
+      "now_ms": 1762646700000,
+      "since_refresh_ms": 0,
+      "stale": false
+    },
+    {
+      "expires_at_ms": 1762646400000,
+      "now_ms": 1762646700001,
+      "since_refresh_ms": 0,
+      "stale": true
+    }
+  ],
+  "max_document_bytes": 4194304,
+  "max_staleness_ms": 600000,
+  "note": "each case runs verify_document(body, case.tenant or tenant, pinned_doc_keys, now_ms, cached), where body is the UTF-8 envelope, then, when pad_to_bytes is set, 0x20 bytes appended until it is pad_to_bytes long; a refusal keeps the cache (R8.11)",
+  "pinned_doc_keys": {
+    "7c_8cf3VPZjtkqQSzpjXvbhEeMBVVWow5j-JOgj_uu8": "4fd099ccd47d7893dfe9ec24414ecb0d9b5420232aad30d91c465be33cbe65c4",
+    "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8": "cd14b37f956e953194ff7fb73b3d81dcc561d61a7538094b7c3e1a643ee5f3aa"
+  },
+  "previous_doc_seed_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
+  "tenant": "t-golden",
+  "unpinned_doc_seed_hex": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+}

@@ -59,8 +59,8 @@ the learning plane's split-row convention (`{base}@{arm}`, D12) when it lands at
 |---|---|---|
 | `receipt_id` | none | joins the outcome to its attested receipt (sealed outcomes join by `policy_key`) |
 | `experiment_id` | none (via `policy_key`, 3) | |
-| `reward` | `reward` (4) | |
-| `metrics` | `metrics` (5) | same caps as `seam-outcome-v2` (≤ 16 metrics, key ≤ 63 bytes) |
+| `reward` | `reward` (4) | the §9 JSON wire carries micro-units (R9.4): `reward = wire / 10^6` |
+| `metrics` | `metrics` (5) | same caps as `seam-outcome-v2` (≤ 16 metrics, key ≤ 63 bytes); values are micro-units on the §9 wire, `/ 10^6` |
 | `observed_at` | `observed_at_millis` (6) | Unix ms |
 | `verified_by` | `verified_by` (2) | |
 
@@ -86,6 +86,22 @@ is unchanged).
 | `budget_bp` | `.budget_bp` | 7 | trap 5 |
 | `variant_kind` | AS-1 `variant_kind` | none | `policy` \| `prompt` \| `model` \| `toolset` \| `agent` |
 | `assigner` | AS-1 `assigner` | none | `runtime` \| `sdk`; the SDK assigns only `sdk` |
+
+## SDK document (spec §8)
+
+The document is the SDK's JSON form of the experiments above; it has no proto message (it is the wire the CP serves,
+signed as raw bytes). Its members map as follows; the experiment entries use the `ExperimentDef` rows above in their
+JSON forms.
+
+| Document member | `branchpoint.v1` / Seam | Notes |
+|---|---|---|
+| `v`, `kind` | none | `1`, `"branchpoint-sdk"`; a new shape is `v: 2` under a new domain |
+| `tenant` | the certificate's `tenant` (§4) | must equal the SDK's configured tenant (R8.6) and is bound into the signing message |
+| `version` | none (CP per-tenant counter) | strictly increasing; the SDK's rollback guard (R8.7) |
+| `issued_at_ms`, `expires_at_ms` | none | CP wall clock; bounds replay of an old document (R8.9, R8.12) |
+| `experiments[]` | `ExperimentDef` | enum strings as in the golden layouts; `salt_hex` is `salt` in hex; `arms[].bundle` is `VariantBundle` (`content_digest`, `payload` as an object, the proto's `Struct`) |
+| envelope `kid` | none | RFC 7638 key_id of the CP document key (the `issuer_kid` form, Q9) |
+| sha256(`doc_bytes`) | `Receipt.config_digest` | Q4; the value every receipt from this document carries |
 
 ## `WorkloadCertificate`, `SignedReceipt`, `ReceiptBatch`, `VariantBundle`, `EvidenceGrade`
 

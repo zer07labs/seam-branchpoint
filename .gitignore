@@ -5,3 +5,5 @@ __pycache__/
 node_modules/
 dist/
 placeholders/python/dist/
+.pytest_cache/
+.hypothesis/
