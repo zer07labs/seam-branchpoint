@@ -185,3 +185,13 @@ a pump sends at most 4 batches and `flush()` only what was buffered at its start
 outcomes whose receipt has been sent; refreshes are serialised; a 304 renews cache age but never past expiry;
 `close()` splits its deadline between join and flush and counts drops only once an in-flight send settles;
 `report_outcome` raises on invalid caller input and also counts the drop (R9.4). SRM is tested without a certificate.
+
+## AS2-Q23 — TS client choices
+Plan: plans/as-2-sdk.md · Status: UNCONFIRMED
+`HttpTransport` uses `redirect: "manual"` instead of the plan's `"error"`, so a 3xx comes back as an answer that is
+never followed (uploads retry as `http_3xx`; CP routes fail as `redirect_refused`); the transport failure set stays
+`network|timeout|tls|protocol`. The HMAC is computed with two cached SHA-256 passes (6,000+ random cases match
+`createHmac`). A batch whose build or signing throws is dropped into declared `dropped` gaps and counted
+(`*_dropped_error`) rather than retried, which would wedge the queue; Python now does the same. `If-None-Match` carries the raw
+digest per R10.6. `evaluate()` during `close()` stays attested until the final pass; those receipts are uploaded or
+counted, never silently lost.

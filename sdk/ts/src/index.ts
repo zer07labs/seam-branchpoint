@@ -9,3 +9,6 @@ export * from "./cert.ts";
 export * from "./document.ts";
 export * from "./chain.ts";
 export * from "./auth.ts";
+export * from "./transport.ts";
+export * from "./uploader.ts";
+export * from "./client.ts";

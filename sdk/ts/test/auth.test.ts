@@ -129,10 +129,10 @@ describe("checkIssuedCert", () => {
       }
     };
     const other = WorkloadKey.fromSeed(Buffer.alloc(32, 5)).publicKey;
-    assert.equal(reason(() => checkIssuedCert(issue(other), pinned, expect, 1500)), "cert_mismatch");
+    assert.equal(reason(() => checkIssuedCert(issue(other), pinned, expect, 1500)), "cert_pk_mismatch");
     assert.equal(reason(() => checkIssuedCert(issue(wl.publicKey, `bk_${"1".repeat(26)}`), pinned, expect, 1500)),
-      "cert_mismatch");
-    assert.equal(reason(() => checkIssuedCert(issue(wl.publicKey, KID, "t2"), pinned, expect, 1500)), "cert_mismatch");
+      "cert_subject_mismatch");
+    assert.equal(reason(() => checkIssuedCert(issue(wl.publicKey, KID, "t2"), pinned, expect, 1500)), "cert_subject_mismatch");
     assert.equal(reason(() => checkIssuedCert(issue(wl.publicKey), pinned, expect, 999)), "cert_not_current");
     assert.equal(reason(() => checkIssuedCert(issue(wl.publicKey), pinned, expect, 2000)), "cert_not_current");
     assert.equal(reason(() => checkIssuedCert(issue(wl.publicKey), pinKeys([]), expect, 1500)).startsWith("cert_"), true);

@@ -257,6 +257,20 @@ export class ChainState {
     return h === null ? null : { seq: h.seq, prevHash: h.prev };
   }
 
+  /** Number of live (cert_digest, experiment_id) scopes. */
+  get scopeCount(): number {
+    return this.#heads.size;
+  }
+
+  /**
+   * Forget every scope not under `certDigest` (call when it becomes current: a replaced certificate is never chained
+   * under again, and receipts already chained under it carry their own seq and prev_hash, so nothing else needs them).
+   */
+  retainOnly(certDigest: string): void {
+    const prefix = `${certDigest}:`;
+    for (const k of [...this.#heads.keys()]) if (!k.startsWith(prefix)) this.#heads.delete(k);
+  }
+
   /** Continue a scope from a known point (state restored by the caller, or tests near the seq limit). */
   restoreHead(certDigest: string, experimentId: string, nextSeq: number, prevHash: string): void {
     if (!matches(HEX64_RE, certDigest) || !matches(ULID_RE, experimentId)) throw new TypeError("scope: outside its grammar");

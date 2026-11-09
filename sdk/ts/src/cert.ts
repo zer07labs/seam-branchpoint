@@ -170,15 +170,15 @@ export class WorkloadKey {
 
 /**
  * Check a certificate the CP issued for this workload (R10.6 certificates route): it verifies under a pinned CP key,
- * binds this workload's public key, SDK key and tenant, and is valid now. Throws Refusal(`cert_*` or `cert_mismatch`,
- * or `cert_not_current`, also for a NaN or infinite clock).
+ * binds this workload's public key, SDK key and tenant, and is valid now. Throws Refusal(`cert_*`: `cert_pk_mismatch` for
+ * another workload key, `cert_subject_mismatch` for another SDK key or tenant, `cert_not_current` also for a NaN or
+ * infinite clock).
  */
 export function checkIssuedCert(env: unknown, pinned: PinnedKeys, expect: { publicKey: Uint8Array; sdkKeyId: string;
   tenant: string }, nowMs: number): Cert {
   const cert = verifyCertEnvelope(env, pinned);
-  if (!cert.pk.equals(expect.publicKey) || cert.sdkKeyId !== expect.sdkKeyId || cert.tenant !== expect.tenant) {
-    throw new Refusal("cert_mismatch");
-  }
+  if (!cert.pk.equals(expect.publicKey)) throw new Refusal("cert_pk_mismatch");
+  if (cert.sdkKeyId !== expect.sdkKeyId || cert.tenant !== expect.tenant) throw new Refusal("cert_subject_mismatch");
   // A clock that is not a finite number cannot place the certificate in its window: refused, never a RangeError.
   if (typeof nowMs !== "number" || !Number.isFinite(nowMs)) throw new Refusal("cert_not_current");
   const now = BigInt(Math.trunc(nowMs));

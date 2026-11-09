@@ -405,7 +405,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** `sdk/ts/README.md`.
 
 ### P6 — TypeScript client: cache, certificates, chain state, uploader, transport, reportOutcome
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 2 rounds. Diverged: `redirect: "manual"` (a 3xx is never followed, and the transport-failure set is unchanged); `stats()` and SDK-local names match Python exactly, with two extra `*_dropped_error` keys; an injectable `chain`; and `refresh`/`renewCertificate`/`flush` return Python's result strings (AS2-Q22, Q23).
 - **Risk:** complex
 - **Delivers:** `BranchpointClient` (TS) mirroring P3 with the same AS acceptance criteria.
 - **Depends on:** P5
