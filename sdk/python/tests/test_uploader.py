@@ -493,3 +493,77 @@ def test_an_outcome_never_travels_before_its_receipt():
         for o in b.get("outcomes", []):
             assert o["receipt_id"] in sent_before
     assert env.client.stats()["outcomes_uploaded"] == 1
+
+
+# --- a build/sign failure never wedges the queue (P3 fix, mirrors sdk/ts uploader) ---------------------------------
+def test_signer_that_always_throws_turns_receipts_into_gaps_and_never_blocks(monkeypatch):
+    import seam_branchpoint.uploader as up
+
+    env = ready(make_env())
+    _units(env, 6)  # split seq 0..5
+    a = env.client.evaluate("checkout", "u0")  # seq 6, with an outcome
+    assert env.client.report_outcome(a.receipt_id, a.experiment_id, reward=1.0)
+    real = up.sign_receipt
+
+    def boom(*_a, **_k):
+        raise RuntimeError("signer down")
+
+    monkeypatch.setattr(up, "sign_receipt", boom)
+    assert env.client.flush() == "backoff"  # the failure never escapes and leaves no batch in flight
+    for i in range(3):  # more receipts keep arriving (seq 7, 8, 9); every attempt fails the same way
+        env.clock.advance(120_000)
+        _units(env, 1, prefix=f"x{i}")
+        assert env.client.flush() == "backoff"
+    s = env.client.stats()
+    digest = s["certificate_digest"]
+    assert s["batch_in_flight"] is False and s["receipts_buffered"] == 0 and s["outcomes_buffered"] == 0
+    assert s["upload_failure"] == "internal"
+    assert s["receipts_dropped_error"] == 10 and s["outcomes_dropped_error"] == 1
+    assert s["batches_retried"] == 0  # a drop is not a retry
+    assert s["dropped"] == {f"{digest}:{EID_SPLIT}": [[0, 9]]}
+    assert env.collector.batches == []
+    monkeypatch.setattr(up, "sign_receipt", real)
+    env.clock.advance(120_000)
+    _units(env, 3, prefix="later")  # seq 10..12 upload, declaring the gap 0..9
+    assert env.client.flush() == "sent"
+    s = env.client.stats()
+    assert s["receipts_uploaded"] == 3 and s["receipts_buffered"] == 0
+    assert env.batches()[0]["dropped"] == {f"{digest}:{EID_SPLIT}": [[0, 9]]}
+    gaps = {(g[0], g[1]): [g[2], g[3]] for g in env.collector.verifier.all_gaps}
+    assert gaps == {(digest, EID_SPLIT): [0, 9]}
+
+
+def test_build_failure_backs_off_on_the_worker_path(monkeypatch):
+    import seam_branchpoint.uploader as up
+
+    env = ready(make_env())
+    _units(env, 2)
+    monkeypatch.setattr(up, "sign_receipt", lambda *a, **k: (_ for _ in ()).throw(ValueError("x")))
+    u = env.client._uploader
+    env.clock.advance(1_000)
+    assert u.pump(env.clock.mono()) == "backoff"
+    _units(env, 1, prefix="y")
+    assert not u.due(env.clock.mono())  # backing off: the worker does not spin on a failing build
+    assert u.next_due_ms() > env.clock.mono()
+    assert u.pump(env.clock.mono()) == "backoff"
+    assert env.client.stats()["receipts_dropped_error"] == 2
+
+
+def test_persistent_build_failures_log_one_static_warning(monkeypatch, caplog):
+    import logging
+
+    import seam_branchpoint.uploader as up
+
+    env = ready(make_env())
+    monkeypatch.setattr(up, "sign_receipt", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("down")))
+    with caplog.at_level(logging.WARNING, logger="seam_branchpoint"):
+        for i in range(up.PERSISTENT_BUILD_FAILURES * 3):
+            env.clock.advance(120_000)
+            env.client.refresh_document()  # no worker here: keep the cache fresh
+            a = env.client.evaluate("checkout", f"p{i}")
+            assert a.receipt_id and env.client.flush() == "backoff"
+    persistent = [r for r in caplog.records if "keep failing" in r.getMessage()]
+    assert len(persistent) == 1 and persistent[0].levelno == logging.WARNING
+    msg = persistent[0].getMessage()
+    assert a.receipt_id not in msg and EID_SPLIT not in msg and env.client.stats()["certificate_digest"] not in msg
+    assert env.client.stats()["receipts_dropped_error"] == up.PERSISTENT_BUILD_FAILURES * 3

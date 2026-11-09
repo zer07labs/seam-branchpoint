@@ -10,6 +10,8 @@
 - **evaluate** does no I/O and never waits on a lock held across I/O: snapshot read, `evaluate.py` rows 3–9, then, under
   a covering certificate, the chain advance (one short lock) and the buffer append (one short lock). Signing happens
   at flush on the worker thread.
+- **Events.** `add_listener(fn)` is called with `ready`, `configuration_changed`, `stale` or `fresh` on document
+  state changes: from the refresh path and from the worker's tick (staleness), never from `evaluate`.
 - **Worker.** One daemon thread polls the document (60 s ± 10 %), renews the certificate and flushes the buffer
   (every second or at 500 items). Without `start()` nothing runs in the background: tests and callers that want
   explicit control call `refresh_document()`, `renew_certificate()` and `flush()` themselves.
@@ -71,6 +73,12 @@ RECEIPT_DROPPED = "receipt_dropped"  # served, the receipt was chained but the b
 FLAG_NOT_FOUND = "flag_not_found"  # default: no experiment under that key or decision_point
 INTERNAL_ERROR = "internal_error"  # default: an unexpected exception inside evaluate (never raised to the caller)
 EVIDENCE_GRADE = "attested"
+
+# Client state events (`add_listener`): fired by the refresh path and the worker, never by evaluate.
+EVENT_READY = "ready"  # the first verified document is in place
+EVENT_CONFIGURATION_CHANGED = "configuration_changed"  # a newer verified document replaced the cache
+EVENT_STALE = "stale"  # the cache went stale (R8.12): evaluations now return config_unavailable
+EVENT_FRESH = "fresh"  # a refresh made a stale cache usable again
 
 DEFAULT_POLL_INTERVAL_MS = 60_000  # A-12
 POLL_JITTER = 0.10
@@ -198,6 +206,12 @@ class BranchpointClient:
         self._refresh_lock = threading.Lock()  # one document refresh at a time: an older answer never lands last
         self._renew_lock = threading.Lock()  # one certificate request at a time
         self._warned: dict[str, int] = {}
+        self._listeners: list[Callable[[str], None]] = []
+        self._listeners_lock = threading.Lock()  # add/remove are copy-on-write under this lock
+        self._emit_lock = threading.RLock()  # state decision + dispatch, so listeners see events in state order
+        self._state_lock = threading.Lock()
+        self._state_ready = False  # whether listeners have been told about the first verified document
+        self._state_stale = False  # the last staleness this client reported to its listeners
         self._process_init()
         if hasattr(os, "register_at_fork"):
             ref = weakref.ref(self)
@@ -252,6 +266,8 @@ class BranchpointClient:
             if self._closed:
                 return
             self._closed = True
+        with self._emit_lock:  # wait out an in-flight dispatch: no listener runs after close returns
+            pass
         deadline = self._mono() + int(timeout_s * 1000)
         self._stop.set()
         self._wake.set()
@@ -283,6 +299,9 @@ class BranchpointClient:
         self._stop = threading.Event()
         self._thread = None
         self._ready_cert = threading.Event()
+        self._state_lock = threading.Lock()
+        self._listeners_lock = threading.Lock()
+        self._emit_lock = threading.RLock()
         self._uploader.wake = self._wake
         self._uploader.reset_after_fork()
         self._process_init()
@@ -405,7 +424,40 @@ class BranchpointClient:
         if self._closed:
             return "closed"
         with self._refresh_lock:
-            return self._refresh_document()
+            prev = self._snap
+            r = self._refresh_document()
+        if r in ("accepted", "unchanged", "not_modified"):
+            self._sync_state(changed=prev is not None and r == "accepted")
+        return r
+
+    def _sync_state(self, *, changed: bool = False) -> list[str]:
+        """Report the client's *current* state to the listeners: decided and dispatched under `_emit_lock`, so two
+        threads can never deliver events out of state order and the last event always matches the final state.
+        `changed`: the caller installed a newer document. Returns the events fired."""
+        with self._emit_lock:
+            if self._closed:
+                return []
+            events: list[str] = []
+            snap = self._snap
+            if snap is None:
+                return events
+            stale = self._stale(snap)
+            with self._state_lock:
+                if not self._state_ready:
+                    self._state_ready = True
+                    events.append(EVENT_READY)  # covers a concurrent `changed`: READY is the first news
+                elif changed:
+                    events.append(EVENT_CONFIGURATION_CHANGED)
+                if stale and not self._state_stale:
+                    self._state_stale = True
+                    events.append(EVENT_STALE)
+                elif not stale and self._state_stale:
+                    self._state_stale = False  # only a refresh that really made the cache usable again
+                    events.append(EVENT_FRESH)
+            if EVENT_STALE in events:
+                self._warn("document_stale", "document: the cache is stale; evaluations return defaults")
+            self._emit(events)
+            return events
 
     def _refresh_document(self) -> str:
         with self._count_lock:
@@ -544,6 +596,7 @@ class BranchpointClient:
                 delay = max(1, self._backoff(self._cert_attempts, DEFAULT_BACKOFF_CAP_MS))
                 self._next_cert = self._cert_retry_at = now + delay
         self._uploader.pump(self._mono())
+        self.check_state()
 
     def _stale(self, snap: tuple[Document, int]) -> bool:
         return is_stale(self._mono() - snap[1], self._wall(), snap[0].expires_at_ms, self._max_staleness)
@@ -569,6 +622,43 @@ class BranchpointClient:
                 wait_ms = 0
             if wait_ms:
                 wake.wait(wait_ms / 1000)
+
+    # --- state events -----------------------------------------------------------------------------------------------
+    def add_listener(self, listener: Callable[[str], None]) -> Callable[[], None]:
+        """Call `listener(event)` on each document state change (`EVENT_READY`, `EVENT_CONFIGURATION_CHANGED`,
+        `EVENT_STALE`, `EVENT_FRESH`). It runs on the thread that observed the change (the worker, or a caller of
+        `refresh_document`/`check_state`), so keep it short; an exception in it is logged and ignored. Returns a
+        function that removes the listener."""
+        with self._listeners_lock:
+            self._listeners = [*self._listeners, listener]  # copy-on-write: dispatch reads a snapshot
+
+        def remove() -> None:
+            with self._listeners_lock:
+                self._listeners = [x for x in self._listeners if x is not listener]
+
+        return remove
+
+    def has_document(self) -> bool:
+        """Whether a verified document has been cached (it may since have gone stale)."""
+        return self._snap is not None
+
+    def check_state(self) -> str | None:
+        """Report a fresh → stale transition of the cached document to the listeners (the worker calls this every
+        tick; with no worker, call it yourself). Returns the event fired, if any. No I/O; nothing after close."""
+        if self._closed or self._snap is None:
+            return None
+        return EVENT_STALE if EVENT_STALE in self._sync_state() else None
+
+    def _emit(self, events: list[str]) -> None:
+        """Call each listener for each event; the caller holds `_emit_lock`."""
+        for ev in events:
+            for fn in self._listeners:
+                if self._closed:  # a listener may close the client mid-dispatch: nobody hears of it afterwards
+                    return
+                try:
+                    fn(ev)
+                except Exception:  # noqa: BLE001 - a listener never takes the worker or a refresh down
+                    self._warn("listener_error", "listener: raised; ignored")
 
     # --- observability ----------------------------------------------------------------------------------------------
     def _warn(self, key: str, message: str) -> None:

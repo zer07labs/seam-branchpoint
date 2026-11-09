@@ -31,6 +31,7 @@ from .cert import Cert
 from .chain import ReceiptRecord, admit_outcomes, build_batch, sign_receipt
 from .transport import Transport, TransportError
 
+PERSISTENT_BUILD_FAILURES = 5  # consecutive build/sign failures before the persistent-failure warning
 RESULT_STATUSES = frozenset({
     "accepted", "duplicate", "receipt_schema", "receipt_noncanonical", "receipt_cert_mismatch", "receipt_sig_invalid",
     "receipt_outside_cert_window", "duplicate_receipt_id", "duplicate_seq", "seq_out_of_order", "chain_break"})
@@ -106,6 +107,17 @@ def disposition(status: int, body: Any, receipt_ids: list[str], outcome_receipt_
         return {"outcomes_rejected": len(outcome_receipt_ids), "outcomes_succeeded": 0,
                 "rejected": len(receipt_ids), "retry": False, "succeeded": 0}
     return {**zero, "retry": True}  # R9.9: 1xx / 3xx (redirects are never followed) and anything else
+
+
+def merge_spans(a: list[list[int]], b: list[list[int]]) -> list[list[int]]:
+    """The union of two span lists, as sorted, disjoint, non-adjacent `[lo, hi]` spans."""
+    out: list[list[int]] = []
+    for lo, hi in sorted([list(x) for x in a] + [list(x) for x in b]):
+        if out and lo <= out[-1][1] + 1:
+            out[-1][1] = max(out[-1][1], hi)
+        else:
+            out.append([lo, hi])
+    return out
 
 
 def add_to_spans(spans: list[list[int]], n: int) -> None:
@@ -203,13 +215,16 @@ class Uploader:
         self.n_outcomes = 0
         self.inflight: _Batch | None = None
         self.next_flush_ms = self.clock_ms() + self.flush_interval_ms
-        self.dropped_total: dict[str, list[list[int]]] = {}  # cumulative overflow spans, for stats and tests
+        # cumulative declared-gap spans (overflow and unbuildable batches), for stats and tests
+        self.dropped_total: dict[str, list[list[int]]] = {}
         self.c = dict.fromkeys((
             "receipts_buffered_total", "receipts_dropped_overflow", "receipts_uploaded", "receipts_rejected",
             "receipts_dropped_close", "outcomes_queued", "outcomes_dropped_overflow", "outcomes_invalid_dropped",
             "outcomes_uploaded", "outcomes_rejected", "outcomes_dropped_close", "batches_sent", "batches_retried",
-            "batches_rejected", "batches_malformed_answer"), 0)
+            "batches_rejected", "batches_malformed_answer", "receipts_dropped_error", "outcomes_dropped_error"), 0)
         self.last_failure: str | None = None
+        self.error_attempts = 0  # consecutive batch build/sign failures (backoff for the next batch)
+        self.error_retry_at_ms = 0  # no new batch is taken before this (unless draining)
         self.closed = False  # close() has begun: no install, no new pump
         self.finished = False  # the final drop accounting is done
         self.abandoned = False  # close() gave up waiting for a send in flight: that sender does the accounting
@@ -346,13 +361,17 @@ class Uploader:
         with self.lock:
             if self.inflight is not None:
                 return now >= self.inflight.retry_at_ms
+            if now < self.error_retry_at_ms:
+                return False
             n = self.n_receipts + self.n_outcomes
             pending = any(s.pending_dropped for s in self.slots)
             return n >= self.flush_at or ((n > 0 or pending) and now >= self.next_flush_ms)
 
     def next_due_ms(self) -> int:
         with self.lock:
-            return self.inflight.retry_at_ms if self.inflight is not None else self.next_flush_ms
+            if self.inflight is not None:
+                return self.inflight.retry_at_ms
+            return max(self.next_flush_ms, self.error_retry_at_ms)
 
     def pump(self, now: int | None = None, *, drain: bool = False) -> str:
         """Send batches while due, at most `MAX_PUMP_BATCHES` per call (with `drain`: until what was buffered when
@@ -397,6 +416,8 @@ class Uploader:
                 if self.inflight is not None and now < self.inflight.retry_at_ms and not drain:
                     return "backoff" if result == "idle" else result
                 if self.inflight is None:
+                    if now < self.error_retry_at_ms and not drain:
+                        return "backoff" if result == "idle" else result
                     n = self.n_receipts + self.n_outcomes
                     if not (drain or now >= self.next_flush_ms or n >= self.flush_at):
                         return result
@@ -430,7 +451,11 @@ class Uploader:
     def _send(self, b: _Batch, now: int) -> bool:
         """One attempt. True when the batch is settled (counted), False when it waits for a retry."""
         if b.body is None:
-            b.body = self._sign(b)
+            try:
+                b.body = self._sign(b)
+            except Exception:  # noqa: BLE001 - a build/sign failure must never wedge the queue
+                self._drop_unbuildable(b, now)
+                return False
         rids = [r.receipt_id for r in b.records]
         oids = [o["receipt_id"] for o in b.outcomes]
         try:
@@ -458,9 +483,38 @@ class Uploader:
             self.n_receipts -= len(b.records)
             self.n_outcomes -= len(b.outcomes)
             self.inflight = None
+            self.error_attempts = 0
         if resp.status != 200:
             self.on_warning("upload_rejected", f"receipts: batch rejected (http {resp.status}); not retried")
         return True
+
+    def _drop_unbuildable(self, b: _Batch, now: int) -> None:
+        """A batch that cannot be built or signed: never send unattributable bytes, never lose items silently. Its
+        receipts become declared gaps (their hashes already advanced the chain), its outcomes are counted, the
+        `dropped` spans it carried go back to pending, the in-flight slot is cleared and the next batch backs off."""
+        s = b.slot
+        with self.lock:
+            for key, spans in b.dropped.items():
+                eid = key.split(":", 1)[1]
+                s.pending_dropped[eid] = merge_spans(s.pending_dropped.get(eid, []), spans)
+            for r in b.records:
+                add_to_spans(s.pending_dropped.setdefault(r.experiment_id, []), r.seq)
+                add_to_spans(self.dropped_total.setdefault(f"{s.digest_hex}:{r.experiment_id}", []), r.seq)
+            self.c["receipts_dropped_error"] += len(b.records)
+            self.c["outcomes_dropped_error"] += len(b.outcomes)  # a drop, not a retry: batches_retried untouched
+            self.n_receipts -= len(b.records)
+            self.n_outcomes -= len(b.outcomes)
+            if self.inflight is b:
+                self.inflight = None
+            self.error_attempts += 1
+            ceiling = min(self.backoff_cap_ms, self.backoff_base_ms * (2 ** min(self.error_attempts - 1, 30)))
+            self.error_retry_at_ms = now + int(self.uniform(0, ceiling))
+            self.last_failure = "internal"
+            persistent = self.error_attempts == PERSISTENT_BUILD_FAILURES
+        self.on_warning("upload_internal", "receipts: a batch could not be built or signed; its receipts are declared gaps")
+        if persistent:  # once per streak of consecutive failures; static text, no ids
+            self.on_warning("upload_internal_persistent",
+                            "receipts: batches keep failing to build or sign; every receipt is being declared a gap")
 
     def _retry(self, b: _Batch, now: int, kind: str) -> bool:
         b.attempts += 1

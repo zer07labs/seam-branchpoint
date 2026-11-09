@@ -16,8 +16,16 @@ classifiers = [
   "Typing :: Typed",
 ]
 
+[project.optional-dependencies]
+# 0.8.1: the first release whose client keeps a resolution's `flag_metadata` on an error (FLAG_NOT_FOUND,
+# TYPE_MISMATCH carry `bp_reason`; <=0.8.0 raised and dropped it). Older and still needed: `attach`-wired provider
+# events (0.7.1), `Hook.finally_after(hook_context, details, hints)` (0.7.5), `get_provider_hooks`, dict metadata.
+openfeature = ["openfeature-sdk>=0.8.1"]
+# The 1.x stable trace API: `get_current_span`, `Span.is_recording`, `Span.add_event`.
+otel = ["opentelemetry-api>=1.0"]
+
 [dependency-groups]
-dev = ["pytest>=9.0", "hypothesis>=6.150"]
+dev = ["pytest>=9.0", "hypothesis>=6.150", "seam-branchpoint[openfeature,otel]", "opentelemetry-sdk>=1.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/seam_branchpoint"]

@@ -697,3 +697,145 @@ def test_worker_survives_a_base_exception():
         assert c.wait_ready(5) and c.stats()["worker_alive"]
     finally:
         c.close(1)
+
+
+# --- state events (the provider's PROVIDER_READY / CONFIGURATION_CHANGED / STALE come from these) -------------------
+def test_listener_sees_ready_changed_stale_fresh_in_order():
+    from _env import default_experiments
+
+    env = make_env(max_staleness_ms=10_000)
+    c, seen = env.client, []
+    c.add_listener(seen.append)
+    assert not c.has_document()
+    assert c.check_state() is None  # nothing cached: nothing can go stale
+    assert c.refresh_document() == "accepted" and seen == ["ready"] and c.has_document()
+    assert c.refresh_document() == "not_modified" and seen == ["ready"]  # a 304 is no change
+    env.cp.publish(default_experiments())
+    assert c.refresh_document() == "accepted" and seen == ["ready", "configuration_changed"]
+    env.clock.advance(10_001)
+    assert c.evaluate("checkout", "u").reason == "config_unavailable"
+    assert seen == ["ready", "configuration_changed"]  # evaluate never detects or reports a state change
+    assert c.check_state() == "stale" and c.check_state() is None  # reported once
+    assert seen[-1] == "stale"
+    assert c.refresh_document() == "not_modified" and seen[-1] == "fresh"
+    env.clock.advance(10_001)
+    assert c.check_state() == "stale"
+    env.cp.publish(default_experiments())
+    assert c.refresh_document() == "accepted"
+    # a newer document over a stale cache: the change, then the state it leaves (fresh)
+    assert seen == ["ready", "configuration_changed", "stale", "fresh", "stale", "configuration_changed", "fresh"]
+
+
+def test_a_304_for_an_expired_document_does_not_report_fresh():
+    env = make_env()  # the fake CP's documents expire 24 h after issue
+    c, seen = env.client, []
+    c.add_listener(seen.append)
+    assert c.refresh_document() == "accepted"
+    env.clock.advance(86_400_000 + 300_001)  # past expires_at_ms + 5 min (and past max_staleness)
+    assert c.check_state() == "stale"
+    for _ in range(3):  # each poll's 304 renews the monotonic age, but the wall-clock expiry still holds
+        assert c.refresh_document() == "not_modified"
+        assert c.check_state() is None
+    assert seen == ["ready", "stale"]  # no READY/STALE flapping on every poll
+    assert c.evaluate("checkout", "u").reason == "config_unavailable"
+
+
+def test_no_events_after_close():
+    env = make_env(max_staleness_ms=10_000)
+    c, seen = env.client, []
+    c.add_listener(seen.append)
+    assert c.refresh_document() == "accepted"
+    c.close(1)
+    env.clock.advance(10_001)
+    assert c.check_state() is None and c._sync_state(changed=True) == []
+    assert c.refresh_document() == "closed"
+    assert seen == ["ready"]
+
+
+def test_a_listener_that_closes_the_client_stops_the_dispatch():
+    env = make_env()
+    c, seen = env.client, []
+    c.add_listener(lambda ev: (seen.append("first:" + ev), c.close(1)))
+    c.add_listener(lambda ev: seen.append("second:" + ev))
+    c.refresh_document()
+    assert seen == ["first:ready"]
+
+
+def test_events_stay_in_state_order_under_concurrent_refresh_and_check():
+    import threading
+
+    from _env import default_experiments
+
+    env = make_env(max_staleness_ms=10_000)
+    c, seen = env.client, []
+    c.add_listener(seen.append)
+    assert c.refresh_document() == "accepted"
+    stop = threading.Event()
+
+    def checker():
+        while not stop.is_set():
+            c.check_state()
+
+    ts = [threading.Thread(target=checker) for _ in range(4)]
+    for t in ts:
+        t.start()
+    for i in range(200):
+        if i % 3 == 0:
+            env.clock.advance(10_001)
+        if i % 5 == 0:
+            env.cp.publish(default_experiments())
+        c.refresh_document()
+    stop.set()
+    for t in ts:
+        t.join()
+    state = [e for e in seen if e in ("stale", "fresh")]
+    assert all(a != b for a, b in zip(state, state[1:])), state  # strictly alternating: never two in a row
+    assert seen[0] == "ready" and seen.count("ready") == 1
+    assert (state[-1] == "stale") == c._stale(c._snap) if state else True  # the last event is the final state
+
+
+def test_listener_failures_are_ignored_and_listeners_can_be_removed():
+    env = make_env()
+    c, seen = env.client, []
+
+    def bad(ev):
+        raise RuntimeError("listener bug")
+
+    c.add_listener(bad)
+    remove = c.add_listener(seen.append)
+    assert c.refresh_document() == "accepted" and seen == ["ready"]
+    remove()
+    from _env import default_experiments
+
+    env.cp.publish(default_experiments())
+    assert c.refresh_document() == "accepted" and seen == ["ready"]
+
+
+def test_failed_refresh_fires_nothing():
+    env = make_env()
+    c, seen = env.client, []
+    c.add_listener(seen.append)
+    env.cp.script("document", TransportError("document", "network"))
+    assert c.refresh_document() == "network" and seen == []
+
+
+def test_worker_reports_staleness_without_any_evaluate():
+    env = make_env(max_staleness_ms=10_000, poll_interval_ms=3_600_000)
+    c = env.client
+    got = threading.Event()
+    seen = []
+
+    def on(ev):
+        seen.append(ev)
+        if ev == "stale":
+            got.set()
+
+    c.add_listener(on)
+    c.start()
+    try:
+        assert c.wait_ready(5, certificate=False)
+        env.clock.advance(10_001)
+        assert got.wait(5)
+        assert seen[0] == "ready" and seen[-1] == "stale"
+    finally:
+        c.close(1)

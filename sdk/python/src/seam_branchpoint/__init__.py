@@ -22,7 +22,15 @@ from ._wire import (
 )
 from .auth import DEFAULT_ROUTES, TOKEN_LIFETIME_S, SdkKey, TokenInputError
 from .cert import Cert, CertRefused, build_wcert, check_pinned, key_id, parse_wcert, pin_keys, verify_cert, verify_cert_json
-from .client import Assignment, BranchpointClient, cp_disposition
+from .client import (
+    EVENT_CONFIGURATION_CHANGED,
+    EVENT_FRESH,
+    EVENT_READY,
+    EVENT_STALE,
+    Assignment,
+    BranchpointClient,
+    cp_disposition,
+)
 from .chain import (
     CHAIN_EXHAUSTED,
     ChainState,
@@ -61,6 +69,7 @@ from .uploader import disposition
 __version__ = "0.1.0.dev0"
 
 __all__ = [
+    "EVENT_CONFIGURATION_CHANGED", "EVENT_FRESH", "EVENT_READY", "EVENT_STALE",
     "Assignment", "BranchpointClient", "HttpTransport", "Response", "Transport", "TransportError", "cp_disposition",
     "disposition", "CHAIN_EXHAUSTED", "DEFAULT_ROUTES", "MAX_SAFE", "SUPPORTED_DOCUMENT_VERSION", "TOKEN_LIFETIME_S", "Arm",
     "CacheMark", "Cert", "ConfigError", "ReceiptRecord", "check_pinned", "sign_receipt", "CertRefused", "ChainState", "Document", "DocumentRefused", "Evaluation", "ExperimentDef",

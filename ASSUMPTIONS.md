@@ -205,6 +205,6 @@ evaluation in the `finally` stage (Python `finally_after`), not in `after`/`erro
 one event. Attributes are the plan's set plus `error.type`, with `feature_flag.result.reason` lowercased per OTel semconv;
 any value equal to the targeting key is dropped as a second guard. A boot timeout fails `initialize` with the SDK's
 not-ready error (status ERROR), and READY follows on the first verified document. Python is driven by a client listener API
-(`add_listener`); TS polls state on an unref'd 1 s interval, so CONFIGURATION_CHANGED is coalesced per interval. Floors:
+(`add_listener`); TS polls state on an unref'd 1 s interval, so CONFIGURATION_CHANGED is coalesced per interval. When a newer document lands on a stale cache, Python emits CONFIGURATION_CHANGED then READY and TS emits READY then CONFIGURATION_CHANGED; OpenFeature defines no order between them, and both end READY. Each provider owns its client: wrapping one client twice raises, and `initialize` after shutdown is FATAL. Floors:
 Python `openfeature-sdk>=0.8.1` (0.8.0 drops `flag_metadata` on error results), `opentelemetry-api>=1.0`; in TS both
 OpenFeature and OTel are optional peers.

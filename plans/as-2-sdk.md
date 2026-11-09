@@ -338,7 +338,7 @@ core's only runtime dependency stays `cryptography` in Python and none in TS).
 - **Docs:** `sdk/python/README.md` (client usage, configuration table, failure semantics, stats).
 
 ### P4 — Python OpenFeature provider + OTel hook
-- **Status:** TODO
+- **Status:** DONE — Opus verify PASS in 2 rounds. Diverged: `openfeature-sdk>=0.8.1` (0.8.0 drops error metadata); hook in `finally_after`; `internal_error` → ERROR/GENERAL; extra `error.type`; a client listener API (`add_listener`/`check_state`) drives the provider events; also fixed P3's signing-failure wedge (a batch that fails to build becomes declared gaps, counted in `*_dropped_error`, with backoff) (AS2-Q23, Q24).
 - **Risk:** complex
 - **Delivers:** `seam_branchpoint.openfeature.BranchpointProvider` and `BranchpointOtelHook` (extra `openfeature`,
   `otel`).
