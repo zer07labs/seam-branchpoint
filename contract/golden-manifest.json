@@ -119,7 +119,7 @@
     },
     {
       "name": "cp_route_inventory",
-      "sha256": "42e44789ebc68a0cb11416cbe434d0ea676c49af3fb7a776614785d40305cee1",
+      "sha256": "683d5fed5318e40ef954289b6eae826f320c4d07c9214996317aad7e19d329cc",
       "copies": {
         "seam-control-plane": [
           "contract/route-inventory.json"
