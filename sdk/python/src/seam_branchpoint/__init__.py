@@ -62,6 +62,7 @@ from .document import (
     is_stale,
     verify_document,
 )
+from .enrol import POP_TYP, enrol_bundle, jwk_thumbprint, public_jwk
 from .evaluate import Arm, Evaluation, ExperimentDef, evaluate
 from .transport import HttpTransport, Response, Transport, TransportError
 from .uploader import disposition
@@ -73,7 +74,7 @@ __all__ = [
     "Assignment", "BranchpointClient", "HttpTransport", "Response", "Transport", "TransportError", "cp_disposition",
     "disposition", "CHAIN_EXHAUSTED", "DEFAULT_ROUTES", "MAX_SAFE", "SUPPORTED_DOCUMENT_VERSION", "TOKEN_LIFETIME_S", "Arm",
     "CacheMark", "Cert", "ConfigError", "ReceiptRecord", "check_pinned", "sign_receipt", "CertRefused", "ChainState", "Document", "DocumentRefused", "Evaluation", "ExperimentDef",
-    "InvalidUnit", "JcsError", "Refusal", "SdkKey", "SignedReceipt", "TokenInputError", "UlidGenerator", "VerifiedDocument",
+    "InvalidUnit", "JcsError", "POP_TYP", "enrol_bundle", "jwk_thumbprint", "public_jwk", "Refusal", "SdkKey", "SignedReceipt", "TokenInputError", "UlidGenerator", "VerifiedDocument",
     "__version__", "admit_outcomes", "batch_message", "batch_nonempty", "batch_shape_ok", "bucket", "build_batch", "build_wcert",
     "canonical_receipt", "check_receipt", "encode_batch", "evaluate", "from_micros", "genesis", "is_stale", "jcs_flat", "jcs_tree",
     "key_id", "make_outcome", "outcome_ok", "parse_wcert", "pin_keys", "receipt_hash",

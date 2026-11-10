@@ -43,6 +43,13 @@ implementations under `reference/`.
 Clocks and randomness can be injected (`SdkKey`'s `now` and `randomFill` options, `UlidGenerator`'s), so tests are
 deterministic.
 
+## Enrolling an SDK key
+
+The SDK key is an Ed25519 key you generate. The Seam Console enrols it by paste. The bundle tool ships with the Python
+SDK (`uvx --from seam-branchpoint seam-branchpoint-enrol --aud <audience> --new ./sdk-key.seed`; see
+[its README](../python/README.md#enrolling-an-sdk-key)). The seed file holds the 32-byte seed as hex, and the TS
+`SdkKey` loads the same seed.
+
 ## `toMicros`
 
 Reward and metric values travel as integer micro-units (R9.4). `toMicros(x)` reads `x` as its shortest round-trip

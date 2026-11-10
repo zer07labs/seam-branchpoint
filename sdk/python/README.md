@@ -47,11 +47,28 @@ cached document stays in use (R8.11).
 | `chain` | `canonical_receipt` (strict JCS), `genesis`, `receipt_hash`, `ChainState` per (cert_digest, experiment_id) (thread-safe `append` returns an unsigned `ReceiptRecord`; `sign_receipt` signs it at flush), `check_receipt`, R9.4 outcomes (`make_outcome`, `outcome_ok`), and the signed batch (`sign_batch`, `batch_message`, `batch_shape_ok`). |
 | `document` | `verify_document`: R8.1–R8.10 in order, raising `DocumentRefused(reason)`. Also `CacheMark` (R8.7/R8.11) and `is_stale` (R8.12). |
 | `auth` | `SdkKey.mint(aud, now_s)`: the §10 `seam-mc+jwt` token (60 s, fresh `jti`), plus `DEFAULT_ROUTES`. |
+| `enrol` | `enrol_bundle(private_key, aud)`: the `{public_jwk, proof}` bundle for enrolling an SDK key in the Seam Console (a `seam-mc-pop+jwt` proof of possession, `sub` = RFC 7638 `jwk_thumbprint`, 300 s). Also the `seam-branchpoint-enrol` CLI. |
 
 Rewards and metric values go on the wire as integer micro-units. `to_micros(x)` reads a float as its shortest
 round-trip decimal (Python `repr`, which matches ECMAScript `String(x)`), scales it by 10^6 and rounds half to even.
 It refuses NaN, ±inf and anything outside ±(2^53−1), so no float ever enters signed bytes. The TS SDK shares the
 table in `tests/micros_table.json`.
+
+## Enrolling an SDK key
+
+You generate the SDK key; the Seam Console enrols it by paste. The console never generates or holds the key. Copy the
+tenant's audience from the console's SDK keys page, then run:
+
+```sh
+seam-branchpoint-enrol --aud <audience> --new ./sdk-key.seed       # new key: seed written 0600, never printed
+seam-branchpoint-enrol --aud <audience> --seed-file ./sdk-key.seed # fresh proof for an existing key (rotation, retry)
+```
+
+It prints one line of JSON, `{"public_jwk": {"kty":"OKP","crv":"Ed25519","x":…}, "proof": "<JWS>"}`, with no `d`
+member anywhere. Paste that line into the console's enrol or rotate form within 5 minutes; the console refuses an
+expired proof locally ("regenerate it"), so if that happens, run the command again with `--seed-file`. The console shows
+the key's `bk_…` id. Load the same seed with `SdkKey.from_seed(sdk_key_id, bytes.fromhex(seed_file_text.strip()))`.
+`enrol_bundle(private_key, aud)` does the same from code.
 
 ## Client
 
@@ -60,7 +77,7 @@ from seam_branchpoint import BranchpointClient, HttpTransport, SdkKey
 
 client = BranchpointClient(
     tenant="t-acme",
-    sdk_key=SdkKey.from_seed(sdk_key_id, seed),          # the SDK key issued by the control plane
+    sdk_key=SdkKey.from_seed(sdk_key_id, seed),          # your key; the control plane assigns its bk_ id at enrolment
     document_keys=[doc_public_key],                        # pinned document signing keys (raw 32-byte Ed25519)
     cert_issuer_keys=[cert_issuer_public_key],             # pinned certificate issuer keys
     audience="seam-cp",
