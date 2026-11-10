@@ -275,10 +275,14 @@ def test_ten_thousand_provider_evaluations_make_zero_network_calls(of, monkeypat
                    flush_interval_ms=3_600_000, poll_interval_ms=3_600_000)
     _, c = of(env)
     calls: list[str] = []
+    # Count only calls made on the evaluating thread: the claim is that the provider path does no I/O. The worker
+    # thread is allowed to (and, if it wakes while the test has unset the certificate slot, will) renew on its own.
+    evaluating = threading.get_ident()
 
     def counting(name, real=None):
         def f(*a, **k):
-            calls.append(name)
+            if threading.get_ident() == evaluating:
+                calls.append(name)
             if real is not None:
                 return real(*a, **k)
             raise OSError("network disabled in this test")

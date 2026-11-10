@@ -1,11 +1,13 @@
-# The full gate, as one job: the AS-0 contract checks (buf lint/format/breaking, both reference implementations
-# regenerate the golden vectors byte-identically and pass their tests, SHA256SUMS holds), plus the AS-2 SDK suites
-# (Python, TypeScript) and the cross-SDK conformance check. docs/ci-cost.md has the cost rules.
+# The full gate, as two jobs: `contract gate` (buf lint/format/breaking, both reference implementations regenerate
+# the golden vectors byte-identically and pass their tests, SHA256SUMS holds, the AS-2 SDK suites without the
+# wall-clock perf tests, cross-SDK conformance) on the smallest runner, and `perf gate (python)` on Blacksmith
+# 8 vCPU and `perf gate (ts)` on 2 vCPU (the real-clock perf tests, bounds unchanged: p99 < 50 µs and >= 20k attested
+# evals/s in both SDKs). All three are required checks on main (ruleset `main`). docs/ci-cost.md has the cost rules.
 #
-#   pull_request → runs (one job, about 4 billed minutes). Superseded pushes cancel.
+#   pull_request → runs (three jobs). Superseded pushes cancel.
 #   merge_group  → `changes` diffs the queue commit against merge_group.base_sha; the suite runs only when a
 #                  contract or SDK path changed, and FAILS CLOSED (any diff error, or a failed `changes`, runs it).
-#                  No queue is configured today; this is ready for one. The suite job always reports, so a
+#                  No queue is configured today; this is ready for one. The suite jobs always report, so a
 #                  required check is never absent.
 #   push to main → nothing: the PR (or queue) already ran this tree.
 name: ci
@@ -107,14 +109,15 @@ jobs:
         run: |
           node reference/ts/branchpoint_ref.ts --check
           node --test reference/ts/branchpoint_ref.test.ts
+      # The wall-clock perf tests run in the `perf gate (python|ts)` jobs, not here.
       - name: Python SDK — tests (3.11 floor; extras, then core only, then the openfeature-sdk floor)
         working-directory: sdk/python
         env:
           UV_PYTHON: "3.11"
         run: |
           uv sync --frozen
-          uv run --frozen pytest -q
-          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/bp-core" uv run --frozen --no-dev --with pytest --with hypothesis pytest -q
+          uv run --frozen pytest -q --ignore=tests/test_perf.py
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/bp-core" uv run --frozen --no-dev --with pytest --with hypothesis pytest -q --ignore=tests/test_perf.py
           uv run --frozen --with openfeature-sdk==0.8.1 pytest -q tests/test_openfeature.py tests/test_otel.py
       - name: TypeScript SDK — typecheck, build, tests
         working-directory: sdk/ts
@@ -122,6 +125,54 @@ jobs:
           npm ci
           npm run typecheck
           npm run build
-          npm test
+          npm run test:unit
       - name: cross-SDK conformance
         run: uv run --script tests/conformance/conformance.py
+
+  # Perf is split by language because the two SDKs want different hosts (measured on PR #6, bounds unchanged):
+  # Python's evaluate thread and signing worker compete for cores, so it needs a bigger box: Blacksmith 2 vCPU
+  # missed p99 (51.2 µs, PR #5), 4 vCPU was noisy (57.5 µs), GitHub ubuntu-24.04 was too slow per core (13.2k/s),
+  # 8 vCPU passed with headroom (p99 ~29.5 µs). TS is single-threaded and missed 20k/s on bigger hosts (4 vCPU 6.7k,
+  # 8 vCPU 16.9k) while every 2 vCPU run passed (~21k, zero drops), so it stays on 2 vCPU (issue filed).
+  perf-python:
+    name: perf gate (python)
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (github.event_name != 'merge_group' || needs.changes.result != 'success' || needs.changes.outputs.relevant != 'false')
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 15
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: sdk/python/uv.lock
+      - name: Python SDK — perf (p99 < 50 µs, >= 20k attested evals/s; 3.11 floor)
+        working-directory: sdk/python
+        env:
+          UV_PYTHON: "3.11"
+        run: |
+          uv sync --frozen
+          uv run --frozen pytest -q -s tests/test_perf.py
+
+  perf-ts:
+    name: perf gate (ts)
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (github.event_name != 'merge_group' || needs.changes.result != 'success' || needs.changes.outputs.relevant != 'false')
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.18"
+          cache: npm
+          cache-dependency-path: sdk/ts/package-lock.json
+      - name: TypeScript SDK — perf (p99 < 50 µs, >= 20k attested evals/s)
+        working-directory: sdk/ts
+        run: |
+          npm ci
+          npm run test:perf

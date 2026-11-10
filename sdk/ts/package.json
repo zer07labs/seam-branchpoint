@@ -33,7 +33,9 @@
     "build": "tsc -p tsconfig.json",
     "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "node --test test/*.test.ts"
+    "test": "node --test test/*.test.ts",
+    "test:unit": "node --test $(ls test/*.test.ts | grep -v '/perf\\.test\\.ts$')",
+    "test:perf": "node --test test/perf.test.ts"
   },
   "peerDependencies": {
     "@openfeature/server-sdk": "^1.17.0",
