@@ -1,0 +1,96 @@
+# Publishes the SDKs: seam-branchpoint (PyPI, sdk/python) and @zer07labs/seam-branchpoint (npm, sdk/ts).
+# Dispatch only, from main; the PR that changed the tree already ran the full gate (ci.yml). Each registry job
+# refuses a version that is already published, and the versions in the four places that carry one must agree.
+# Tokens are secrets and never echoed. npm publishes with provenance (needs a public repo and id-token).
+name: release
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Registries to publish to"
+        required: true
+        type: choice
+        options: [both, pypi, npm]
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  guard:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 3
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - name: Refuse a dispatch from any ref but main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then echo "::error::release must be dispatched from main (got $REF)"; exit 1; fi
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - id: v
+        name: The four version strings agree
+        run: |
+          py=$(sed -n 's/^version = "\(.*\)"$/\1/p' sdk/python/pyproject.toml)
+          pyi=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' sdk/python/src/seam_branchpoint/__init__.py)
+          ts=$(node -p 'require("./sdk/ts/package.json").version')
+          tsi=$(sed -n 's/^export const VERSION = "\(.*\)";$/\1/p' sdk/ts/src/index.ts)
+          echo "pyproject=$py __init__=$pyi package.json=$ts index.ts=$tsi"
+          if [ -z "$py" ] || [ "$py" != "$pyi" ] || [ "$py" != "$ts" ] || [ "$ts" != "$tsi" ]; then
+            echo "::error::version strings disagree"; exit 1; fi
+          echo "version=$py" >> "$GITHUB_OUTPUT"
+  pypi:
+    needs: guard
+    if: inputs.target == 'both' || inputs.target == 'pypi'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+      - name: Refuse a version that is already on PyPI
+        env:
+          VERSION: ${{ needs.guard.outputs.version }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/seam-branchpoint/$VERSION/json")
+          if [ "$code" = "200" ]; then echo "::error::seam-branchpoint $VERSION is already on PyPI"; exit 1; fi
+          if [ "$code" != "404" ]; then echo "::error::PyPI lookup returned $code"; exit 1; fi
+      - name: Build
+        working-directory: sdk/python
+        run: uv build --out-dir dist
+      - name: Smoke-test the wheel
+        working-directory: sdk/python
+        run: uv run --isolated --no-project --with dist/*.whl python -c 'import seam_branchpoint as s; print(s.__version__)'
+      - name: Publish
+        working-directory: sdk/python
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish dist/*
+  npm:
+    needs: guard
+    if: inputs.target == 'both' || inputs.target == 'npm'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.18"
+          registry-url: "https://registry.npmjs.org"
+      - name: Refuse a version that is already on npm
+        env:
+          VERSION: ${{ needs.guard.outputs.version }}
+        run: |
+          if npm view "@zer07labs/seam-branchpoint@$VERSION" version 2>/dev/null | grep -q .; then
+            echo "::error::@zer07labs/seam-branchpoint $VERSION is already on npm"; exit 1; fi
+      - name: Install
+        working-directory: sdk/ts
+        run: npm ci
+      - name: Publish
+        working-directory: sdk/ts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance

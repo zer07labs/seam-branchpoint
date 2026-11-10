@@ -511,7 +511,7 @@ class SdkDocument(unittest.TestCase):
         for bad in ("", "t" * 129, "t.golden", "t golden", "t-golden\n", "tënant"):
             self.assertEqual(bp.verify_document(self.by["valid"]["envelope"].encode("utf-8"), bad, self.pinned,
                                                 bp.DOC_NOW_MS)["reason"], "tenant_invalid", repr(bad))
-        self.assertEqual(bp.TENANT_RE.pattern, "[A-Za-z0-9_-]{1,128}")  # seam-control-plane src/core/service-tokens.ts:415
+        self.assertEqual(bp.TENANT_RE.pattern, "[A-Za-z0-9_-]{1,128}")  # the control plane's tenant grammar
 
     def test_envelope_bytes_must_be_utf8(self) -> None:
         env = self.by["valid"]["envelope"].encode("utf-8")

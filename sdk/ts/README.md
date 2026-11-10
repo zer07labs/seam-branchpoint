@@ -5,7 +5,7 @@ Attested-grade experiment assignment primitives for `branchpoint.v1`. The spec i
 The package is ESM only, needs Node >= 22, and has **zero runtime dependencies**: it uses `node:crypto` and nothing else.
 Importing it does no network, process or timer work.
 
-Status: AS-2 P7 (core primitives, `BranchpointClient`, and the OpenFeature provider + OTel hook). The package exports
+Status: pre-release (core primitives, `BranchpointClient`, and the OpenFeature provider + OTel hook). The package exports
 `"."` (the core: zero runtime dependencies, never imports OpenFeature or OTel) and `"./openfeature"` (the provider; peer
 `@openfeature/server-sdk` >= 1.17, tested on 1.17.0 and 1.23.0, and peer `@opentelemetry/api` >= 1.3). Both peers are
 optional (`peerDependenciesMeta`), so a core-only install pulls neither; install `@openfeature/server-sdk` to use

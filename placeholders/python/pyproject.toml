@@ -1,4 +1,4 @@
-# Name reservation only (D15.1 as amended, AS-0). No code. The real SDK ships at AS-2 from this repo.
+# Name reservation only. No code. The real SDK ships from sdk/python in this repo.
 [build-system]
 requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"

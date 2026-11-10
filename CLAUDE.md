@@ -1,9 +1,7 @@
 # seam-branchpoint
 
-@../seam/CLAUDE.md
-
-Neutral `branchpoint.v1` contract (AS-0) and the attested-grade SDK cores + OpenFeature providers (AS-2: `sdk/python`,
-`sdk/ts`; architecture in `docs/sdk/overview.md`). Private until the first release (publish is W6). Plan of record: `seam-experiments/plans/attested-sdk.md`.
+Neutral `branchpoint.v1` contract and the attested-grade SDK cores + OpenFeature providers (`sdk/python`, `sdk/ts`;
+architecture in `docs/sdk/overview.md`).
 
 ## Commands (the full local gate — run before pushing)
 
@@ -24,8 +22,8 @@ actionlint
 ```
 
 Regenerate vectors (only for a deliberate contract change): `uv run --script reference/python/branchpoint_ref.py
-generate`, then `--check` in TS must pass unchanged, then update `SHA256SUMS` and hand the new sha256s to the hub
-(`seam/contract/golden-manifest.json` is canonical once pinned; see `docs/handoff/w3-hub-pin.md`).
+generate`, then `--check` in TS must pass unchanged, then update `SHA256SUMS` (and the sha256s in
+`contract/golden-manifest.json`).
 
 CI runs the same gate as one job on the smallest runner; cost rules and the before/after are in `docs/ci-cost.md`.
 
@@ -37,4 +35,3 @@ CI runs the same gate as one job on the smallest runner; cost rules and the befo
 - SDK `evaluate()` never does I/O, and a test asserts it; keep every network call on the worker path.
 - The two SDKs share `stats()` keys, reason names and `flag_metadata` keys exactly: change both, and both READMEs.
 - Perf tests are real-clock (p99 < 50 µs, 20k/s attested). The bound is not loosened for a slow host.
-- `seam` is a sibling repo: never write into it from here (the hub pin is the seam row's change).

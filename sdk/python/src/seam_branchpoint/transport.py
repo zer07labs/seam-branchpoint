@@ -5,7 +5,7 @@ collector route has no token parameter at all (R10.4, the collector authenticate
 Redirects are never followed (R9.9, R10.5): a 3xx is returned as a `Response` and handled as a failure.
 
 `HttpTransport` uses stdlib `urllib` only, imported lazily so `import seam_branchpoint` loads no network module.
-Errors carry the route name and a kind, never the URL, a header or a body (CHARTER: log the route, not the URL).
+Errors carry the route name and a kind, never the URL, a header or a body (log the route, not the URL).
 """
 
 from __future__ import annotations

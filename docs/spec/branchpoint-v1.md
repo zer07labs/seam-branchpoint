@@ -1,15 +1,14 @@
 # `branchpoint.v1` — normative specification
 
-Status: **AS-0 contract; §8–§10 added by AS-2 P1.** Frozen when the W3 seam row pins the golden groups in `seam/contract/golden-manifest.json`
-and AS-2 publishes the first SDK. Until then it changes only by a PR to this repo that regenerates the vectors.
+Status: **§1–§7 contract; §8–§10 SDK wires.** It changes only by a PR to this repo that regenerates the vectors and
+updates their pinned sha256s in `contract/golden-manifest.json`.
 
-Sources: `seam-experiments/plans/attested-sdk.md` (_The SDK and provider_, §AS-0), D15.1/D15.2/D15.4 as amended,
-`seam-experiments/plans/branchpoint.md` BP-7 (published experiment shape), BP-8 (Allocation trailer), BP-9 (`bp2`),
-`plans/joint/holdout-via-changeset.md` J4-d (holdout propensities). The typed schema is
+It is designed to sit alongside Seam's published experiment shape, its sealed Allocation trailer and `bp2` bucket, and
+the runtime's holdout propensities. The typed schema is
 [`proto/branchpoint/v1/branchpoint.proto`](../../proto/branchpoint/v1/branchpoint.proto); the field map to Seam is
 [`docs/mapping.md`](../mapping.md); the golden vectors are in [`contract/golden/branchpoint/`](../../contract/golden/branchpoint/)
-(§3–§6) and [`contract/golden/branchpoint-sdk/`](../../contract/golden/branchpoint-sdk/) (§8–§10, AS-2; a separate group so
-the hub-pinned AS-0 files never change).
+(§3–§6) and [`contract/golden/branchpoint-sdk/`](../../contract/golden/branchpoint-sdk/) (§8–§10; a separate group so
+the pinned §3–§6 files never change).
 Every rule below is exercised by a vector or by a test of both reference implementations (`reference/python`,
 `reference/ts`). The key words MUST, MUST NOT and SHOULD are normative.
 
@@ -39,7 +38,7 @@ Every hash and signature input starts with a distinct domain, so nothing verifie
 ## 3. Experiment evaluation
 
 ### salt_e
-32 bytes carried in the signed SDK document (`ExperimentDef.salt`). The CP derives it (AS-1); the derivation is
+32 bytes carried in the signed SDK document (`ExperimentDef.salt`). The CP derives it; the derivation is
 CP-internal and **not** part of this contract. Golden value: bytes `0x00, 0x01, …, 0x1f`.
 
 ### salt_kid
@@ -56,7 +55,7 @@ never does. It is pseudonymous: the tenant's workloads and the CP hold `salt_e`,
 units. Sealed (`bp2`) and attested tags of one unit are unrelated and MUST NOT be joined.
 
 ### state
-`STATE_PAUSED` ⇒ the caller default, no receipt, in every mode. This is the kill switch; BP-7 also publishes zero
+`STATE_PAUSED` ⇒ the caller default, no receipt, in every mode. This is the kill switch; the published experiment also carries zero
 weights / `budget_bp = 0` alongside it.
 
 ### split
@@ -72,7 +71,7 @@ Exactly one arm (the treatment). `0 < budget_bp ≤ 10000`:
 - otherwise ⇒ the arm; the receipt carries `mode = "holdout"`, the arm's `variant_id`,
   `propensity_bp = 10000 − budget_bp`.
 
-These equal the runtime's J4-d / D12 allocation propensities. `budget_bp = 0` ⇒ **treated as paused** (default, no
+These equal the runtime's holdout allocation propensities. `budget_bp = 0` ⇒ **treated as paused** (default, no
 receipt): the source's kill switch publishes `budget_bp = 0`, and serving the treatment under test to every unit
 would invert it. This is the runtime's stop path too: at zero every unit takes the baseline. Only which branch is the
 baseline differs (the runtime keeps units on the governed live policy; the SDK serves the default).
@@ -129,7 +128,7 @@ wcert = framed("seam.branchpoint.workload-cert.v1")
       ‖ framed(sdk_key_id)
       ‖ framed(tenant)
 ```
-The layout follows the runtime's KMS-intermediate certificate (`seam-runtime/crates/seamd/src/intermediate.rs`).
+The layout follows the runtime's intermediate-certificate layout.
 A verifier MUST refuse (`cert_malformed`): a wrong domain, `len(pk) ≠ 32`, a length prefix running past the end,
 trailing bytes after `framed(tenant)`, `sdk_key_id` or `tenant` outside its grammar; and (`cert_window_invalid`)
 `not_after_ms ≤ not_before_ms`. The certificate is valid for receipts with
@@ -201,7 +200,7 @@ Chains are scoped `(cert_digest, experiment_id)`.
 ## 6. Verification
 
 A verifier holding the pinned CP public keys checks, in order: the certificate, then each receipt's signature, then
-the chain. Reasons are distinct strings so AS-3 and both references agree (`receipt_negative_golden.json`):
+the chain. Reasons are distinct strings so the collector and both references agree (`receipt_negative_golden.json`):
 
 | Reason | Refusal |
 |---|---|
@@ -218,13 +217,13 @@ the chain. Reasons are distinct strings so AS-3 and both references agree (`rece
 
 A receipt's checks run **in the table's order**; the first failure names its reason, the receipt is refused, and a
 refused receipt changes no verifier state. A certificate failure refuses the whole batch before any receipt is
-read. `duplicate_receipt_id` is checked against every receipt the verifier has accepted; AS-3 keeps that state per
+read. `duplicate_receipt_id` is checked against every receipt the verifier has accepted; the collector keeps that state per
 tenant for its retention window.
 
 A missing predecessor is **not** a refusal: the verifier accepts `n`, records `gap(lo .. n−1)` where `lo` is one past
 the highest accepted `seq` below `n` in the scope (0 if none), and resumes the chain at `n`. A predecessor that
 arrives in a later batch fills the gap only if it links both ways. Gaps are per-batch observations against the state
-held at that moment, so spans can overlap across batches: AS-3 unions them and never sums them.
+held at that moment, so spans can overlap across batches: the collector unions them and never sums them.
 
 A batch envelope that cannot be decoded at all is `cert_malformed` and refuses the whole batch: a batch that is not
 an object; a certificate field that is missing, not a string, or not lowercase even-length hex; or `receipts`
@@ -241,10 +240,10 @@ it is a claim, not a timestamp anyone attests.
 
 - The proto evolves under buf `WIRE_JSON` breaking checks; field numbers are never reused.
 - A new bucket formula is a new `bucket_version`; a new receipt key set is a new receipt domain (`….receipt.v2`).
-- The proto `Outcome` is unsigned. On the AS-2 upload wire an outcome is covered by the batch signature (§9 R9.2);
+- The proto `Outcome` is unsigned. On the SDK upload wire an outcome is covered by the batch signature (§9 R9.2);
   a per-outcome signature would be an additive message under a new domain.
 - SDK semver ↔ document: each SDK release states which `branchpoint-sdk` document `v` it reads (README).
-- The AS-2 wires version independently: a new document shape is `v: 2` under a new domain (`….sdk-doc.v2`); unknown
+- The SDK wires (§8–§10) version independently: a new document shape is `v: 2` under a new domain (`….sdk-doc.v2`); unknown
   members of `doc_bytes` and of an experiment are ignored, so additive optional fields need no new `v`; the batch (§9)
   refuses unknown members, so a new batch member is a new collector route (`/v2/…`); a new token profile is a new `typ`.
 
@@ -298,8 +297,7 @@ order**; the first failure refuses the document with the named reason:
   (`document_too_large`) and one exactly at the cap (`accepted`, R8.1 is inclusive). The two size cases carry
   `pad_to_bytes: N`: the body is the case's `envelope` followed by `0x20` up to N octets (JSON whitespace).
 - **R8.2** `kid` names a pinned document key, else `kid_unknown`.
-- **R8.3** The configured tenant matches `[A-Za-z0-9_-]{1,128}` (the CP tenant grammar, seam-control-plane
-  `src/core/service-tokens.ts:415`), else `tenant_invalid` — checked before the signature, since a tenant containing `\n`
+- **R8.3** The configured tenant matches `[A-Za-z0-9_-]{1,128}` (the control plane's tenant grammar), else `tenant_invalid` — checked before the signature, since a tenant containing `\n`
   could make one domain message valid for two (tenant, document) splits. Then `sig` verifies over the domain message
   built with the **configured** tenant, else `sig_invalid`. A case may carry `tenant`, which overrides the golden's.
 - **R8.4** `doc_bytes` is strict JSON and an object, else `doc_malformed`.
@@ -322,7 +320,7 @@ order**; the first failure refuses the document with the named reason:
 - **R8.11** (cache) Only `accepted` or `unchanged` replaces the cache. A refusal leaves the cached document, version and
   digest untouched, and the SDK never caches a document that failed verification. So with no usable verified document
   the SDK reports fail-soft row 1 `config_unavailable` whatever the fetch failure was (the failure kind is a `stats()`
-  field); row 2 `config_unverified` is reserved and this SDK never reports it (DECISIONS § AS-2).
+  field); row 2 `config_unverified` is reserved and this SDK never reports it (DECISIONS.md, _SDK wires_).
 - **R8.12** (freshness) The cached document is stale — row 1 `config_unavailable` — when `mono_now −
   last_successful_refresh > max_staleness_ms` (default 600 000 ms, ten 60 s polls) or when `now_wall > expires_at_ms +
   300 000`. `last_successful_refresh` is the local monotonic time of the last fetch that returned an `accepted` or
@@ -403,12 +401,12 @@ The SDK authenticates to the CP with its SDK key (`bk_…` id, Ed25519) as a CP 
 - **R10.4** Tokens go to the CP routes only. **No SDK-key token is ever sent to the collector**: it authenticates a
   batch by its certificate.
 - **R10.5** HTTP redirects are never followed on any route (a redirect could forward `Authorization`).
-- **R10.6** Routes, provisional and SDK configuration (so AS-1/AS-3 choosing other paths is a config change, not a
+- **R10.6** Routes, provisional and SDK configuration (so a deployment choosing other paths is a config change, not a
   release): `GET {cp}/v1/branchpoint/sdk/document` (with `If-None-Match: <config_digest>`, answered `304` when current);
   `POST {cp}/v1/branchpoint/sdk/certificates` with body `{"pk_hex": …}`, answered with the workload certificate JSON
   `{"body_hex", "sig_hex", "issuer_kid"}`; `POST {collector}/v1/branchpoint/receipts` with the §9 batch.
-- **R10.7** CP route failures (the CP's error body is `{"error": <code>}`, seam-control-plane
-  `src/core/http/server.ts:608`; codes from `src/core/machine-auth.ts`). Golden: `cp_dispositions`.
+- **R10.7** CP route failures (the CP's error body is `{"error": <code>}`, with
+  the control plane's machine-auth error codes). Golden: `cp_dispositions`.
 
   | Status | `error` | SDK action |
   |---|---|---|
