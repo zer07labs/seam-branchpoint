@@ -509,11 +509,13 @@ describe("sdk golden group", () => {
     }
   });
 
-  test("AS-0 group untouched: every file equals its hub-manifest sha256", () => {
+  test("hub-pinned goldens untouched: every golden file is pinned and equals its hub-manifest sha256", () => {
     const m = JSON.parse(readFileSync(join(bp.REPO, "contract", "golden-manifest.json"), "utf8"));
     const pinned: [string, string][] = m.groups.flatMap((g: any) =>
       (g.copies["seam-branchpoint"] ?? []).map((p: string) => [g.sha256, p]));
-    assert.equal(pinned.length, 5);
+    const onDisk = [bp.GOLDEN_DIR, bp.SDK_GOLDEN_DIR].flatMap((d) =>
+      readdirSync(d).filter((f) => f.endsWith(".json")).map((f) => join(d, f).slice(bp.REPO.length + 1)));
+    assert.deepEqual(pinned.map(([, p]) => p).sort(), onDisk.sort());
     for (const [sha, p] of pinned) {
       assert.equal(createHash("sha256").update(readFileSync(join(bp.REPO, p))).digest("hex"), sha, p);
     }

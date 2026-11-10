@@ -207,3 +207,13 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
   running, unchanged and visible on every PR, but it is not in the `main` ruleset's required checks. No bound was
   changed and there are still no bypass actors. **Re-require `perf gate (ts)` in the ruleset in the same PR that
   closes #7.**
+
+## Keys and goldens (X6, 2026-11-10)
+
+- **The SDK READMEs document where pinned keys come from; they do not copy per-environment values (#8).** This repo is
+  public and the control plane's key doc is internal, so the READMEs describe `signing_keys` on
+  `GET …/branchpoint/sdk-keys`, how to pin `current` plus `previous`, and name the CP doc for Seam's hosted values.
+  Copied values would drift silently on the next rotation. Checked: every published `kid` equals the SDK's own
+  `key_id` of its `public_key_hex`, so the list form and the `{kid: key}` form pin the same key.
+- **`contract/golden-manifest.json` re-vendored byte-identical from seam f9fa0f7 (hub #173).** The retired
+  `experiment_config` / `experiment_assignment` groups had no copies here; the `branchpoint_sdk_*` groups are now pinned.
