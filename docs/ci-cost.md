@@ -18,6 +18,7 @@ The cost rules for this repo's Actions, written during the initial CI-cost pass 
 | `ci` | `workflow_dispatch` | 1 | same | about 4 minutes |
 | `ci` | push to `main` | none | n/a | 0 (the PR or the queue already ran that tree) |
 | `claim-names` | `workflow_dispatch` from `main` only | 2 (`ref-guard`, then `pypi` or `npm`) | same | about 2 minutes, once per registry, ever |
+| `release` | `workflow_dispatch` from `main` only | `guard`, then `pypi` and/or `npm` | Blacksmith 2-vCPU for `guard` and `pypi`; `npm` on GitHub-hosted `ubuntu-24.04`, because npm provenance refuses self-hosted runners (unbilled on a public repo) | about 3 minutes, once per release |
 
 ## Rules applied
 
