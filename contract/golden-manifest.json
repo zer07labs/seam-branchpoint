@@ -43,30 +43,6 @@
       }
     },
     {
-      "name": "experiment_config",
-      "sha256": "03b011787ec65807b7a474f9aae90238b4999d42f8e9db235ec07a0d6c0b9783",
-      "copies": {
-        "seam-learning": [
-          "fixtures/experiment_config_golden.json"
-        ],
-        "seam-runtime": [
-          "fixtures/experiment_config_golden.json"
-        ]
-      }
-    },
-    {
-      "name": "experiment_assignment",
-      "sha256": "c33d2b2d3b04b22c1da5f660b6e05c795bf5f68813270db86d425f8db21607fa",
-      "copies": {
-        "seam-learning": [
-          "fixtures/experiment_assignment_golden.json"
-        ],
-        "seam-runtime": [
-          "fixtures/experiment_assignment_golden.json"
-        ]
-      }
-    },
-    {
       "name": "seam_event",
       "sha256": "62f4291976b24ae9318fb1b43a56ff3a1e67c083166e87734cdea08c9c53fd29",
       "copies": {
@@ -363,6 +339,45 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/receipt_negative_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_sdk_document",
+      "sha256": "106dbf546732a3b777a4c9b7f0f9667a8d323290a143225694fde51dfebf7b8a",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint-sdk/sdk_document_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_document_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_sdk_key_token",
+      "sha256": "8bb5f0b90aa33b32d8018a2587bc9d706210108486cee06672135c1746e9bb23",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint-sdk/sdk_key_token_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_key_token_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_sdk_upload_batch",
+      "sha256": "f338b05ef4e14dfca2d5587d2082500341d3660ef2ee43e68051c6115837c391",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint-sdk/upload_batch_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint-sdk/upload_batch_golden.json"
+        ],
+        "seam-connectors": [
+          "contract/golden/branchpoint-sdk/upload_batch_golden.json"
         ]
       }
     },

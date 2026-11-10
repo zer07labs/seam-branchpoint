@@ -422,11 +422,12 @@ class SdkGolden(unittest.TestCase):
                 (d / name).write_bytes(bytes(raw))
                 self.assertEqual(bp.check_sdk(d), [name])
 
-    def test_as0_group_untouched(self) -> None:
-        # The AS-0 files are hub-pinned: their bytes must equal the vendored manifest's sha256 for every group.
+    def test_hub_pinned_goldens_untouched(self) -> None:
+        # Every golden vector here (AS-0 and the SDK set) is hub-pinned, and its bytes equal the vendored manifest's sha256.
         manifest = json.loads((bp.REPO / "contract" / "golden-manifest.json").read_text("utf-8"))
         pinned = [(g["sha256"], p) for g in manifest["groups"] for p in g["copies"].get("seam-branchpoint", [])]
-        self.assertEqual(len(pinned), 5)
+        on_disk = {str(f.relative_to(bp.REPO)) for d in (GOLDEN, SDK_GOLDEN) for f in d.glob("*.json")}
+        self.assertEqual({p for _, p in pinned}, on_disk)
         for sha, path in pinned:
             self.assertEqual(hashlib.sha256((bp.REPO / path).read_bytes()).hexdigest(), sha, path)
         self.assertEqual(set(bp.render()), {p.name for p in GOLDEN.iterdir()})

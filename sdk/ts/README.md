@@ -78,6 +78,16 @@ if (a.receiptId) client.reportOutcome(a.receiptId, a.experimentId!, { reward: 1,
 await client.close();                      // one final flush (bounded), counts the rest as dropped; idempotent
 ```
 
+### Pinned keys
+
+The control plane publishes the public keys to pin as `signing_keys` on `GET …/branchpoint/sdk-keys` (and on the enrol
+and rotate `201` responses): `{document: {current, previous[]}, cert_issuer: {current, previous[]}}`, each key
+`{kid, public_key_hex}`. Pass `public_key_hex` of `document.current` and every `document.previous` entry as
+`documentKeys`, and of `cert_issuer.current` as `certIssuerKeys`. Read them once, out of band, and ship them with your
+configuration; the client never fetches its own trust roots. Seam's hosted environments list their current values in
+the control plane's `docs/branchpoint-sdk-keys.md` § *Pinned public keys per environment*. Re-read and re-pin when a
+rotation moves a key into `previous`; a document signed by a key you have not pinned is refused (`kid_unknown`).
+
 `evaluate(key, unit, default)` looks the experiment up by key, then by decision_point. It returns `value` (the arm's
 bundle payload for a variant, else your default), `outcome` (`variant` | `held_out` | `default`), `variantId`
 (`null` for a default, `""` held out), `propensity`/`propensityBp`, `receiptId`, `experimentId`, `reason` and

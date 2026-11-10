@@ -85,12 +85,29 @@ buffer full: a counted gap), `chain_exhausted`, or a default reason: `config_una
 The client registers an `os.register_at_fork` hook: a forked child keeps the verified document but gets a new
 workload key, an empty buffer and fresh chain scopes, and restarts its worker on its first `evaluate`.
 
+### Pinned keys
+
+The control plane publishes the two public keys an SDK pins as `signing_keys` on `GET …/branchpoint/sdk-keys` (and on
+the enrol and rotate `201` responses):
+
+```json
+{"document":    {"current": {"kid": "…", "public_key_hex": "<64 hex>"}, "previous": [ … ]},
+ "cert_issuer": {"current": {"kid": "…", "public_key_hex": "<64 hex>"}, "previous": []}}
+```
+
+Pin `document.current` plus every key in `document.previous` as `document_keys`, and `cert_issuer.current` as
+`cert_issuer_keys`: `[bytes.fromhex(k["public_key_hex"]) for k in …]`, or `{kid: bytes.fromhex(hex)}` to keep the
+published `kid`. Read them once, out of band, and ship them with your configuration; the client never fetches its own
+trust roots. Seam's hosted environments list their current values in the control plane's
+`docs/branchpoint-sdk-keys.md` § *Pinned public keys per environment*. Re-read and re-pin when a rotation moves a key
+into `previous`; a document signed by a key you have not pinned is refused (`kid_unknown`).
+
 ### Configuration
 
 | Argument | Default | Meaning |
 |---|---|---|
 | `tenant`, `sdk_key`, `audience` | required | Who the client is; the token's `aud`. |
-| `document_keys`, `cert_issuer_keys` | required | Pinned Ed25519 public keys (a list, or `{kid: key}`). |
+| `document_keys`, `cert_issuer_keys` | required | Pinned Ed25519 public keys (a list, or `{kid: key}`); see [Pinned keys](#pinned-keys). |
 | `transport` | required | A `Transport`; `HttpTransport(cp_url, collector_url, routes, timeout_s=10, proxies, ssl_context, allow_insecure_http=False)`. |
 | `poll_interval_ms` | 60 000 | Document poll, ±10 % jitter; conditional GET (`If-None-Match`). |
 | `max_staleness_ms` | 600 000 | Monotonic age after which the cache is unusable (R8.12). |

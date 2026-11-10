@@ -21,3 +21,7 @@
   Receipt upload needs the collector and is not covered yet.
 - Release workflow (`.github/workflows/release.yml`): dispatch from main; refuses mismatched or already-published
   versions; publishes `seam-branchpoint` to PyPI and `@zer07labs/seam-branchpoint` to npm (with provenance).
+
+## X6 golden re-vendor + #8 (2026-11-10)
+- Manifest re-vendored byte-identical from seam f9fa0f7; golden gate local 8/8 PASS.
+- #8: pinned-keys sections in both SDK READMEs (decision in DECISIONS.md).
