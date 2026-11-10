@@ -1,9 +1,14 @@
 {
   "name": "@zer07labs/seam-branchpoint",
-  "version": "0.1.0-dev.0",
+  "version": "0.1.0",
   "description": "Seam Branchpoint SDK: attested, locally evaluated experiments for AI decisions (branchpoint.v1), with an OpenFeature provider.",
   "license": "Apache-2.0",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zer07labs/seam-branchpoint.git",
+    "directory": "sdk/ts"
+  },
+  "homepage": "https://github.com/zer07labs/seam-branchpoint/tree/main/sdk/ts#readme",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -49,5 +54,9 @@
     "@opentelemetry/sdk-trace-base": "2.12.0",
     "@types/node": "^22.20.5",
     "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

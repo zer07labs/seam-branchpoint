@@ -1,13 +1,13 @@
 # seam-branchpoint
 
-The neutral `branchpoint.v1` contract and, from AS-2, the SDK cores and OpenFeature providers for **attested-grade
+The neutral `branchpoint.v1` contract and the SDK cores and OpenFeature providers for **attested-grade
 experiments**: the SDK assigns variants locally (`bpa1` buckets over a CP-signed config) and writes Ed25519-signed,
 hash-chained receipts that the Seam collector verifies.
 
-> **Private until the first release.** AS-0 landed the contract and golden vectors; AS-2 adds the SDK cores and
-> OpenFeature providers (`sdk/python`, `sdk/ts`). Not yet published to PyPI or npm.
+> **Pre-release.** The contract, golden vectors, SDK cores and OpenFeature providers (`sdk/python`, `sdk/ts`) are
+> here; the first functional release to PyPI and npm is pending.
 
-## Names (D15.1)
+## Names
 
 | Registry | Name | Status |
 |---|---|---|
@@ -17,12 +17,12 @@ hash-chained receipts that the Seam collector verifies.
 
 The OpenFeature providers ship as `seam_branchpoint.openfeature` and `@zer07labs/seam-branchpoint/openfeature`.
 
-## Document versions each SDK release reads (J1-R3)
+## Document versions each SDK release reads
 
 | SDK release | `branchpoint-sdk` document `v` |
 |---|---|
 | 0.0.0 (placeholder) | none — reads no document |
-| first AS-2 release | `v = 1` |
+| first functional release | `v = 1` |
 
 Every release's notes repeat its row.
 

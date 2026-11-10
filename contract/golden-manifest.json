@@ -143,7 +143,7 @@
     },
     {
       "name": "cp_route_inventory",
-      "sha256": "c8cbd9eb7c036f8f5bccb56bec19786f094c14cd5c92a5708617c4c29d43f84d",
+      "sha256": "9450f13a292d7b6e5a488d4e2a981d422e9fd7fd3b137cff9217b2335c675065",
       "copies": {
         "seam-control-plane": [
           "contract/route-inventory.json"
@@ -297,6 +297,12 @@
       "copies": {
         "seam-control-plane": [
           "fixtures/vectors/tenant-snapshot-vectors.json"
+        ],
+        "seam-learning": [
+          "fixtures/tenant_snapshot_vectors.json"
+        ],
+        "seam-runtime": [
+          "crates/seamd/tests/fixtures/tenant-snapshot-vectors.json"
         ]
       }
     },

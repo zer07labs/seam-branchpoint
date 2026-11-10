@@ -4,17 +4,21 @@ build-backend = "hatchling.build"
 
 [project]
 name = "seam-branchpoint"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Seam Branchpoint SDK: attested-grade experiments for AI decisions (local bpa1 assignment, signed hash-chained receipts)."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = ["cryptography>=50.0.2"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
   "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://github.com/zer07labs/seam-branchpoint"
+Source = "https://github.com/zer07labs/seam-branchpoint/tree/main/sdk/python"
 
 [project.optional-dependencies]
 # 0.8.1: the first release whose client keeps a resolution's `flag_metadata` on an error (FLAG_NOT_FOUND,

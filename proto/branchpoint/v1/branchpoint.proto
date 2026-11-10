@@ -15,7 +15,7 @@ package branchpoint.v1;
 
 import "google/protobuf/struct.proto";
 
-// How an experiment allocates units. Mirrors BP-7 `.mode` and Allocation trailer field 1.
+// How an experiment allocates units. Mirrors the published experiment's `.mode` and Allocation trailer field 1.
 enum Mode {
   MODE_UNSPECIFIED = 0;
   // Arms own half-open intervals of cumulative weight_bp in arms[] order.
@@ -24,7 +24,7 @@ enum Mode {
   MODE_HOLDOUT = 2;
 }
 
-// Published experiment state (BP-7 `.state`). Draft/Shadow/Concluded/Closed are never published.
+// Published experiment state (`.state`). Draft/Shadow/Concluded/Closed are never published.
 enum State {
   STATE_UNSPECIFIED = 0;
   STATE_LIVE = 1;
@@ -55,9 +55,9 @@ enum VariantKind {
 // suffixes: "sealed", "bound", "attested", "observational". Rows of different grades never join by unit.
 enum EvidenceGrade {
   EVIDENCE_GRADE_UNSPECIFIED = 0;
-  // Runtime-assigned; allocation in the sealed Commitment trailer (BP-9).
+  // Runtime-assigned; allocation in the sealed Commitment trailer (`bp2`).
   EVIDENCE_GRADE_SEALED = 1;
-  // SDK-assigned, receipt digests sealed into a Seam decision record (AS-7, deferred).
+  // SDK-assigned, receipt digests sealed into a Seam decision record (deferred).
   EVIDENCE_GRADE_BOUND = 2;
   // SDK-assigned, receipts signed under a CP-certified workload key and hash-chained.
   EVIDENCE_GRADE_ATTESTED = 3;
@@ -65,7 +65,7 @@ enum EvidenceGrade {
   EVIDENCE_GRADE_OBSERVATIONAL = 4;
 }
 
-// The SDK's view of one experiment, as carried in the signed `branchpoint-sdk` document (AS-1 defines the
+// The SDK's view of one experiment, as carried in the signed `branchpoint-sdk` document (§8 defines the
 // document; this is the per-experiment shape the SDK evaluates).
 message ExperimentDef {
   // ULID, ^[0-9A-HJKMNP-TV-Z]{26}$.
@@ -100,9 +100,9 @@ message Arm {
   VariantBundle bundle = 3;
 }
 
-// The variant's payload: the OpenFeature object-flag value. Content addressing is computed by the CP (AS-1).
+// The variant's payload: the OpenFeature object-flag value. Content addressing is computed by the CP.
 message VariantBundle {
-  // sha256 hex of the bundle's canonical bytes (defined by AS-1; not golden at AS-0).
+  // sha256 hex of the bundle's canonical bytes (defined by the CP; not golden).
   string content_digest = 1;
   google.protobuf.Struct payload = 2;
 }
@@ -153,7 +153,7 @@ message WorkloadCertificate {
   string issuer_kid = 3;
 }
 
-// An upload: one certificate, the receipts it signed, and any outcomes. Uploaded to the AS-3 collector.
+// An upload: one certificate, the receipts it signed, and any outcomes. Uploaded to the collector.
 message ReceiptBatch {
   WorkloadCertificate cert = 1;
   repeated SignedReceipt receipts = 2;
