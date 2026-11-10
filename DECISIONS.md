@@ -199,6 +199,6 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
 
 - **Perf is its own required job on a bigger runner; main requires green (owner /needs-me 2026-11-10).** The
   wall-clock perf tests (Python `test_perf` p99 < 50 µs; TS p99 < 50 µs and >= 20k attested evals/s) run in `perf gate`
-  on a 4-vCPU runner with the bounds unchanged. The `main` ruleset requires `contract gate` and `perf gate` with no
+  on GitHub's 4-vCPU `ubuntu-24.04` (Blacksmith 4-vCPU measured noisier) with the bounds unchanged. The `main` ruleset requires `contract gate` and `perf gate` with no
   bypass, so a red PR cannot merge again, as PR #5 did. Cost and details: `docs/ci-cost.md`.
 

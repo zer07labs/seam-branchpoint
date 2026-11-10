@@ -13,7 +13,7 @@ The cost rules for this repo's Actions, written during the initial CI-cost pass 
 
 | Workflow | Trigger | Jobs | Runner | Billed per run |
 |---|---|---|---|---|
-| `ci` | `pull_request` (opened, synchronize, reopened, ready_for_review) | 2 (`contract gate`, `perf gate`) | `blacksmith-2vcpu-ubuntu-2404`; `perf gate` on `blacksmith-4vcpu-ubuntu-2404` | about 5–6 minutes (see the perf section below) |
+| `ci` | `pull_request` (opened, synchronize, reopened, ready_for_review) | 2 (`contract gate`, `perf gate`) | `blacksmith-2vcpu-ubuntu-2404`; `perf gate` on GitHub-hosted `ubuntu-24.04` (4 vCPU, unbilled on a public repo) | about 4 billed minutes (see the perf section below) |
 | `ci` | `merge_group` | `changes` plus `contract gate` and `perf gate` if a contract or SDK path changed | same | about 1 minute for docs only, about 5 otherwise |
 | `ci` | `workflow_dispatch` | 1 | same | about 4 minutes |
 | `ci` | push to `main` | none | n/a | 0 (the PR or the queue already ran that tree) |
@@ -65,12 +65,15 @@ PR #5 merged with `contract gate` red: Python `test_perf` measured p99 = 51.2 µ
 2-vCPU runner (the evaluate thread and the signing worker share two cores), and `main` had no protection, so nothing
 stopped the merge. Two changes:
 
-- **`perf gate`, its own job on `blacksmith-4vcpu-ubuntu-2404`.** It runs the wall-clock tests only: Python
-  `tests/test_perf.py` (3.11 floor) and TS `test/perf.test.ts` (`npm run test:perf`). Bounds are unchanged (p99 < 50 µs
-  in both, >= 20k attested evals/s). `contract gate` stays on the 2-vCPU runner and runs everything else
-  (`--ignore=tests/test_perf.py`, `npm run test:unit`). This is the measured need that rule 2 asks for, and it
-  supersedes rule 1 for perf only: one extra job costs about one more billed minute per push at twice the per-minute
-  rate, so **about 5–6 billed minutes per PR push** (was about 4). Locally `pytest` and `npm test` still run everything.
+- **`perf gate`, its own job on GitHub-hosted `ubuntu-24.04`.** It runs the wall-clock tests only: Python
+  `tests/test_perf.py` (3.11 floor) and TS `test/perf.test.ts` (`npm run test:perf`). The bounds are unchanged:
+  p99 < 50 µs in both, and >= 20k attested evals/s. `contract gate` stays on the 2-vCPU Blacksmith runner and runs
+  everything else (`--ignore=tests/test_perf.py`, `npm run test:unit`). This is the measured need that rule 2 asks
+  for, and it supersedes rule 1 for perf only. Blacksmith 4-vCPU was tried first and was noisier than 2-vCPU on both
+  runs: Python median p99 57.5 µs, and TS 6.7k evals/s with p99 degrading 17 → 58 µs across rounds, where 2-vCPU
+  history is a steady ~14 µs. GitHub's standard runner has 4 vCPU on its own VM and is **unbilled on a public repo**,
+  so the extra job adds no billed minutes and the PR push stays at **about 4 billed minutes**. If the repo goes
+  private, that job becomes billed: re-measure. Locally, `pytest` and `npm test` still run everything.
 - **Ruleset `main` (repo settings, not in git).** It requires a pull request plus the `contract gate` and `perf gate`
   checks, and it blocks deletion and force-push. It has no bypass actors, so `gh pr merge` refuses a red or pending
   PR, and auto-merge (now enabled) waits for green. Both jobs report on every run, skipped in a docs-only queue, so a
