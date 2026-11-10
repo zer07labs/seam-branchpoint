@@ -194,3 +194,11 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
 - **Bounded state and `cert_not_newer`.** The mechanism is tested. Known gap: only a strictly older `not_before` is
   refused, so a CP that repeats `not_before` could re-admit a certificate after 32 renewals. If the CP can repeat
   `not_before`, refuse `<=` in both SDKs.
+
+## CI
+
+- **Perf is its own required job on a bigger runner; main requires green (owner /needs-me 2026-11-10).** The
+  wall-clock perf tests (Python `test_perf` p99 < 50 µs; TS p99 < 50 µs and >= 20k attested evals/s) run in `perf gate`
+  on a 4-vCPU runner with the bounds unchanged. The `main` ruleset requires `contract gate` and `perf gate` with no
+  bypass, so a red PR cannot merge again, as PR #5 did. Cost and details: `docs/ci-cost.md`.
+

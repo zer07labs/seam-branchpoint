@@ -13,8 +13,8 @@ The cost rules for this repo's Actions, written during the initial CI-cost pass 
 
 | Workflow | Trigger | Jobs | Runner | Billed per run |
 |---|---|---|---|---|
-| `ci` | `pull_request` (opened, synchronize, reopened, ready_for_review) | 1 (`contract gate`) | `blacksmith-2vcpu-ubuntu-2404` | about 4 minutes (with the SDK suites) |
-| `ci` | `merge_group` | `changes` plus `contract gate` if a contract or SDK path changed | same | about 1 minute for docs only, about 5 otherwise |
+| `ci` | `pull_request` (opened, synchronize, reopened, ready_for_review) | 2 (`contract gate`, `perf gate`) | `blacksmith-2vcpu-ubuntu-2404`; `perf gate` on `blacksmith-4vcpu-ubuntu-2404` | about 5–6 minutes (see the perf section below) |
+| `ci` | `merge_group` | `changes` plus `contract gate` and `perf gate` if a contract or SDK path changed | same | about 1 minute for docs only, about 5 otherwise |
 | `ci` | `workflow_dispatch` | 1 | same | about 4 minutes |
 | `ci` | push to `main` | none | n/a | 0 (the PR or the queue already ran that tree) |
 | `claim-names` | `workflow_dispatch` from `main` only | 2 (`ref-guard`, then `pypi` or `npm`) | same | about 2 minutes, once per registry, ever |
@@ -58,3 +58,20 @@ the Python SDK on the 3.11 floor (with extras, core only, then the `openfeature-
 conformance; CI has not been measured yet. With the 3.11 download and installs, the estimate is **about 4 billed minutes per PR push** (was about 1), still on
 the smallest runner, still no recurring spend. The perf tests run in CI with the same bounds; if the 2-vCPU runner
 cannot meet them, that is reported as a finding, not hidden by loosening the bound. The timeout is 20 minutes.
+
+## Perf job and required checks (2026-11-10, owner X4)
+
+PR #5 merged with `contract gate` red: Python `test_perf` measured p99 = 51.2 µs against the 50 µs bound on the
+2-vCPU runner (the evaluate thread and the signing worker share two cores), and `main` had no protection, so nothing
+stopped the merge. Two changes:
+
+- **`perf gate`, its own job on `blacksmith-4vcpu-ubuntu-2404`.** It runs the wall-clock tests only: Python
+  `tests/test_perf.py` (3.11 floor) and TS `test/perf.test.ts` (`npm run test:perf`). Bounds are unchanged (p99 < 50 µs
+  in both, >= 20k attested evals/s). `contract gate` stays on the 2-vCPU runner and runs everything else
+  (`--ignore=tests/test_perf.py`, `npm run test:unit`). This is the measured need that rule 2 asks for, and it
+  supersedes rule 1 for perf only: one extra job costs about one more billed minute per push at twice the per-minute
+  rate, so **about 5–6 billed minutes per PR push** (was about 4). Locally `pytest` and `npm test` still run everything.
+- **Ruleset `main` (repo settings, not in git).** It requires a pull request plus the `contract gate` and `perf gate`
+  checks, and it blocks deletion and force-push. It has no bypass actors, so `gh pr merge` refuses a red or pending
+  PR, and auto-merge (now enabled) waits for green. Both jobs report on every run, skipped in a docs-only queue, so a
+  required check is never missing.
