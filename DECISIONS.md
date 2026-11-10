@@ -200,5 +200,10 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
 - **Perf runs in its own required jobs, one per SDK, and main requires green (owner /needs-me 2026-11-10).** The
   wall-clock perf tests keep their bounds (p99 < 50 µs, >= 20k attested evals/s). Python runs on Blacksmith 8 vCPU, the
   only host measured with headroom. TS runs on 2 vCPU, because its throughput fell on bigger hosts (an SDK finding,
-  filed as an issue). The `main` ruleset requires `contract gate`, `perf gate (python)` and `perf gate (ts)` with no
-  bypass, so a red PR cannot merge, as PR #5 did. The host measurements are in `docs/ci-cost.md`.
+  filed as an issue). The `main` ruleset requires `contract gate` and `perf gate (python)` with no bypass, so a red PR
+  cannot merge, as PR #5 did. The host measurements are in `docs/ci-cost.md`.
+- **`perf gate (ts)` is advisory until #7 (owner, option A, 2026-11-10).** The TS 20k attested evals/s bound failed
+  on every CI host tried: Blacksmith 2 vCPU on its own, 4 vCPU and 8 vCPU (`docs/ci-cost.md`). The job keeps
+  running, unchanged and visible on every PR, but it is not in the `main` ruleset's required checks. No bound was
+  changed and there are still no bypass actors. **Re-require `perf gate (ts)` in the ruleset in the same PR that
+  closes #7.**

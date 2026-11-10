@@ -80,9 +80,9 @@ stopped the merge. Two changes:
   - `perf gate (python)` runs on **Blacksmith 8 vCPU**, the only host with headroom. The evaluate thread and the
     signing worker compete for cores.
   - `perf gate (ts)` stays on **Blacksmith 2 vCPU**: Node is single-threaded, and its throughput got worse on bigger
-    hosts. That host sensitivity is an SDK finding, tracked as a GitHub issue rather than hidden by the runner choice.
+    hosts. Run on its own on 2 vCPU it also missed (18.2k/s, 13.9k drops), so it is advisory, not required, until #7. That host sensitivity is an SDK finding, tracked as a GitHub issue rather than hidden by the runner choice.
   - Cost: one 2-vCPU minute plus one 8-vCPU minute per push.
-- **Ruleset `main` (repo settings, not in git).** It requires a pull request plus the `contract gate`, `perf gate (python)` and
-  `perf gate (ts)` checks, and it blocks deletion and force-push. It has no bypass actors, so `gh pr merge` refuses a red or pending
-  PR, and auto-merge (now enabled) waits for green. All three jobs report on every run, skipped in a docs-only queue, so a
+- **Ruleset `main` (repo settings, not in git).** It requires a pull request plus the `contract gate` and `perf gate (python)`
+  checks (`perf gate (ts)` runs but is advisory until #7, owner option A; re-require it when #7 lands), and it blocks deletion and force-push. It has no bypass actors, so `gh pr merge` refuses a red or pending
+  PR, and auto-merge (now enabled) waits for green. The suite jobs report on every run, skipped in a docs-only queue, so a
   required check is never missing.
