@@ -197,8 +197,8 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
 
 ## CI
 
-- **Perf is its own required job on a bigger runner; main requires green (owner /needs-me 2026-11-10).** The
-  wall-clock perf tests (Python `test_perf` p99 < 50 µs; TS p99 < 50 µs and >= 20k attested evals/s) run in `perf gate`
-  on GitHub's 4-vCPU `ubuntu-24.04` (Blacksmith 4-vCPU measured noisier) with the bounds unchanged. The `main` ruleset requires `contract gate` and `perf gate` with no
-  bypass, so a red PR cannot merge again, as PR #5 did. Cost and details: `docs/ci-cost.md`.
-
+- **Perf runs in its own required jobs, one per SDK, and main requires green (owner /needs-me 2026-11-10).** The
+  wall-clock perf tests keep their bounds (p99 < 50 µs, >= 20k attested evals/s). Python runs on Blacksmith 8 vCPU, the
+  only host measured with headroom. TS runs on 2 vCPU, because its throughput fell on bigger hosts (an SDK finding,
+  filed as an issue). The `main` ruleset requires `contract gate`, `perf gate (python)` and `perf gate (ts)` with no
+  bypass, so a red PR cannot merge, as PR #5 did. The host measurements are in `docs/ci-cost.md`.
