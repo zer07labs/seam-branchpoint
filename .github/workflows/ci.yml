@@ -1,7 +1,7 @@
 # The full gate, as two jobs: `contract gate` (buf lint/format/breaking, both reference implementations regenerate
 # the golden vectors byte-identically and pass their tests, SHA256SUMS holds, the AS-2 SDK suites without the
 # wall-clock perf tests, cross-SDK conformance) on the smallest runner, and `perf gate` (the real-clock perf tests,
-# bounds unchanged: Python p99 < 50 µs, TS p99 < 50 µs and >= 20k attested evals/s) on GitHub's 4-vCPU ubuntu-24.04. Both are
+# bounds unchanged: Python p99 < 50 µs, TS p99 < 50 µs and >= 20k attested evals/s) on Blacksmith 8 vCPU. Both are
 # required checks on main (ruleset `main`). docs/ci-cost.md has the cost rules.
 #
 #   pull_request → runs (two jobs, about 5 billed minutes). Superseded pushes cancel.
@@ -135,14 +135,13 @@ jobs:
     if: >-
       !cancelled()
       && (github.event_name != 'merge_group' || needs.changes.result != 'success' || needs.changes.outputs.relevant != 'false')
-    # A measured need (PR #5: Python p99 51.2 µs vs the 50 µs bound on Blacksmith 2 vCPU). Blacksmith 4 vCPU was tried
-    # and was noisier (PR #6: Python median p99 57.5 µs, TS 6.7k evals/s with per-round degradation), so this runs on
-    # GitHub's standard ubuntu-24.04 (4 vCPU, its own VM, unbilled on a public repo). The bounds are never loosened
-    # for a slow host; the host changes instead.
-    runs-on: ubuntu-24.04
+    # A measured need (PR #5: Python p99 51.2 µs vs the 50 µs bound on Blacksmith 2 vCPU). Measured on PR #6:
+    # Blacksmith 4 vCPU was noisy (Python median p99 57.5 µs; TS 6.7k evals/s), GitHub ubuntu-24.04 too slow per core
+    # (Python 13.2k attested/s). Blacksmith 8 vCPU: fast cores, less sharing. Bounds are never loosened for a host.
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: useblacksmith/checkout@25227e61ff9dafe400e22fa487b673eac4e4409a # v1
       - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
         with:
           enable-cache: true
