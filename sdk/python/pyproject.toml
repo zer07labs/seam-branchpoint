@@ -16,6 +16,10 @@ classifiers = [
   "Typing :: Typed",
 ]
 
+[project.scripts]
+# AS-6: print the SDK-key enrol bundle {public_jwk, proof} for the Seam Console (the seed is never printed).
+seam-branchpoint-enrol = "seam_branchpoint.enrol:main"
+
 [project.urls]
 Homepage = "https://github.com/zer07labs/seam-branchpoint"
 Source = "https://github.com/zer07labs/seam-branchpoint/tree/main/sdk/python"
