@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
-"""Cross-repo golden byte-identity gate — enforce that mirrored fixtures stay identical across repos.
+"""Cross-repo golden byte-identity gate — the VENDORED half (per-repo, zero network, zero auth).
 
-The seam learning↔runtime↔connectors seam pins several "golden" fixtures that MUST be byte-identical across
-repos (arm keys, experiment config/assignment, the seam-event wire projection, the raw-history schema).
-For a long time that identity was pure convention, and one mirror had already drifted silently. This gate
-makes it mechanical. Two layers, ONE script, ONE manifest (`golden-manifest.json`):
+Several "golden" fixtures MUST stay byte-identical across the seam repos (arm keys, the seam-event wire
+projection, the raw-history schema, registry snapshots, …). Each repo vendors this script plus ITS SLICE of
+the canonical manifest: only the groups that repo holds a copy of, each group whole. The canonical manifest,
+the slice generator and the cross-repo check live only in the seam hub (`contract/golden-manifest.json`,
+`contract/slices/<repo>.json`, `scripts/golden_hub.py`), so a hub-only change never forces a re-vendor and a
+group change touches only the repos that hold that group.
 
-  * `local`  — verify THIS repo's copies against the pinned sha256. Zero network, zero auth; runs in each
-               repo's own PR CI, so editing a mirrored golden without a coordinated pin update goes red
-               immediately.
-  * `cross`  — verify EVERY copy across all repos is byte-identical to every other and to the pin, AND that
-               each repo's vendored manifest + this script are byte-identical to the canonical hub copies
-               (so the vendored gate can't itself silently drift). Runs in the seam hub with read-only
-               checkouts of every repo.
-  * `pin`    — maintenance: recompute a group's pin from a repo's copy and print the updated manifest.
+  * `local`  — verify THIS repo's copies against the pinned sha256 in its vendored slice. Zero network, zero
+               auth; runs in each repo's own PR CI, so editing a mirrored golden without a coordinated pin update
+               goes red immediately.
+  * `pin`    — maintenance: recompute a group's pin from a repo's copy and print the updated manifest. Works on
+               the canonical manifest (in the hub) or on a slice (in a repo).
 
-The manifest is the single source of truth for the mirror set; its canonical copy lives in the seam hub and
-every repo vendors a byte-identical copy. Stdlib only (hashlib/json/argparse/pathlib), so it runs on a bare
-runner with no pip install.
+This file is vendored byte-identical into every repo (the hub's `cross` enforces it), so it stays small and
+stable on purpose: bump GATE_SCRIPT_VERSION only for a change every repo must run. Stdlib only, so it runs on
+a bare runner with no pip install.
 
-Exit codes: 0 = all good; 1 = a divergence finding (hash mismatch, copy-vs-copy mismatch, missing listed
-file, vendored manifest/script drift); 2 = an operational error (unreadable/invalid manifest, unknown
-repo/root). CI treats both non-zero codes as red.
+Exit codes: 0 = all good; 1 = a divergence finding (hash mismatch, missing listed file); 2 = an operational
+error (unreadable/invalid manifest, unknown group/repo). CI treats both non-zero codes as red.
 """
 
 from __future__ import annotations
@@ -31,6 +29,9 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+
+# Bumped only for a change every vendoring repo must pick up: each bump is a six-repo re-vendor.
+GATE_SCRIPT_VERSION = 2
 
 EXIT_OK = 0
 EXIT_DIVERGENCE = 1
@@ -52,8 +53,10 @@ def load_manifest(path: Path) -> dict:
         raise GateError(f"manifest not found: {path}") from e
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError as e:
+    except ValueError as e:  # JSONDecodeError, or UnicodeDecodeError on non-UTF-8 bytes
         raise GateError(f"manifest is not valid JSON ({path}): {e}") from e
+    if not isinstance(data, dict):
+        raise GateError(f"manifest must be a JSON object ({path})")
     if data.get("version") != 1:
         raise GateError(f"unsupported manifest version {data.get('version')!r} (expected 1)")
     if not isinstance(data.get("groups"), list) or not isinstance(data.get("vendored"), dict):
@@ -108,78 +111,6 @@ def cmd_local(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-# ── cross ────────────────────────────────────────────────────────────────────────────────────────────
-def _parse_roots(pairs: list[str]) -> dict[str, Path]:
-    roots: dict[str, Path] = {}
-    for pair in pairs:
-        if "=" not in pair:
-            raise GateError(f"--root must be name=dir, got {pair!r}")
-        name, _, d = pair.partition("=")
-        roots[name] = Path(d)
-    return roots
-
-
-def cmd_cross(args: argparse.Namespace) -> int:
-    manifest_path = Path(args.manifest)
-    data = load_manifest(manifest_path)
-    roots = _parse_roots(args.root)
-
-    canonical_manifest = manifest_path.read_bytes()
-    canonical_script = Path(__file__).read_bytes()
-
-    failures = 0
-
-    # 1) Every vendored manifest + script must be byte-identical to the canonical hub copies.
-    for repo, v in data["vendored"].items():
-        if repo not in roots:
-            raise GateError(
-                f"vendored repo {repo!r} has no --root; the cross gate needs every repo checked out"
-            )
-        vm = roots[repo] / v["manifest"]
-        vs = roots[repo] / v["script"]
-        if not vm.is_file() or vm.read_bytes() != canonical_manifest:
-            print(f"FAIL vendored-manifest repo={repo} path={v['manifest']} reason=differs-from-canonical")
-            failures += 1
-        else:
-            print(f"PASS vendored-manifest repo={repo} path={v['manifest']}")
-        if not vs.is_file() or vs.read_bytes() != canonical_script:
-            print(f"FAIL vendored-script repo={repo} path={v['script']} reason=differs-from-canonical")
-            failures += 1
-        else:
-            print(f"PASS vendored-script repo={repo} path={v['script']}")
-
-    # 2) Every copy in every group must be byte-identical to every other and match the pin.
-    for group in data["groups"]:
-        pin = _group_pin(group)
-        for repo, copies in group.get("copies", {}).items():
-            if repo not in roots:
-                raise GateError(
-                    f"group {group['name']!r} references repo {repo!r} with no --root — check it out or "
-                    f"remove it from the manifest"
-                )
-            for rel in copies:
-                fpath = roots[repo] / rel
-                if not fpath.is_file():
-                    print(f"FAIL group={group['name']} repo={repo} path={rel} reason=missing")
-                    failures += 1
-                    continue
-                actual = sha256_bytes(fpath.read_bytes())
-                if actual != pin:
-                    print(
-                        f"FAIL group={group['name']} repo={repo} path={rel} "
-                        f"expected={pin} actual={actual}"
-                    )
-                    failures += 1
-                else:
-                    print(f"PASS group={group['name']} repo={repo} path={rel}")
-
-    if failures:
-        print(f"\n{failures} divergence(s) — the cross-repo golden mirror is broken.")
-        return EXIT_DIVERGENCE
-    print("\nOK — every mirrored golden is byte-identical across all repos, and every vendored gate matches.")
-    return EXIT_OK
-
-
 # ── pin ──────────────────────────────────────────────────────────────────────────────────────────────
 def cmd_pin(args: argparse.Namespace) -> int:
     root = Path(args.root)
@@ -205,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    parser.add_argument("--version", action="version", version=f"golden_gate v{GATE_SCRIPT_VERSION}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_local = sub.add_parser("local", help="verify one repo's copies against the pins (zero auth)")
@@ -214,15 +146,6 @@ def main(argv: list[str] | None = None) -> int:
         "--manifest", default=None, help="manifest path (default: <root>/fixtures/golden-manifest.json)"
     )
     p_local.set_defaults(func=cmd_local)
-
-    p_cross = sub.add_parser(
-        "cross", help="verify byte-identity across all repos (hub, needs every checkout)"
-    )
-    p_cross.add_argument("--manifest", required=True, help="the CANONICAL manifest (seam hub checkout)")
-    p_cross.add_argument(
-        "--root", action="append", default=[], metavar="NAME=DIR", help="a repo checkout; repeatable"
-    )
-    p_cross.set_defaults(func=cmd_cross)
 
     p_pin = sub.add_parser("pin", help="recompute a group's pin from a repo copy; prints the manifest")
     p_pin.add_argument("--repo", required=True)
