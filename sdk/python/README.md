@@ -15,7 +15,7 @@ optional extras; the core imports and runs without either.
 Requires Python 3.11 or newer. The only runtime dependency is `cryptography`.
 
 ```
-pip install seam-branchpoint                        # once published
+pip install seam-branchpoint
 pip install 'seam-branchpoint[openfeature,otel]'    # with the OpenFeature provider and the OTel hook
 uv add seam-branchpoint                             # or with uv
 ```
