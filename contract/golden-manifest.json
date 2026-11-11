@@ -404,6 +404,18 @@
           "fixtures/bp_tables_schema_golden.json"
         ]
       }
+    },
+    {
+      "name": "learning_evidence_v1",
+      "sha256": "eda76b61fb91986fcdcdd3cb508c7684a0a6c1b33dd7a7d5a8c8381fe8bcbd2b",
+      "copies": {
+        "seam-learning": [
+          "fixtures/evidence_golden.json"
+        ],
+        "seam-control-plane": [
+          "fixtures/evidence_golden.json"
+        ]
+      }
     }
   ]
 }
