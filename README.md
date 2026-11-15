@@ -5,14 +5,14 @@ experiments**: the SDK assigns variants locally (`bpa1` buckets over a CP-signed
 hash-chained receipts that the Seam collector verifies.
 
 The contract, golden vectors, SDK cores and OpenFeature providers (`sdk/python`, `sdk/ts`) are available;
-the first functional SDK release, **0.1.0**, is published on PyPI and npm.
+the current SDK release, **0.1.1**, is published on PyPI and npm.
 
 ## Names
 
 | Registry | Name | Status |
 |---|---|---|
-| PyPI | `seam-branchpoint` (import `seam_branchpoint`) | 0.1.0 published: SDK core and optional OpenFeature/OTel extras |
-| npm | `@zer07labs/seam-branchpoint` | 0.1.0 published: SDK core and OpenFeature/OTel integration |
+| PyPI | `seam-branchpoint` (import `seam_branchpoint`) | 0.1.1 published: SDK core and optional OpenFeature/OTel extras |
+| npm | `@zer07labs/seam-branchpoint` | 0.1.1 published: SDK core and OpenFeature/OTel integration |
 | Buf (BSR) | `buf.build/zer07labs/branchpoint` | module `branchpoint.v1` |
 
 The OpenFeature providers ship as `seam_branchpoint.openfeature` and `@zer07labs/seam-branchpoint/openfeature`.
@@ -23,6 +23,7 @@ The OpenFeature providers ship as `seam_branchpoint.openfeature` and `@zer07labs
 |---|---|
 | 0.0.0 (placeholder) | none — reads no document |
 | 0.1.0 (Python and TypeScript) | `v = 1` |
+| 0.1.1 (Python and TypeScript) | `v = 1` |
 
 Every release's notes repeat its row.
 
