@@ -7,6 +7,8 @@ hash-chained receipts that the Seam collector verifies.
 The contract, golden vectors, SDK cores and OpenFeature providers (`sdk/python`, `sdk/ts`) are available;
 the current SDK release, **0.1.1**, is published on PyPI and npm.
 
+Design history (the former `seam-experiments` repo, byte-identical): [`docs/history/seam-experiments/`](docs/history/seam-experiments/README-MOVED.md).
+
 ## Names
 
 | Registry | Name | Status |
