@@ -2,6 +2,7 @@
 
 Neutral `branchpoint.v1` contract and the attested-grade SDK cores + OpenFeature providers (`sdk/python`, `sdk/ts`;
 architecture in `docs/sdk/overview.md`).
+Design history (former `seam-experiments`, byte-identical @58e01eb; cite it, never edit it): `docs/history/seam-experiments/`.
 
 ## Commands (the full local gate — run before pushing)
 
