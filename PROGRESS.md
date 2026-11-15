@@ -22,6 +22,13 @@
 - Release workflow (`.github/workflows/release.yml`): dispatch from main; refuses mismatched or already-published
   versions; publishes `seam-branchpoint` to PyPI and `@zer07labs/seam-branchpoint` to npm (with provenance).
 
+## Release (0.1.1, 2026-11-15)
+- TypeScript: the uploader signs each batch's receipts ahead on libuv's threadpool (`Signer.signAsync`, made by
+  `WorkloadKey`), so throughput is no longer capped by one core's Ed25519 rate; overflow drops on bigger hosts are
+  gone (#7, PR #16). `perf gate (ts)` runs on 8 vCPU and is required again.
+- Python: no change; the version moves in lockstep (`release.yml` requires the four version strings to agree).
+- Reads `branchpoint-sdk` document `v = 1`, unchanged from 0.1.0.
+
 ## X6 golden re-vendor + #8 (2026-11-10)
 - Manifest re-vendored byte-identical from seam f9fa0f7; golden gate local 8/8 PASS.
 - #8: pinned-keys sections in both SDK READMEs (decision in DECISIONS.md).
