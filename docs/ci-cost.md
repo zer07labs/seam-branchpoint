@@ -13,7 +13,7 @@ The cost rules for this repo's Actions, written during the initial CI-cost pass 
 
 | Workflow | Trigger | Jobs | Runner | Billed per run |
 |---|---|---|---|---|
-| `ci` | `pull_request` (opened, synchronize, reopened, ready_for_review) | 3 (`contract gate`, `perf gate (python)`, `perf gate (ts)`) | `blacksmith-2vcpu-ubuntu-2404`; `perf gate (python)` on `blacksmith-8vcpu-ubuntu-2404` | about 4 + 1 + 1 minutes, the 8-vCPU minute at 4× the 2-vCPU rate: about 9 2-vCPU-equivalent minutes (see the perf section below) |
+| `ci` | `pull_request` (opened, synchronize, reopened, ready_for_review) | 3 (`contract gate`, `perf gate (python)`, `perf gate (ts)`) | `blacksmith-2vcpu-ubuntu-2404`; both perf gates on `blacksmith-8vcpu-ubuntu-2404` | about 4 + 1 + 1 minutes, each 8-vCPU minute at 4× the 2-vCPU rate: about 12 2-vCPU-equivalent minutes (see the perf section below) |
 | `ci` | `merge_group` | `changes` plus `contract gate` and both perf jobs if a contract or SDK path changed | same | about 1 minute for docs only, about 5 otherwise |
 | `ci` | `workflow_dispatch` | 1 | same | about 4 minutes |
 | `ci` | push to `main` | none | n/a | 0 (the PR or the queue already ran that tree) |
@@ -79,10 +79,14 @@ stopped the merge. Two changes:
 
   - `perf gate (python)` runs on **Blacksmith 8 vCPU**, the only host with headroom. The evaluate thread and the
     signing worker compete for cores.
-  - `perf gate (ts)` stays on **Blacksmith 2 vCPU**: Node is single-threaded, and its throughput got worse on bigger
-    hosts. Run on its own on 2 vCPU it also missed (18.2k/s, 13.9k drops), so it is advisory, not required, until #7. That host sensitivity is an SDK finding, tracked as a GitHub issue rather than hidden by the runner choice.
-  - Cost: one 2-vCPU minute plus one 8-vCPU minute per push.
+  - `perf gate (ts)` also runs on **Blacksmith 8 vCPU** since #7. It used to sign every receipt on Node's main thread, so
+    throughput was capped by one core's Ed25519 rate (~27k/s on a fast core, below 20k/s on the CI cores) and the
+    10k buffer overflowed. The uploader now signs each batch's receipts ahead on libuv's threadpool
+    (`Signer.signAsync`), so a bigger host spends its spare cores on signing. Measured locally (Node 22.18, Linux,
+    paced sweep): main topped out at ~27k/s with drops at 30k; the fix sustained 30k/s with zero drops and ~33–39k/s
+    peak. The bound is unchanged.
+  - Cost: two 8-vCPU minutes per push.
 - **Ruleset `main` (repo settings, not in git).** It requires a pull request plus the `contract gate` and `perf gate (python)`
-  checks (`perf gate (ts)` runs but is advisory until #7, owner option A; re-require it when #7 lands), and it blocks deletion and force-push. It has no bypass actors, so `gh pr merge` refuses a red or pending
+  checks, and `perf gate (ts)` again since #7 landed (it was advisory until then, owner option A), and it blocks deletion and force-push. It has no bypass actors, so `gh pr merge` refuses a red or pending
   PR, and auto-merge (now enabled) waits for green. The suite jobs report on every run, skipped in a docs-only queue, so a
   required check is never missing.

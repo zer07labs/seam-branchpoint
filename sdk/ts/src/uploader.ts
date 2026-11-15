@@ -5,7 +5,9 @@
 // (the in-flight promise is shared), and never rejects (failures are counted).
 
 import type { CertEnvelope } from "./cert.ts";
-import { type Outcome, type ReceiptRecord, batchBody, buildBatch, outcomeOk, sdkDisposition, signReceipt } from "./chain.ts";
+import {
+  type Outcome, type ReceiptRecord, batchBody, buildBatch, outcomeOk, receiptMessage, sdkDisposition, signReceipt,
+} from "./chain.ts";
 import { type Transport, TransportError } from "./transport.ts";
 import { strictParse } from "./wire.ts";
 
@@ -39,6 +41,12 @@ export const safeCode = (v: unknown): string | null =>
 
 export interface Signer {
   sign(msg: Uint8Array): Buffer;
+  /**
+   * Optional: the same signature made off the main thread. With it the uploader signs the next batch's receipts ahead,
+   * concurrently, before it assembles the batch; any receipt left unsigned (or whose async signature failed) is signed
+   * with `sign` at assembly, exactly as without it.
+   */
+  signAsync?(msg: Uint8Array): Promise<Buffer>;
 }
 
 export interface UploaderOptions {
@@ -84,6 +92,8 @@ export interface UploaderStats {
 interface PendingReceipt {
   readonly rec: ReceiptRecord;
   readonly cert: string;
+  /** Its signature, once made ahead by `signAsync` (a signature depends only on the canonical bytes and the key). */
+  sigHex?: string;
 }
 
 interface PendingOutcome {
@@ -367,7 +377,11 @@ export class Uploader {
 
   async #drain(maxBatches: number, final: boolean): Promise<void> {
     for (let sent = 0; sent < maxBatches && !this.#closed && !this.#abandoned && (final || !this.#stopping); sent++) {
-      if (this.#batch === null && !this.#take()) return;
+      if (this.#batch === null) {
+        await this.#signAhead();
+        if (this.#closed || this.#abandoned || (!final && this.#stopping)) return;
+        if (!this.#take()) return;
+      }
       const b = this.#batch!;
       let status = 0;
       let body: unknown = null;
@@ -409,6 +423,30 @@ export class Uploader {
       } else st.upload_failure = d.rejected > 0 || d.outcomesRejected > 0 ? "items_rejected" : null;
       this.#prune();
     }
+  }
+
+  /**
+   * Sign the receipts the next batch will carry on the signer's threadpool, all at once, so a busy host spends its
+   * other cores on the Ed25519 work instead of the main thread. Pure: it only fills `sigHex`, never moves an item, so
+   * #take's build-then-commit stays synchronous. A failed async signature is left for #take to make (or to fail on).
+   */
+  async #signAhead(): Promise<void> {
+    const signer = this.#signer;
+    if (signer === null || typeof signer.signAsync !== "function") return;
+    const todo: PendingReceipt[] = [];
+    for (let i = 0; i < this.#receipts.length && i < this.#batchMax; i++) {
+      const p = this.#receipts[i]!;
+      if (p.sigHex === undefined) todo.push(p);
+    }
+    if (todo.length === 0) return;
+    await Promise.all(todo.map(async (p) => {
+      try {
+        const sig = await signer.signAsync!(receiptMessage(p.rec.canonical));
+        if (sig.length === 64) p.sigHex = sig.toString("hex");
+      } catch {
+        // left unsigned: #take signs it synchronously, and a failure there is a declared gap
+      }
+    }));
   }
 
   #fail(kind: string): void {
@@ -478,7 +516,8 @@ export class Uploader {
       if (env === undefined) throw new Error("certificate released"); // unreachable by construction
       body = batchBody(buildBatch({
         cert: env,
-        receipts: recs.map((r) => signReceipt(r.rec, signer)),
+        receipts: recs.map((r) => r.sigHex !== undefined ? { canonical: r.rec.canonical, sig_hex: r.sigHex } :
+          signReceipt(r.rec, signer)),
         outcomes: outs.length > 0 ? outs.map((p) => p.o) : undefined,
         dropped: droppedKeys.length > 0 ? dropped : undefined,
         signer,
