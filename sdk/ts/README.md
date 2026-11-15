@@ -36,7 +36,7 @@ implementations under `reference/`.
 | `auth` | The §10 SDK-key token (`sdkKeyToken`, and `SdkKey.token()` with a fresh 16-byte jti per call), `DEFAULT_ROUTES` and `cpDisposition`. A bad kid, `aud` (must match `AUD_RE`: 1–256 visible ASCII, no `"` or `\`), iat or jti throws `TokenInputError` before anything is signed. |
 | `client` | `BranchpointClient`: the verified document cache, the workload certificate, chain state, the uploader and outcome reporting. See below. |
 | `transport` | The `Transport` interface (one method per route; the collector method has no token parameter) and `HttpTransport` (global `fetch`, `AbortSignal.timeout`, `redirect: "error"`, TLS only, capped bodies). `TransportError` carries a route and a kind (`timeout`, `network`, `tls`, `protocol`, `redirect`), never a URL, header or body. |
-| `uploader` | The bounded buffer, overflow spans, signing at flush, batching by certificate, §9.1 answer handling, full-jitter backoff. Used by the client; exported for tests. |
+| `uploader` | The bounded buffer, overflow spans, signing at flush (each batch's receipts signed ahead on libuv's threadpool when the signer has `signAsync`, as `WorkloadKey` does), batching by certificate, §9.1 answer handling, full-jitter backoff. Used by the client; exported for tests. |
 | `openfeature` (subpath export) | `BranchpointProvider` (server SDK), `BranchpointOtelHook`, `toResolution`, `MetadataKey`, `EventAttribute`. See [OpenFeature provider](#openfeature-provider-zer07labsseam-branchpointopenfeature). |
 | `wire` | Shared primitives: strict JSON (duplicates refused, floats tagged, null-prototype objects), JCS, hashing, Ed25519 helpers, `toMicros` and `UlidGenerator`. |
 

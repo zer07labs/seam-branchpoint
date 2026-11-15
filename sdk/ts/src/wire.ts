@@ -192,6 +192,12 @@ export const rawPublicKey = (k: KeyObject): Buffer =>
 
 export const ed25519Sign = (sk: KeyObject, msg: Uint8Array): Buffer => nodeSign(null, msg, sk);
 
+/** The same signature, made on libuv's threadpool (node:crypto's callback form) so the main thread stays free. */
+export const ed25519SignAsync = (sk: KeyObject, msg: Uint8Array): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    nodeSign(null, msg, sk, (err, sig) => (err === null ? resolve(sig) : reject(err)));
+  });
+
 /** Never throws: a malformed key or signature is a failed verification. */
 export function ed25519Verify(pk: KeyObject, msg: Uint8Array, sig: Uint8Array): boolean {
   try {

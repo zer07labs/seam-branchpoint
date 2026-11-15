@@ -35,6 +35,8 @@ flowchart LR
 
 - **Signing happens at flush, not at evaluate.** Evaluate builds the receipt and links the chain (HMACs plus a SHA-256
   chain hash); each receipt's Ed25519 signature and the batch signature are made at flush, so the hot path stays at p99 < 50 µs (perf tests in both suites).
+  In Node the uploader signs the next batch's receipts ahead on libuv's threadpool (`Signer.signAsync`, made by
+  `WorkloadKey`), so signing uses spare cores instead of the main thread; any receipt left unsigned is signed at assembly.
 - **The CP routes** (document, certificate) carry a fresh `seam-mc+jwt` SDK-key token. The collector route never
   sees it, and no transport follows a redirect (R10.4–R10.5).
 - **One workload key per client**, reused across certificate renewals. A receipt chain is per

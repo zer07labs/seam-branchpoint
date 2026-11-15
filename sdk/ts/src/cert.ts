@@ -9,6 +9,7 @@ import {
   SDK_KEY_RE,
   TENANT_RE,
   ed25519Sign,
+  ed25519SignAsync,
   ed25519Verify,
   framed,
   hex,
@@ -157,6 +158,11 @@ export class WorkloadKey {
 
   sign(msg: Uint8Array): Buffer {
     return ed25519Sign(this.#sk, msg);
+  }
+
+  /** `sign` on libuv's threadpool: the uploader signs receipts ahead of a batch with it, off the main thread. */
+  signAsync(msg: Uint8Array): Promise<Buffer> {
+    return ed25519SignAsync(this.#sk, msg);
   }
 
   toJSON(): { keyId: string } {

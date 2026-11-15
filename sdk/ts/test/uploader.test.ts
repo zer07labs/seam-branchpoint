@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { WorkloadKey } from "../src/cert.ts";
 import { TransportError, type Transport, type TransportResponse } from "../src/transport.ts";
-import type { ReceiptRecord } from "../src/chain.ts";
-import { MAX_DROPPED_SPANS, MAX_PUMP_BATCHES, Uploader, backoffMs, safeCode } from "../src/uploader.ts";
+import { type ReceiptRecord, verifyReceiptSig } from "../src/chain.ts";
+import { MAX_DROPPED_SPANS, MAX_PUMP_BATCHES, type Signer, Uploader, backoffMs, safeCode } from "../src/uploader.ts";
 import { EID, harness, units } from "./_harness.ts";
 import { verifyBatches } from "./_verifier.ts";
 
@@ -360,5 +360,77 @@ describe("P6 gaps: uploader accounting and bounds", () => {
     const shape = bodies.slice(1).map((b) => [(b.receipts as unknown[]).length, ((b.outcomes ?? []) as unknown[]).length]);
     assert.deepEqual(shape, [[9, 1], [9, 1], [9, 1], [3, 2]]);
     assert.equal(up.stats.outcomes_uploaded, 5);
+  });
+});
+
+describe("sign-ahead (signAsync): receipt signatures made off the main thread", () => {
+  const sigsOk = (bodies: Record<string, unknown>[], pk: Uint8Array): number => {
+    let n = 0;
+    for (const b of bodies) {
+      for (const r of b.receipts as { canonical: string; sig_hex: string }[]) {
+        assert.ok(verifyReceiptSig(pk, r.canonical, Buffer.from(r.sig_hex, "hex")), "receipt signature verifies");
+        n++;
+      }
+    }
+    return n;
+  };
+
+  test("receipts are signed with signAsync; the body is byte-identical to sync signing", async () => {
+    const wk = WorkloadKey.generate();
+    const recs = Array.from({ length: 10 }, (_, i) => rec(i));
+    const run = async (signer: Signer): Promise<string[]> => {
+      const bodies: Record<string, unknown>[] = [];
+      const up = new Uploader({ transport: okTransport(bodies), signer, monotonic: () => 0, batchMax: 4 });
+      up.setCurrentCert(CERT_A, ENV);
+      for (const r of recs) up.addReceipt(r, CERT_A);
+      await up.flush(true);
+      assert.equal(up.stats.receipts_uploaded, 10);
+      assert.equal(sigsOk(bodies, wk.publicKey), 10);
+      return bodies.map((b) => JSON.stringify(b));
+    };
+    let syncCalls = 0;
+    let asyncCalls = 0;
+    const ahead = await run({
+      sign: (m) => { syncCalls++; return wk.sign(m); },
+      signAsync: (m) => { asyncCalls++; return wk.signAsync(m); },
+    });
+    assert.equal(asyncCalls, 10, "every receipt was signed ahead");
+    assert.equal(syncCalls, 3, "only the three batch signatures were made on the main thread");
+    assert.deepEqual(ahead, await run({ sign: (m) => wk.sign(m) }), "Ed25519 is deterministic: identical bodies");
+  });
+
+  test("a failed async signature falls back to sync signing at assembly; nothing is dropped", async () => {
+    const wk = WorkloadKey.generate();
+    const bodies: Record<string, unknown>[] = [];
+    let k = 0;
+    const signer = { sign: (m: Uint8Array) => wk.sign(m),
+      signAsync: (m: Uint8Array) => (k++ % 2 === 0 ? Promise.reject(new Error("pool down")) : wk.signAsync(m)) };
+    const up = new Uploader({ transport: okTransport(bodies), signer, monotonic: () => 0 });
+    up.setCurrentCert(CERT_A, ENV);
+    for (let i = 0; i < 6; i++) up.addReceipt(rec(i), CERT_A);
+    await up.flush(true);
+    assert.equal(up.stats.receipts_uploaded, 6);
+    assert.equal(up.stats.receipts_dropped_error, 0);
+    assert.equal(sigsOk(bodies, wk.publicKey), 6);
+  });
+
+  test("close during sign-ahead sends nothing and counts every receipt dropped at close", async () => {
+    const wk = WorkloadKey.generate();
+    const bodies: Record<string, unknown>[] = [];
+    const gates: (() => void)[] = [];
+    const signer = { sign: (m: Uint8Array) => wk.sign(m),
+      signAsync: (m: Uint8Array) => new Promise<Buffer>((r) => gates.push(() => r(wk.sign(m)))) };
+    const up = new Uploader({ transport: okTransport(bodies), signer, monotonic: () => 0 });
+    up.setCurrentCert(CERT_A, ENV);
+    for (let i = 0; i < 3; i++) up.addReceipt(rec(i), CERT_A);
+    const f = up.flush(true);
+    await new Promise((r) => setImmediate(r));
+    assert.equal(gates.length, 3, "sign-ahead is in progress");
+    up.abandon();
+    for (const g of gates) g();
+    await f;
+    assert.equal(bodies.length, 0, "nothing is sent after close");
+    assert.equal(up.stats.receipts_dropped_close, 3);
+    assert.equal(up.stats.receipts_uploaded, 0);
   });
 });
