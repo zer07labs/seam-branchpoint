@@ -34,6 +34,30 @@
       }
     },
     {
+      "name": "branchpoint_sdk_document",
+      "sha256": "106dbf546732a3b777a4c9b7f0f9667a8d323290a143225694fde51dfebf7b8a",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint-sdk/sdk_document_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_document_golden.json"
+        ]
+      }
+    },
+    {
+      "name": "branchpoint_sdk_key_token",
+      "sha256": "8bb5f0b90aa33b32d8018a2587bc9d706210108486cee06672135c1746e9bb23",
+      "copies": {
+        "seam-branchpoint": [
+          "contract/golden/branchpoint-sdk/sdk_key_token_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_key_token_golden.json"
+        ]
+      }
+    },
+    {
       "name": "branchpoint_workload_cert",
       "sha256": "ce545efd79d4b0612cd464b4c1e099dfcfb707a465d8a837b25fc21ce6820e79",
       "copies": {
@@ -66,30 +90,6 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/receipt_negative_golden.json"
-        ]
-      }
-    },
-    {
-      "name": "branchpoint_sdk_document",
-      "sha256": "106dbf546732a3b777a4c9b7f0f9667a8d323290a143225694fde51dfebf7b8a",
-      "copies": {
-        "seam-branchpoint": [
-          "contract/golden/branchpoint-sdk/sdk_document_golden.json"
-        ],
-        "seam-control-plane": [
-          "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_document_golden.json"
-        ]
-      }
-    },
-    {
-      "name": "branchpoint_sdk_key_token",
-      "sha256": "8bb5f0b90aa33b32d8018a2587bc9d706210108486cee06672135c1746e9bb23",
-      "copies": {
-        "seam-branchpoint": [
-          "contract/golden/branchpoint-sdk/sdk_key_token_golden.json"
-        ],
-        "seam-control-plane": [
-          "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_key_token_golden.json"
         ]
       }
     },
