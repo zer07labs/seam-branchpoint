@@ -217,3 +217,13 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
   `key_id` of its `public_key_hex`, so the list form and the `{kid: key}` form pin the same key.
 - **`contract/golden-manifest.json` re-vendored byte-identical from seam f9fa0f7 (hub #173).** The retired
   `experiment_config` / `experiment_assignment` groups had no copies here; the `branchpoint_sdk_*` groups are now pinned.
+
+## Flows W0 (2026-11-20)
+
+### Name placeholders retired
+`placeholders/` and `.github/workflows/claim-names.yml` are deleted (Flows target plan `branchpoint.md` SB-R1/B10). The
+0.0.0 reservations did their job: PyPI `seam-branchpoint` and npm `@zer07labs/seam-branchpoint` carry real releases
+(0.1.0, 0.1.1), and `claim-names` refuses any name that is already taken, so it can never succeed again. Git history
+keeps both. `PYPI_API_TOKEN` and `NPM_TOKEN` stay: `release.yml` uses them. The README row for 0.0.0 stays, because
+the reservations are still published (PyPI `0.0.0`, npm `0.0.0-stage`) and the table documents what each published
+version reads.

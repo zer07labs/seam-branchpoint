@@ -17,7 +17,6 @@ The cost rules for this repo's Actions, written during the initial CI-cost pass 
 | `ci` | `merge_group` | `changes` plus `contract gate` and both perf jobs if a contract or SDK path changed | same | about 1 minute for docs only, about 5 otherwise |
 | `ci` | `workflow_dispatch` | 1 | same | about 4 minutes |
 | `ci` | push to `main` | none | n/a | 0 (the PR or the queue already ran that tree) |
-| `claim-names` | `workflow_dispatch` from `main` only | 2 (`ref-guard`, then `pypi` or `npm`) | same | about 2 minutes, once per registry, ever |
 | `release` | `workflow_dispatch` from `main` only | `guard`, then `pypi` and/or `npm` | Blacksmith 2-vCPU for `guard` and `pypi`; `npm` on GitHub-hosted `ubuntu-24.04`, because npm provenance refuses self-hosted runners (unbilled on a public repo) | about 3 minutes, once per release |
 
 ## Rules applied
@@ -47,7 +46,7 @@ The cost rules for this repo's Actions, written during the initial CI-cost pass 
 ## Estimate
 
 About 1 billed minute per PR push on the smallest runner. At a few pushes per PR that is a few minutes per PR,
-with no recurring or scheduled spend. The one-off name claims cost about 2 minutes each.
+with no recurring or scheduled spend.
 
 ## SDK suites update (2026-11-08)
 
