@@ -4,6 +4,5 @@ __pycache__/
 .venv/
 node_modules/
 dist/
-placeholders/python/dist/
 .pytest_cache/
 .hypothesis/

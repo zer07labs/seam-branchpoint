@@ -18,7 +18,8 @@
   signed document, revalidate it with a conditional GET (304), get and verify a workload certificate, and serve the
   default for an absent key; the raw checks confirm missing, replayed and wrong-audience tokens and an
   `X-Seam-Tenant` header are refused. Passed 14/14 against production; a revoked key is refused afterwards.
-  Receipt upload needs the collector and is not covered yet.
+  Receipt upload goes to the evidence-collector (seam-connectors; live in prd and partner) and is not covered by
+  this check.
 - Release workflow (`.github/workflows/release.yml`): dispatch from main; refuses mismatched or already-published
   versions; publishes `seam-branchpoint` to PyPI and `@zer07labs/seam-branchpoint` to npm (with provenance).
 
@@ -32,3 +33,10 @@
 ## X6 golden re-vendor + #8 (2026-11-10)
 - Manifest re-vendored byte-identical from seam f9fa0f7; golden gate local 8/8 PASS.
 - #8: pinned-keys sections in both SDK READMEs (decision in DECISIONS.md).
+
+## Flows W0: SB B10 (2026-11-20)
+- Retired the name-reservation placeholders (`placeholders/python`, `placeholders/npm`) and the dispatch-only
+  `claim-names` workflow. Both names have been held by real releases since 0.1.0, and the workflow refuses a taken name,
+  so it could only fail. Readers fixed in the same change (`.gitignore`, `docs/ci-cost.md`).
+- Stale "collector not covered" wording corrected: the evidence-collector is live in prd and partner; this repo's live
+  check still does not upload receipts.

@@ -21,7 +21,8 @@ What it checks, per SDK (Python in process, then TypeScript through `live_e2e_ts
 5. `stats()` carries no tenant, key id or URL.
 
 Then, with raw HTTP (Python only): no token → 401; a replayed token → 401; a token for another audience → 401;
-an `X-Seam-Tenant` header is refused. Receipt upload needs the collector and is not covered here.
+an `X-Seam-Tenant` header is refused. Receipt upload goes to the evidence-collector (seam-connectors; live in prd
+and partner) and is not covered by this check.
 Output is one line per check: the check name and PASS/FAIL with a status or reason, never a body or a header.
 """
 
