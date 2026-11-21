@@ -390,7 +390,11 @@ DOC_EXPECT = {
     "oversized": "document_too_large", "at_cap": "accepted", "tenant_newline": "tenant_invalid",
     "unknown_kid": "kid_unknown", "forged_sig": "sig_invalid", "wrong_tenant": "sig_invalid",
     "wrong_domain": "sig_invalid", "doc_duplicate_member": "doc_malformed", "doc_not_object": "doc_malformed",
-    "v2": "doc_unsupported", "wrong_kind": "doc_unsupported", "body_tenant_mismatch": "tenant_mismatch",
+    "v1_retired": "doc_unsupported", "v3": "doc_unsupported", "wrong_kind": "doc_unsupported",
+    "body_tenant_mismatch": "tenant_mismatch", "cross_env_replay": "sig_invalid", "env_newline": "env_invalid",
+    "env_uppercase": "env_invalid", "env_empty": "env_invalid", "env_too_long": "env_invalid",
+    "env_leading_digit": "env_invalid", "env_max_length": "accepted", "body_env_mismatch": "env_mismatch",
+    "body_env_missing": "env_mismatch", "same_keys_other_env_document": "accepted", "missing_decision_point": "accepted",
     "version_too_large": "version_invalid", "version_not_integer": "version_invalid", "rollback": "rollback",
     "version_conflict": "version_conflict", "window_invalid": "window_invalid", "expired": "expired",
     "experiments_not_array": "doc_malformed", "unindexable_missing_key": "unindexable",
@@ -440,8 +444,8 @@ class SdkDocument(unittest.TestCase):
         self.by = {c["name"]: c for c in self.g["cases"]}
 
     def run_case(self, c: dict) -> dict:
-        return bp.verify_document(bp.doc_case_body(c), c.get("tenant", self.g["tenant"]), self.pinned, c["now_ms"],
-                                  c["cached"])
+        return bp.verify_document(bp.doc_case_body(c), c.get("tenant", self.g["tenant"]), c.get("env", self.g["env"]),
+                                  self.pinned, c["now_ms"], c["cached"])
 
     def test_every_case_has_its_named_outcome(self) -> None:
         self.assertEqual(set(self.by), set(DOC_EXPECT))
@@ -453,7 +457,7 @@ class SdkDocument(unittest.TestCase):
 
     def test_experiment_level_failures_mark_only_that_experiment(self) -> None:
         for name, bad in (("unknown_enum", "checkout-flow"), ("bad_salt_hex", "ranker-holdout"),
-                          ("bad_arm_bundle", "ranker-holdout")):
+                          ("bad_arm_bundle", "ranker-holdout"), ("missing_decision_point", "ranker-holdout")):
             ex = self.run_case(self.by[name])["experiments"]
             self.assertEqual(ex[bad], "config_invalid", name)
             self.assertEqual([k for k, v in ex.items() if v == "ok"], [k for k in ex if k != bad], name)
@@ -461,7 +465,9 @@ class SdkDocument(unittest.TestCase):
     def test_positive_document(self) -> None:
         doc = self.g["document"]
         db = doc["doc_bytes"].encode("utf-8")
-        self.assertEqual(bytes.fromhex(doc["message_hex"]), b"seam.branchpoint.sdk-doc.v1\nt-golden\n" + db)
+        self.assertEqual(bytes.fromhex(doc["message_hex"]), b"seam.branchpoint.sdk-doc.v2\nt-golden\ne-golden\n" + db)
+        self.assertEqual((json.loads(db)["v"], json.loads(db)["env"]), (2, self.g["env"]))
+        self.assertTrue(all("decision_point" in e for e in json.loads(db)["experiments"]), "decision_point required")
         self.assertEqual(doc["config_digest"], hashlib.sha256(db).hexdigest())
         self.assertEqual(json.loads(doc["envelope"]), {"doc": doc["doc_bytes"], "kid": doc["kid"], "sig": doc["sig"]})
         self.assertIn(bp.key_id(bytes.fromhex(self.g["doc_public_key_hex"])), self.pinned)
@@ -489,11 +495,11 @@ class SdkDocument(unittest.TestCase):
     def test_size_cap_applies_before_parsing(self) -> None:
         env = self.by["valid"]["envelope"].encode("utf-8")
         at_cap = env + b" " * (bp.DOC_MAX_BYTES - len(env))
-        r = bp.verify_document(at_cap, bp.TENANT, self.pinned, bp.DOC_NOW_MS)
+        r = bp.verify_document(at_cap, bp.TENANT, bp.ENV, self.pinned, bp.DOC_NOW_MS)
         self.assertEqual(r["outcome"], "accepted")
-        r = bp.verify_document(at_cap + b" ", bp.TENANT, self.pinned, bp.DOC_NOW_MS)
+        r = bp.verify_document(at_cap + b" ", bp.TENANT, bp.ENV, self.pinned, bp.DOC_NOW_MS)
         self.assertEqual(r, {"outcome": "refused", "reason": "document_too_large"})
-        self.assertEqual(bp.verify_document(b"{" * (bp.DOC_MAX_BYTES + 1), bp.TENANT, self.pinned, 0)["reason"],
+        self.assertEqual(bp.verify_document(b"{" * (bp.DOC_MAX_BYTES + 1), bp.TENANT, bp.ENV, self.pinned, 0)["reason"],
                          "document_too_large")
 
     def test_size_cap_vectors_are_compact(self) -> None:
@@ -507,17 +513,53 @@ class SdkDocument(unittest.TestCase):
         self.assertIn("\n", c["tenant"])
         # The envelope is validly signed for that tenant, so only the grammar check can refuse it.
         env = json.loads(c["envelope"])
-        msg = bp.doc_message(c["tenant"], env["doc"].encode("utf-8"))
+        msg = bp.doc_message(c["tenant"], self.g["env"], env["doc"].encode("utf-8"))
         bp.Ed25519PublicKey.from_public_bytes(self.pinned[env["kid"]]).verify(bytes.fromhex(env["sig"]), msg)
         for bad in ("", "t" * 129, "t.golden", "t golden", "t-golden\n", "tënant"):
-            self.assertEqual(bp.verify_document(self.by["valid"]["envelope"].encode("utf-8"), bad, self.pinned,
+            self.assertEqual(bp.verify_document(self.by["valid"]["envelope"].encode("utf-8"), bad, bp.ENV, self.pinned,
+                                                bp.DOC_NOW_MS)["reason"], "tenant_invalid", repr(bad))
+            # The tenant grammar runs first, so a bad tenant with a bad env is still tenant_invalid.
+            self.assertEqual(bp.verify_document(self.by["valid"]["envelope"].encode("utf-8"), bad, "E", self.pinned,
                                                 bp.DOC_NOW_MS)["reason"], "tenant_invalid", repr(bad))
         self.assertEqual(bp.TENANT_RE.pattern, "[A-Za-z0-9_-]{1,128}")  # the control plane's tenant grammar
+
+    def test_env_grammar_before_signature(self) -> None:
+        for name in ("env_newline", "env_uppercase", "env_empty", "env_too_long", "env_leading_digit"):
+            c = self.by[name]
+            # Each envelope is validly signed for its configured env, so only the grammar check can refuse it.
+            env = json.loads(c["envelope"])
+            msg = bp.doc_message(self.g["tenant"], c["env"], env["doc"].encode("utf-8"))
+            bp.Ed25519PublicKey.from_public_bytes(self.pinned[env["kid"]]).verify(bytes.fromhex(env["sig"]), msg)
+        self.assertIn("\n", self.by["env_newline"]["env"])
+        self.assertEqual((len(self.by["env_too_long"]["env"]), len(self.by["env_max_length"]["env"])), (33, 32))
+        for bad in ("a.b", "a_b", "a b", "ä", "-a"):
+            self.assertEqual(bp.verify_document(self.by["valid"]["envelope"].encode("utf-8"), bp.TENANT, bad,
+                                                self.pinned, bp.DOC_NOW_MS)["reason"], "env_invalid", repr(bad))
+        self.assertEqual(bp.ENV_RE.pattern, "[a-z][a-z0-9-]{0,31}")
+
+    def test_env_is_bound_by_the_signature_and_the_body(self) -> None:
+        valid = self.by["valid"]["envelope"].encode("utf-8")
+        # The golden document under another (well-formed) configured env: the message differs, so sig_invalid.
+        self.assertEqual(bp.verify_document(valid, bp.TENANT, bp.OTHER_ENV, self.pinned, bp.DOC_NOW_MS)["reason"],
+                         "sig_invalid")
+        replay = self.by["cross_env_replay"]
+        self.assertEqual(json.loads(json.loads(replay["envelope"])["doc"])["env"], bp.OTHER_ENV)
+        self.assertEqual(bp.verify_document(replay["envelope"].encode("utf-8"), bp.TENANT, bp.OTHER_ENV, self.pinned,
+                                            bp.DOC_NOW_MS)["outcome"], "accepted")
+
+    def test_lookup_ambiguity_is_per_document(self) -> None:
+        same = self.by["same_keys_other_env_document"]
+        golden = json.loads(self.g["document"]["doc_bytes"])["experiments"]
+        other = json.loads(json.loads(same["envelope"])["doc"])["experiments"]
+        self.assertEqual([(e["key"], e["decision_point"]) for e in other],
+                         [(e["key"], e["decision_point"]) for e in golden])
+        self.assertTrue({e["experiment_id"] for e in other}.isdisjoint({e["experiment_id"] for e in golden}))
+        self.assertEqual(self.run_case(same)["outcome"], "accepted")
 
     def test_envelope_bytes_must_be_utf8(self) -> None:
         env = self.by["valid"]["envelope"].encode("utf-8")
         for raw in (b"\xef\xbb\xbf" + env, env.replace(b"concise", b"conc\xffse")):
-            self.assertEqual(bp.verify_document(raw, bp.TENANT, self.pinned, bp.DOC_NOW_MS)["reason"],
+            self.assertEqual(bp.verify_document(raw, bp.TENANT, bp.ENV, self.pinned, bp.DOC_NOW_MS)["reason"],
                              "envelope_malformed")
 
     def test_unknown_enum_keeps_fail_soft_row_order(self) -> None:
@@ -720,7 +762,7 @@ class SdkKeyToken(unittest.TestCase):
         self.assertEqual({k: (r["base"], r["auth"]) for k, r in t["routes"].items()},
                          {"certificates": ("cp", "sdk_key_token"), "document": ("cp", "sdk_key_token"),
                           "receipts": ("collector", "certificate")})
-        self.assertEqual(t["routes"]["document"]["path"], "/v1/branchpoint/sdk/document")
+        self.assertEqual(t["routes"]["document"]["path"], "/v2/branchpoint/sdk/document")
         self.assertEqual(t["routes"]["certificates"]["path"], "/v1/branchpoint/sdk/certificates")
         self.assertEqual(t["routes"]["receipts"]["path"], "/v1/branchpoint/receipts")
 
