@@ -18,8 +18,12 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/bpa1_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint/bpa1_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_unit_tag",
@@ -30,12 +34,16 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/unit_tag_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint/unit_tag_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_sdk_document",
-      "sha256": "106dbf546732a3b777a4c9b7f0f9667a8d323290a143225694fde51dfebf7b8a",
+      "sha256": "6b0faef07fbdf870c13b93123797b52e2f280e34e3d080aa7164ba502be113a6",
       "copies": {
         "seam-branchpoint": [
           "contract/golden/branchpoint-sdk/sdk_document_golden.json"
@@ -43,11 +51,12 @@
         "seam-control-plane": [
           "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_document_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_sdk_key_token",
-      "sha256": "8bb5f0b90aa33b32d8018a2587bc9d706210108486cee06672135c1746e9bb23",
+      "sha256": "b9b14d5d04a8dc036cd75736e091b41f581877f048fd66eda59b9306fefadc00",
       "copies": {
         "seam-branchpoint": [
           "contract/golden/branchpoint-sdk/sdk_key_token_golden.json"
@@ -55,7 +64,8 @@
         "seam-control-plane": [
           "contract/vendor/seam-branchpoint/branchpoint-sdk/sdk_key_token_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_workload_cert",
@@ -66,8 +76,12 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/workload_cert_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint/workload_cert_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_receipt_chain",
@@ -78,8 +92,12 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/receipt_chain_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint/receipt_chain_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_receipt_negative",
@@ -90,8 +108,12 @@
         ],
         "seam-connectors": [
           "contract/golden/branchpoint/receipt_negative_golden.json"
+        ],
+        "seam-control-plane": [
+          "contract/vendor/seam-branchpoint/branchpoint/receipt_negative_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     },
     {
       "name": "branchpoint_sdk_upload_batch",
@@ -106,7 +128,8 @@
         "seam-connectors": [
           "contract/golden/branchpoint-sdk/upload_batch_golden.json"
         ]
-      }
+      },
+      "source": "seam-branchpoint"
     }
   ]
 }

@@ -34,9 +34,15 @@ uv run --directory sdk/python pytest
 
 ## Supported document version
 
-This release reads SDK documents with **`v` = 1** and `kind` = `"branchpoint-sdk"`
-(`seam_branchpoint.SUPPORTED_DOCUMENT_VERSION`). Any other `v` is refused with `doc_unsupported` (R8.5), and the
-cached document stays in use (R8.11).
+This release reads SDK documents with **`v` = 2** and `kind` = `"branchpoint-sdk"`
+(`seam_branchpoint.SUPPORTED_DOCUMENT_VERSION`), fetched from `GET {cp}/v2/branchpoint/sdk/document`. A v2 document
+is signed for one (tenant, env): the signature covers `"seam.branchpoint.sdk-doc.v2\n" ‖ tenant ‖ "\n" ‖ env ‖ "\n" ‖
+doc_bytes`, and the body's `env` must equal the client's. Any other `v` (including the retired `v` = 1) is refused with
+`doc_unsupported` (R8.5), and the cached document stays in use (R8.11). The env-specific refusals are `env_invalid`
+(the configured env fails `[a-z][a-z0-9-]{0,31}`, checked before the signature) and `env_mismatch` (R8.6b: the
+signed body names another env); a document signed for another env fails the signature (`sig_invalid`). Every
+experiment must carry a `decision_point`; an entry without one is `config_invalid`, and the rest of the document
+still serves.
 
 ## Primitives
 
@@ -77,6 +83,7 @@ from seam_branchpoint import BranchpointClient, HttpTransport, SdkKey
 
 client = BranchpointClient(
     tenant="t-acme",
+    env="staging",                                         # required, no default: the env the document is signed for
     sdk_key=SdkKey.from_seed(sdk_key_id, seed),          # your key; the control plane assigns its bk_ id at enrolment
     document_keys=[doc_public_key],                        # pinned document signing keys (raw 32-byte Ed25519)
     cert_issuer_keys=[cert_issuer_public_key],             # pinned certificate issuer keys
@@ -124,6 +131,7 @@ into `previous`; a document signed by a key you have not pinned is refused (`kid
 | Argument | Default | Meaning |
 |---|---|---|
 | `tenant`, `sdk_key`, `audience` | required | Who the client is; the token's `aud`. |
+| `env` | required (no default) | The env label the document must be signed for, `[a-z][a-z0-9-]{0,31}` (else `ConfigError`). A document for another env is refused (`sig_invalid` / `env_mismatch`). |
 | `document_keys`, `cert_issuer_keys` | required | Pinned Ed25519 public keys (a list, or `{kid: key}`); see [Pinned keys](#pinned-keys). |
 | `transport` | required | A `Transport`; `HttpTransport(cp_url, collector_url, routes, timeout_s=10, proxies, ssl_context, allow_insecure_http=False)`. |
 | `poll_interval_ms` | 60 000 | Document poll, ±10 % jitter; conditional GET (`If-None-Match`). |
@@ -143,7 +151,7 @@ pause (`no_certificate`) until a valid one is installed; assignments keep being 
 
 - **No usable document** (none yet, older than `max_staleness_ms`, or past `expires_at_ms` + 5 min): every
   evaluation returns `default` with reason `config_unavailable`. No receipt is written, no seq is consumed.
-- **A refused document** (bad signature, unknown key, other tenant, rollback, too large, expired, malformed) never
+- **A refused document** (bad signature, unknown key, other tenant or env, rollback, too large, expired, malformed) never
   replaces the cache. A good cache keeps serving; `stats()["document_fetch_failure"]` is `unverified` and
   `document_refusal` names the R8 reason. A TLS 304 refreshes the cache's age, never its wall-clock expiry.
 - **CP answers** follow R10.7: one retry with a fresh token on `token_replayed`; 429/5xx back off; 3xx is

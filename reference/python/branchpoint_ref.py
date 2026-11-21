@@ -47,6 +47,7 @@ ULID_RE = re.compile(r"[0-9A-HJKMNP-TV-Z]{26}")
 VARIANT_RE = re.compile(r"[A-Za-z0-9_.:-]{1,64}")
 SDK_KEY_RE = re.compile(r"bk_[0-9a-hjkmnp-tv-z]{26}")
 TENANT_RE = re.compile(r"[A-Za-z0-9_-]{1,128}")
+ENV_RE = re.compile(r"[a-z][a-z0-9-]{0,31}")  # the SDK document env label (§8): opaque, configured
 HEX_RE = {n: re.compile(f"[0-9a-f]{{{n}}}") for n in (8, 32, 64)}
 
 
@@ -887,7 +888,8 @@ def verify_committed(directory: Path = GOLDEN_DIR) -> list[str]:
 # AS-2 wires (spec §8–§10): the SDK document, the upload batch and collector response, the SDK-key token.
 # Golden group contract/golden/branchpoint-sdk/ (separate from the hub-pinned AS-0 group above).
 # =================================================================================================================
-DOC_DOMAIN = b"seam.branchpoint.sdk-doc.v1\n"
+DOC_DOMAIN = b"seam.branchpoint.sdk-doc.v2\n"
+DOC_V = 2  # the document `v` this code reads (R8.5)
 TENANT_DOC_DOMAIN = b"seam-config-tenant.v1\n"  # the CP's tenant-config domain: an SDK document never verifies under it
 DOC_KIND = "branchpoint-sdk"
 DOC_MAX_BYTES = 4 * 1024 * 1024  # R8.1 size cap, applied before parsing
@@ -909,16 +911,17 @@ def compact(obj: object) -> bytes:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def doc_message(tenant: str, doc_bytes: bytes, domain: bytes = DOC_DOMAIN) -> bytes:
-    """The signed message. The verifier refuses a configured tenant outside TENANT_RE first (R8.3 `tenant_invalid`),
-    so a tenant can never smuggle the "\n" separator; this builder stays raw so a vector can sign such a tenant."""
-    return domain + tenant.encode("utf-8") + b"\n" + doc_bytes
+def doc_message(tenant: str, env: str, doc_bytes: bytes, domain: bytes = DOC_DOMAIN) -> bytes:
+    """The signed message. The verifier refuses a configured tenant outside TENANT_RE (R8.3 `tenant_invalid`) and a
+    configured env outside ENV_RE (`env_invalid`) first, so neither can smuggle the "\n" separator; this builder stays
+    raw so a vector can sign such a tenant or env."""
+    return domain + tenant.encode("utf-8") + b"\n" + env.encode("utf-8") + b"\n" + doc_bytes
 
 
 def parse_experiment(e: dict) -> ExperimentDef:
     """R8.10 per-experiment parse. Never raises: anything unreadable marks the experiment malformed (row 7). An unknown
     enum string maps to the proto zero ("unspecified"), so the fail-soft row order still decides the reason."""
-    bad = not _full(KEY_RE, e["key"]) or ("decision_point" in e and not _full(KEY_RE, e["decision_point"]))
+    bad = not _full(KEY_RE, e["key"]) or not _full(KEY_RE, e.get("decision_point"))  # decision_point is required
     en = {k: (v if isinstance(v := e.get(k), str) and v in allowed else "unspecified") for k, allowed in ENUMS.items()}
     bv = e.get("bucket_version")
     if not isinstance(bv, str):
@@ -946,7 +949,7 @@ def parse_experiment(e: dict) -> ExperimentDef:
                          en["variant_kind"], en["assigner"], bad)
 
 
-def _verify_document(body: bytes, tenant: str, pinned: dict[str, bytes], now_ms: int, cached: dict | None,
+def _verify_document(body: bytes, tenant: str, env_label: str, pinned: dict[str, bytes], now_ms: int, cached: dict | None,
                      max_bytes: int) -> tuple[dict[str, object], dict[str, ExperimentDef]]:
     if len(body) > max_bytes:  # R8.1
         raise Refusal("document_too_large")
@@ -963,9 +966,11 @@ def _verify_document(body: bytes, tenant: str, pinned: dict[str, bytes], now_ms:
         raise Refusal("kid_unknown")
     if not _full(TENANT_RE, tenant):  # R8.3: the CP tenant grammar, before the signature (no "\n" smuggling)
         raise Refusal("tenant_invalid")
+    if not _full(ENV_RE, env_label):  # R8.3: the env grammar, also before the signature
+        raise Refusal("env_invalid")
     try:  # R8.3
         Ed25519PublicKey.from_public_bytes(pinned[env["kid"]]).verify(bytes.fromhex(env["sig"]),
-                                                                       doc_message(tenant, doc_bytes))
+                                                                       doc_message(tenant, env_label, doc_bytes))
     except InvalidSignature:
         raise Refusal("sig_invalid") from None
     try:  # R8.4
@@ -974,10 +979,12 @@ def _verify_document(body: bytes, tenant: str, pinned: dict[str, bytes], now_ms:
         raise Refusal("doc_malformed") from None
     if not isinstance(d, dict):
         raise Refusal("doc_malformed")
-    if not (_int(d.get("v"), 1, 1) and d.get("kind") == DOC_KIND):  # R8.5
+    if not (_int(d.get("v"), DOC_V, DOC_V) and d.get("kind") == DOC_KIND):  # R8.5
         raise Refusal("doc_unsupported")
     if d.get("tenant") != tenant:  # R8.6
         raise Refusal("tenant_mismatch")
+    if d.get("env") != env_label:  # R8.6b
+        raise Refusal("env_mismatch")
     version = d.get("version")  # R8.7
     if not _int(version, 0, MAX_SAFE):
         raise Refusal("version_invalid")
@@ -1011,12 +1018,13 @@ def _verify_document(body: bytes, tenant: str, pinned: dict[str, bytes], now_ms:
              "outcome": "unchanged" if unchanged else "accepted", "version": version}, defs)
 
 
-def verify_document(body: bytes, tenant: str, pinned: dict[str, bytes], now_ms: int, cached: dict | None = None,
-                    max_bytes: int = DOC_MAX_BYTES) -> dict[str, object]:
-    """Spec §8 R8.1–R8.10 in order. `cached` is {"version", "config_digest"} of the document the SDK holds, or None
-    (cold start). A refusal leaves that cache untouched (R8.11); "unchanged" is the equal-bytes no-op refresh."""
+def verify_document(body: bytes, tenant: str, env: str, pinned: dict[str, bytes], now_ms: int,
+                    cached: dict | None = None, max_bytes: int = DOC_MAX_BYTES) -> dict[str, object]:
+    """Spec §8 R8.1–R8.10 in order, for the configured (tenant, env). `cached` is {"version", "config_digest"} of the
+    document the SDK holds, or None (cold start). A refusal leaves that cache untouched (R8.11); "unchanged" is the
+    equal-bytes no-op refresh."""
     try:
-        return _verify_document(body, tenant, pinned, now_ms, cached, max_bytes)[0]
+        return _verify_document(body, tenant, env, pinned, now_ms, cached, max_bytes)[0]
     except Refusal as e:
         return {"outcome": "refused", "reason": e.reason}
 
@@ -1028,9 +1036,9 @@ def refresh_cache(cache: dict | None, result: dict[str, object]) -> dict | None:
     return cache
 
 
-def document_defs(body: bytes, tenant: str, pinned: dict[str, bytes], now_ms: int) -> dict[str, ExperimentDef]:
+def document_defs(body: bytes, tenant: str, env: str, pinned: dict[str, bytes], now_ms: int) -> dict[str, ExperimentDef]:
     """key -> ExperimentDef of a verified document (raises Refusal otherwise)."""
-    return _verify_document(body, tenant, pinned, now_ms, None, DOC_MAX_BYTES)[1]
+    return _verify_document(body, tenant, env, pinned, now_ms, None, DOC_MAX_BYTES)[1]
 
 
 def is_stale(since_refresh_ms: int, now_ms: int, expires_at_ms: int, max_staleness_ms: int = MAX_STALENESS_MS) -> bool:
@@ -1267,7 +1275,7 @@ TOKEN_LIFETIME_S = 60
 # goes to the CP routes only; the collector authenticates a batch by its certificate. Redirects are never followed.
 ROUTES = {
     "certificates": {"auth": "sdk_key_token", "base": "cp", "method": "POST", "path": "/v1/branchpoint/sdk/certificates"},
-    "document": {"auth": "sdk_key_token", "base": "cp", "method": "GET", "path": "/v1/branchpoint/sdk/document"},
+    "document": {"auth": "sdk_key_token", "base": "cp", "method": "GET", "path": "/v2/branchpoint/sdk/document"},
     "receipts": {"auth": "certificate", "base": "collector", "method": "POST", "path": "/v1/branchpoint/receipts"},
 }
 
@@ -1338,6 +1346,8 @@ DOC_ISSUED_MS = NOT_BEFORE_MS
 DOC_EXPIRES_MS = DOC_ISSUED_MS + 86_400_000  # the recommended 24 h lifetime
 DOC_NOW_MS = DOC_ISSUED_MS + 60_000
 OTHER_TENANT = "t-other"
+ENV = "e-golden"  # a neutral label: which values a control plane serves is its own rule (§8)
+OTHER_ENV = "e-other"
 TOKEN_AUD = "seam-control-plane"
 TOKEN_IAT = NOT_BEFORE_MS // 1000
 TOKEN_JTI = bytes(range(0x10))
@@ -1352,16 +1362,14 @@ def _pinned_doc_keys() -> dict[str, bytes]:
     return {key_id(raw_pk(k)): raw_pk(k) for k in (cur, prev)}
 
 
-def _exp_json(key: str, d: ExperimentDef, payloads: list[dict], decision_point: str | None = None) -> dict:
+def _exp_json(key: str, d: ExperimentDef, payloads: list[dict], decision_point: str) -> dict:
     out: dict[str, object] = {
         "arms": [{"bundle": {"content_digest": sha256(compact(p)).hex(), "payload": p}, "variant_id": a.variant_id,
                   "weight_bp": a.weight_bp} for a, p in zip(d.arms, payloads, strict=True)],
         "assigner": d.assigner, "bucket_version": d.bucket_version, "budget_bp": d.budget_bp,
-        "experiment_id": d.experiment_id, "key": key, "mode": d.mode, "salt_hex": d.salt.hex(), "salt_kid": d.salt_kid,
-        "state": d.state, "variant_kind": d.variant_kind,
+        "decision_point": decision_point, "experiment_id": d.experiment_id, "key": key, "mode": d.mode,
+        "salt_hex": d.salt.hex(), "salt_kid": d.salt_kid, "state": d.state, "variant_kind": d.variant_kind,
     }
-    if decision_point is not None:
-        out["decision_point"] = decision_point
     return out
 
 
@@ -1371,20 +1379,21 @@ def _doc_experiments() -> list[dict]:
     return [
         _exp_json("checkout-flow", split, [{"prompt": "concise", "temperature_pct": 20},
                                            {"prompt": "grüß dich, ausführlich", "temperature_pct": 70}], "dp:checkout"),
-        _exp_json("ranker-holdout", hold, [{"model": "ranker-v2"}]),
+        _exp_json("ranker-holdout", hold, [{"model": "ranker-v2"}], "dp:ranker"),
     ]
 
 
 def _doc_obj(**kw: object) -> dict:
-    d: dict[str, object] = {"expires_at_ms": DOC_EXPIRES_MS, "experiments": _doc_experiments(),
-                            "issued_at_ms": DOC_ISSUED_MS, "kind": DOC_KIND, "tenant": TENANT, "v": 1,
+    d: dict[str, object] = {"env": ENV, "expires_at_ms": DOC_EXPIRES_MS, "experiments": _doc_experiments(),
+                            "issued_at_ms": DOC_ISSUED_MS, "kind": DOC_KIND, "tenant": TENANT, "v": DOC_V,
                             "version": DOC_VERSION}
     d.update(kw)
     return d
 
 
-def _envelope(doc_bytes: bytes, sk: Ed25519PrivateKey, tenant: str = TENANT, domain: bytes = DOC_DOMAIN) -> str:
-    sig = sk.sign(doc_message(tenant, doc_bytes, domain)).hex()
+def _envelope(doc_bytes: bytes, sk: Ed25519PrivateKey, tenant: str = TENANT, env: str = ENV,
+              domain: bytes = DOC_DOMAIN) -> str:
+    sig = sk.sign(doc_message(tenant, env, doc_bytes, domain)).hex()
     return compact({"doc": doc_bytes.decode("utf-8"), "kid": key_id(raw_pk(sk)), "sig": sig}).decode("utf-8")
 
 
@@ -1412,17 +1421,20 @@ def build_sdk_document() -> dict[str, object]:
     good = _envelope(good_bytes, cur)
     digest = sha256(good_bytes).hex()
     env = json.loads(good)
-    defs = document_defs(good.encode("utf-8"), TENANT, pinned, DOC_NOW_MS)
+    defs = document_defs(good.encode("utf-8"), TENANT, ENV, pinned, DOC_NOW_MS)
     cases: list[dict[str, object]] = []
 
     def case(name: str, why: str, envelope: str, *, now_ms: int = DOC_NOW_MS, cached: dict | None = None,
-             tenant: str | None = None, pad_to_bytes: int | None = None) -> None:
+             tenant: str | None = None, env: str | None = None, pad_to_bytes: int | None = None) -> None:
         c: dict[str, object] = {"cached": cached, "envelope": envelope, "name": name, "now_ms": now_ms, "why": why}
         if tenant is not None:
             c["tenant"] = tenant
+        if env is not None:
+            c["env"] = env
         if pad_to_bytes is not None:
             c["pad_to_bytes"] = pad_to_bytes
-        c["expect"] = verify_document(doc_case_body(c), tenant or TENANT, pinned, now_ms, cached)
+        c["expect"] = verify_document(doc_case_body(c), TENANT if tenant is None else tenant,
+                                      ENV if env is None else env, pinned, now_ms, cached)
         cases.append(c)
 
     def signed(**kw: object) -> str:
@@ -1467,14 +1479,31 @@ def build_sdk_document() -> dict[str, object]:
     nl = "t-golden\nx"
     case("tenant_newline", "the configured tenant carries a newline (outside the CP grammar); validly signed for it",
          _envelope(compact(_doc_obj(tenant=nl)), cur, nl), tenant=nl)
-    case("wrong_domain", "signed under the CP tenant-config domain", _envelope(good_bytes, cur, TENANT,
+    case("cross_env_replay", "a document validly signed for another env (message and body), replayed to this env",
+         _envelope(compact(_doc_obj(env=OTHER_ENV)), cur, TENANT, OTHER_ENV))
+    for name, bad_env, why in [
+        ("env_newline", "e-golden\nx", "the configured env carries a newline; validly signed for it"),
+        ("env_uppercase", "E-golden", "the configured env has an upper-case letter; validly signed for it"),
+        ("env_empty", "", "the configured env is empty; validly signed for it"),
+        ("env_too_long", "e" + "x" * 32, "the configured env is 33 characters; validly signed for it"),
+        ("env_leading_digit", "1-golden", "the configured env starts with a digit; validly signed for it"),
+    ]:
+        case(name, why, _envelope(compact(_doc_obj(env=bad_env)), cur, TENANT, bad_env), env=bad_env)
+    max_env = "e" + "x" * 31
+    case("env_max_length", "a 32-character configured env (the grammar's maximum), signed for it",
+         _envelope(compact(_doc_obj(env=max_env)), cur, TENANT, max_env), env=max_env)
+    case("wrong_domain", "signed under the CP tenant-config domain", _envelope(good_bytes, cur, TENANT, ENV,
                                                                                TENANT_DOC_DOMAIN))
     case("doc_duplicate_member", "doc_bytes gives version twice (validly signed)",
          _envelope(good_bytes[:-1] + b',"version":8}', cur))
     case("doc_not_object", "doc_bytes is a JSON array (validly signed)", _envelope(b"[]", cur))
-    case("v2", "v is 2", signed(v=2))
+    case("v1_retired", "v is 1, the retired document shape (validly signed under the v2 domain)", signed(v=1))
+    case("v3", "v is 3", signed(v=3))
     case("wrong_kind", "kind names another document", signed(kind="branchpoint-runtime"))
     case("body_tenant_mismatch", "signed for the configured tenant, body names another", signed(tenant=OTHER_TENANT))
+    case("body_env_mismatch", "signed for the configured env, body names another (R8.6b)", signed(env=OTHER_ENV))
+    case("body_env_missing", "signed for the configured env, body has no env member (R8.6b)",
+         _envelope(compact({k: v for k, v in _doc_obj().items() if k != "env"}), cur))
     case("version_too_large", "version is 2^53", signed(version=MAX_SAFE + 1))
     case("version_not_integer", "version is a string", signed(version="7"))
     case("rollback", "version lower than the cached one", good, cached={"config_digest": "00" * 32,
@@ -1495,6 +1524,14 @@ def build_sdk_document() -> dict[str, object]:
          signed(experiments=exps(1, decision_point="dp:checkout")))
     case("key_collides_decision_point", "a key equals another experiment's decision_point",
          signed(experiments=exps(1, key="dp:checkout")))
+    case("same_keys_other_env_document", "a document for another env reuses every key and decision_point of the "
+         "golden one under new experiment ids: R8.10 is per document, so one env never sees the other's entries",
+         _envelope(compact(_doc_obj(env=OTHER_ENV, experiments=[{**e, "experiment_id": _rid("P", i + 1)} for i, e in
+                                                                enumerate(_doc_experiments())])), cur, TENANT,
+                   OTHER_ENV), env=OTHER_ENV)
+    case("missing_decision_point", "an experiment without decision_point: document accepted, that experiment "
+         "config_invalid", signed(experiments=[_doc_experiments()[0], {k: v for k, v in e1.items()
+                                                                       if k != "decision_point"}]))
     case("unknown_enum", "mode is an unknown string: document accepted, that experiment config_invalid",
          signed(experiments=exps(0, mode="canary")))
     case("bad_salt_hex", "salt_hex in uppercase: document accepted, that experiment config_invalid",
@@ -1515,16 +1552,18 @@ def build_sdk_document() -> dict[str, object]:
             "envelope": good,
             "evaluations": [{"key": k, "unit": u, **_eval_json(evaluate(d, u))} for k, d in defs.items() for u in UNITS],
             "kid": env["kid"],
-            "message_hex": doc_message(TENANT, good_bytes).hex(),
+            "message_hex": doc_message(TENANT, ENV, good_bytes).hex(),
             "sig": env["sig"],
         },
         "doc_public_key_hex": raw_pk(cur).hex(),
         "doc_seed_hex": DOC_SEED.hex(),
+        "env": ENV,
         "expiry_skew_ms": EXPIRY_SKEW_MS,
         "freshness": freshness,
         "max_document_bytes": DOC_MAX_BYTES,
         "max_staleness_ms": MAX_STALENESS_MS,
-        "note": "each case runs verify_document(body, case.tenant or tenant, pinned_doc_keys, now_ms, cached), where "
+        "note": "each case runs verify_document(body, case.tenant if present else tenant, case.env if present else env, pinned_doc_keys, now_ms, "
+                "cached), where "
                 "body is the UTF-8 envelope, then, when pad_to_bytes is set, 0x20 bytes appended until it is "
                 "pad_to_bytes long; a refusal keeps the cache (R8.11)",
         "pinned_doc_keys": {k: v.hex() for k, v in pinned.items()},
@@ -1729,11 +1768,12 @@ def verify_sdk_committed(directory: Path = SDK_GOLDEN_DIR) -> list[str]:
     cur = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(g["doc_seed_hex"]))
     doc = g["document"]
     db = doc["doc_bytes"].encode("utf-8")
-    if (doc_message(g["tenant"], db).hex() != doc["message_hex"] or sha256(db).hex() != doc["config_digest"]
+    if (doc_message(g["tenant"], g["env"], db).hex() != doc["message_hex"] or sha256(db).hex() != doc["config_digest"]
             or cur.sign(bytes.fromhex(doc["message_hex"])).hex() != doc["sig"] or key_id(raw_pk(cur)) != doc["kid"]):
         errors.append("sdk document message/sig/kid/digest")
     for c in g["cases"]:
-        got = verify_document(doc_case_body(c), c.get("tenant", g["tenant"]), pinned, c["now_ms"], c["cached"])
+        got = verify_document(doc_case_body(c), c.get("tenant", g["tenant"]), c.get("env", g["env"]), pinned,
+                              c["now_ms"], c["cached"])
         if got != c["expect"]:
             errors.append(f"sdk document {c['name']}: got {got}")
     for f in g["freshness"]:

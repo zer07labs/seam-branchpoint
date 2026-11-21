@@ -23,7 +23,7 @@ flowchart LR
     G --> H[(bounded buffer)]
   end
   subgraph bg["background worker"]
-    P[poll document<br/>If-None-Match] --> V[verify §8:<br/>sig, tenant, version, expiry]
+    P[poll document<br/>If-None-Match] --> V[verify §8:<br/>sig, tenant, env, version, expiry]
     V --> K[(cache)]
     R[renew certificate<br/>before expiry] --> Q[(cert + workload key)]
     H --> S[flush: sign receipts + batch<br/>R9.2 batch_sig, dropped spans]

@@ -32,7 +32,8 @@ Every hash and signature input starts with a distinct domain, so nothing verifie
 | `seam.branchpoint.receipt.v1` | **receipt signature** and **receipt_hash** |
 | `seam.branchpoint.chain-genesis.v1` | **chain** genesis |
 | `seam.branchpoint.chain-close.v1` | **reserved** for `chain_close` (message defined later; additive) |
-| `seam.branchpoint.sdk-doc.v1\n` | **SDK document** signature (§8; never `seam-config-tenant.v1`) |
+| `seam.branchpoint.sdk-doc.v2\n` | **SDK document** signature (§8; never `seam-config-tenant.v1`) |
+| `seam.branchpoint.sdk-doc.v1\n` | **retired** (the v1 document, which bound no env; no SDK verifies it, and it is never reused) |
 | `seam.branchpoint.upload-batch.v1\n` | **upload batch** signature (§9, R9.2) |
 
 ## 3. Experiment evaluation
@@ -116,6 +117,7 @@ per experiment).
 | `receipt_id` | ULID `^[0-9A-HJKMNP-TV-Z]{26}$`, compared byte-wise, never case-folded |
 | `sdk_key_id` | `^bk_[0-9a-hjkmnp-tv-z]{26}$` (`bk_` + 26 lowercase Crockford base32) |
 | `tenant` | `^[A-Za-z0-9_-]{1,128}$` (CP tenant grammar) |
+| `env` | `^[a-z][a-z0-9-]{0,31}$` (SDK document env label, §8) |
 
 ## 4. Workload certificate
 
@@ -157,7 +159,7 @@ A receipt is a JSON object with **exactly these 13 keys**, no others:
 |---|---|---|
 | `receipt_id` | string | ULID (grammar above) |
 | `experiment_id` | string | ULID |
-| `config_digest` | string | 64 hex: `sha256(doc_bytes)`, the exact octets under the CP's detached document signature, excluding its domain prefix and tenant id, before any parse |
+| `config_digest` | string | 64 hex: `sha256(doc_bytes)`, the exact octets under the CP's detached document signature, excluding its domain prefix, tenant id and env, before any parse |
 | `bucket_version` | string | `"bpa1"` |
 | `salt_kid` | string | 8 hex |
 | `mode` | string | `"split"` or `"holdout"` |
@@ -243,22 +245,28 @@ it is a claim, not a timestamp anyone attests.
 - The proto `Outcome` is unsigned. On the SDK upload wire an outcome is covered by the batch signature (§9 R9.2);
   a per-outcome signature would be an additive message under a new domain.
 - SDK semver ↔ document: each SDK release states which `branchpoint-sdk` document `v` it reads (README).
-- The SDK wires (§8–§10) version independently: a new document shape is `v: 2` under a new domain (`….sdk-doc.v2`); unknown
+- The SDK wires (§8–§10) version independently: a new document shape is a new `v` under a new domain and a new route
+  (the current document is `v: 2` under `….sdk-doc.v2`, served at `/v2/…`; `v: 1` is retired, not read); unknown
   members of `doc_bytes` and of an experiment are ignored, so additive optional fields need no new `v`; the batch (§9)
   refuses unknown members, so a new batch member is a new collector route (`/v2/…`); a new token profile is a new `typ`.
 
 ## 8. SDK document
 
-The CP serves each tenant's experiments to the SDK as one signed document. Golden: `sdk_document_golden.json` (the
-document key seeds, a document carrying layout L1 and the holdout layout, the exact signing message, and every case
-below with its expected outcome).
+The CP serves the experiments of each (tenant, env) to the SDK as one signed document. `env` is an **opaque label**
+(grammar §3) naming one environment of the tenant, so one tenant can run independent experiment sets side by side; this
+spec gives the label no meaning, and which values a control plane serves is that control plane's rule. The SDK is
+configured with its tenant and its env, and accepts only a document signed for both. Golden: `sdk_document_golden.json`
+(the document key seeds, a document carrying layout L1 and the holdout layout, the exact signing message, and every
+case below with its expected outcome).
 
 ### envelope
 
 The response body is a JSON object `{"doc": <string>, "kid": <string>, "sig": <string>}`. `doc_bytes` is `doc` encoded
 as UTF-8: exactly the octets that were signed. `kid` is the RFC 7638 **key_id** of the document signing key; `sig` is
-`hex(Ed25519(doc_sk, "seam.branchpoint.sdk-doc.v1\n" ‖ tenant ‖ "\n" ‖ doc_bytes))` (the CP's tenant-document
-convention under its own domain, so it never verifies as a `seam-config-tenant.v1` document, nor for another tenant).
+`hex(Ed25519(doc_sk, "seam.branchpoint.sdk-doc.v2\n" ‖ tenant ‖ "\n" ‖ env ‖ "\n" ‖ doc_bytes))` (the CP's
+tenant-document convention under its own domain, so it never verifies as a `seam-config-tenant.v1` document, nor for
+another tenant or another env of the same tenant). `env` is in the signed body too (R8.6b); binding it in the message
+as well keeps parity with `tenant` and stops a document signed for one env verifying, under any version, for another.
 `config_digest = hex(sha256(doc_bytes))` — the value every receipt carries (§5).
 
 ### document
@@ -267,15 +275,16 @@ convention under its own domain, so it never verifies as a `seam-config-tenant.v
 
 | Member | Type |
 |---|---|
-| `v` | `1` |
+| `v` | `2` |
 | `kind` | `"branchpoint-sdk"` |
 | `tenant` | string, the tenant the document is for |
-| `version` | integer `0 ..= 2^53−1`, strictly increasing per tenant |
+| `env` | string, the env the document is for (grammar §3) |
+| `version` | integer `0 ..= 2^53−1`, strictly increasing per (tenant, env) |
 | `issued_at_ms`, `expires_at_ms` | integers `0 ..= 2^53−1`, `issued_at_ms < expires_at_ms` (CP wall clock) |
 | `experiments` | array of experiment objects |
 
-An experiment object carries the `ExperimentDef` fields in their JSON forms: `experiment_id` (ULID), `key` and optional
-`decision_point` (`[A-Za-z0-9_.:/-]{1,128}`), `mode` (`split`|`holdout`), `state` (`live`|`paused`), `assigner`
+An experiment object carries the `ExperimentDef` fields in their JSON forms: `experiment_id` (ULID), `key` and
+`decision_point` (both required, `[A-Za-z0-9_.:/-]{1,128}`), `mode` (`split`|`holdout`), `state` (`live`|`paused`), `assigner`
 (`sdk`|`runtime`), `variant_kind` (`policy`|`prompt`|`model`|`toolset`|`agent`), `bucket_version` (string),
 `salt_hex` (64 hex; absent after Concluded), `salt_kid`, `budget_bp` (`0..=10000`) and `arms`: an array of
 `{"variant_id", "weight_bp", "bundle": {"content_digest": <64 hex>, "payload": <JSON object>}}`. `payload` is an object
@@ -285,7 +294,7 @@ octets and never enters receipt bytes. `content_digest` is opaque to the SDK (th
 
 ### verification
 
-The SDK holds the configured tenant, its pinned document keys (the current key plus a previous-keys list) and, after
+The SDK holds the configured tenant and env, its pinned document keys (the current key plus a previous-keys list) and, after
 the first success, the `version` and `config_digest` of its cached document. It checks a fetched body **in this
 order**; the first failure refuses the document with the named reason:
 
@@ -297,12 +306,17 @@ order**; the first failure refuses the document with the named reason:
   (`document_too_large`) and one exactly at the cap (`accepted`, R8.1 is inclusive). The two size cases carry
   `pad_to_bytes: N`: the body is the case's `envelope` followed by `0x20` up to N octets (JSON whitespace).
 - **R8.2** `kid` names a pinned document key, else `kid_unknown`.
-- **R8.3** The configured tenant matches `[A-Za-z0-9_-]{1,128}` (the control plane's tenant grammar), else `tenant_invalid` — checked before the signature, since a tenant containing `\n`
-  could make one domain message valid for two (tenant, document) splits. Then `sig` verifies over the domain message
-  built with the **configured** tenant, else `sig_invalid`. A case may carry `tenant`, which overrides the golden's.
+- **R8.3** The configured tenant matches `[A-Za-z0-9_-]{1,128}` (the control plane's tenant grammar), else
+  `tenant_invalid`; then the configured env matches `[a-z][a-z0-9-]{0,31}`, else `env_invalid`. Both are checked before
+  the signature, since a tenant or env containing `\n` could make one domain message valid for two (tenant, env,
+  document) splits. Then `sig` verifies over the domain message built with the **configured** tenant and env, else
+  `sig_invalid` (so a document signed for another env is `sig_invalid`, the golden's `cross_env_replay`). A case may
+  carry `tenant` and `env`, which override the golden's.
 - **R8.4** `doc_bytes` is strict JSON and an object, else `doc_malformed`.
-- **R8.5** `v` is the integer `1` and `kind` is `"branchpoint-sdk"`, else `doc_unsupported`.
+- **R8.5** `v` is the integer `2` and `kind` is `"branchpoint-sdk"`, else `doc_unsupported` (a `v: 1` body is refused
+  here: v1 is retired and has no fallback).
 - **R8.6** `tenant` equals the configured tenant, else `tenant_mismatch`.
+- **R8.6b** `env` equals the configured env (a missing `env` never does), else `env_mismatch`.
 - **R8.7** `version` is an integer `0 ..= 2^53−1`, else `version_invalid`. Below the cached version is `rollback`;
   equal to it with a different `config_digest` is `version_conflict`; equal with the same digest is the
   `unchanged` outcome (a successful no-op refresh) once R8.8–R8.10 pass.
@@ -312,9 +326,11 @@ order**; the first failure refuses the document with the named reason:
   inclusive.
 - **R8.10** `experiments` is an array, else `doc_malformed`. Every entry is an object whose `key` and `experiment_id`
   are strings, else `unindexable` (it could not be found to be served as `config_invalid`). No two entries share a
-  `key`, an `experiment_id` or a `decision_point`, and no `key` equals another entry's `decision_point`, else
-  `ambiguous_lookup`. Then each entry is parsed on its own: an unknown enum string reads as the proto zero
-  (`unspecified`), and any other unreadable field (key grammar, salt hex, an arm without a well-formed bundle, …) marks
+  `key`, an `experiment_id` or a string `decision_point`, and no `key` equals another entry's string `decision_point`,
+  else `ambiguous_lookup`. The rule is per document, so per (tenant, env): another env's document may reuse the same
+  keys and decision points (the golden's `same_keys_other_env_document`). Then each entry is parsed on its own: an
+  unknown enum string reads as the proto zero (`unspecified`), and any other unreadable field (key or
+  `decision_point` grammar, a missing `decision_point`, salt hex, an arm without a well-formed bundle, …) marks
   that experiment malformed. Neither rejects the document: that experiment evaluates as `config_invalid` (fail-soft
   row 7) and the fixed row order still applies (a paused experiment with an unknown `mode` is `paused`).
 - **R8.11** (cache) Only `accepted` or `unchanged` replaces the cache. A refusal leaves the cached document, version and
@@ -402,7 +418,8 @@ The SDK authenticates to the CP with its SDK key (`bk_…` id, Ed25519) as a CP 
   batch by its certificate.
 - **R10.5** HTTP redirects are never followed on any route (a redirect could forward `Authorization`).
 - **R10.6** Routes, provisional and SDK configuration (so a deployment choosing other paths is a config change, not a
-  release): `GET {cp}/v1/branchpoint/sdk/document` (with `If-None-Match: <config_digest>`, answered `304` when current);
+  release): `GET {cp}/v2/branchpoint/sdk/document` (with `If-None-Match: <config_digest>`, answered `304` when current;
+  the CP picks the (tenant, env) document the SDK key is bound to, and the SDK's configured env still decides, R8.6b);
   `POST {cp}/v1/branchpoint/sdk/certificates` with body `{"pk_hex": …}`, answered with the workload certificate JSON
   `{"body_hex", "sig_hex", "issuer_kid"}`; `POST {collector}/v1/branchpoint/receipts` with the §9 batch.
 - **R10.7** CP route failures (the CP's error body is `{"error": <code>}`, with

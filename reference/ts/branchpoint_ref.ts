@@ -35,6 +35,7 @@ const ULID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 const VARIANT_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const SDK_KEY_RE = /^bk_[0-9a-hjkmnp-tv-z]{26}$/;
 const TENANT_RE = /^[A-Za-z0-9_-]{1,128}$/;
+const ENV_RE = /^[a-z][a-z0-9-]{0,31}$/; // the SDK document env label (§8): opaque, configured
 const HEX8 = /^[0-9a-f]{8}$/;
 const HEX32 = /^[0-9a-f]{32}$/;
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -999,7 +1000,8 @@ export function verifyCommitted(dir: string = GOLDEN_DIR): string[] {
 // Golden group contract/golden/branchpoint-sdk/ (separate from the hub-pinned AS-0 group above).
 // ===============================================================================================================
 export const SDK_GOLDEN_DIR = join(REPO, "contract", "golden", "branchpoint-sdk");
-const DOC_DOMAIN = utf8("seam.branchpoint.sdk-doc.v1\n");
+const DOC_DOMAIN = utf8("seam.branchpoint.sdk-doc.v2\n");
+const DOC_V = 2; // the document `v` this code reads (R8.5)
 const TENANT_DOC_DOMAIN = utf8("seam-config-tenant.v1\n"); // the CP's tenant-config domain: never verifies an SDK doc
 const DOC_KIND = "branchpoint-sdk";
 export const DOC_MAX_BYTES = 4 * 1024 * 1024; // R8.1 size cap, applied before parsing
@@ -1037,12 +1039,14 @@ export function compact(obj: unknown): Buffer {
   return utf8(ser(obj));
 }
 
-export const docMessage = (tenant: string, docBytes: Buffer, domain: Buffer = DOC_DOMAIN): Buffer =>
-  Buffer.concat([domain, utf8(tenant), utf8("\n"), docBytes]);
+/** The signed message. The verifier refuses a configured tenant or env outside its grammar first (R8.3), so neither can
+ * smuggle the "\n" separator; this builder stays raw so a vector can sign such a tenant or env. */
+export const docMessage = (tenant: string, env: string, docBytes: Buffer, domain: Buffer = DOC_DOMAIN): Buffer =>
+  Buffer.concat([domain, utf8(tenant), utf8("\n"), utf8(env), utf8("\n"), docBytes]);
 
 /** R8.10 per-experiment parse. Never throws; unknown enum strings map to "unspecified" (row order still decides). */
 export function parseExperiment(e: Record<string, unknown>): ExperimentDef {
-  let bad = !full(KEY_RE, e.key) || (Object.hasOwn(e, "decision_point") && !full(KEY_RE, e.decision_point));
+  let bad = !full(KEY_RE, e.key) || !full(KEY_RE, get(e, "decision_point")); // decision_point is required
   const en: Record<string, string> = {};
   for (const [k, allowed] of Object.entries(ENUMS)) {
     const v = get(e, k);
@@ -1080,7 +1084,7 @@ export interface Cached {
 }
 export type DocResult = Record<string, unknown>;
 
-function verifyDocumentInner(body: Buffer, tenant: string, pinned: Map<string, Buffer>, nowMs: number,
+function verifyDocumentInner(body: Buffer, tenant: string, envLabel: string, pinned: Map<string, Buffer>, nowMs: number,
   cached: Cached | null, maxBytes: number): [DocResult, Map<string, ExperimentDef>] {
   if (body.length > maxBytes) throw new Refusal("document_too_large"); // R8.1
   let env: Record<string, unknown>;
@@ -1100,7 +1104,8 @@ function verifyDocumentInner(body: Buffer, tenant: string, pinned: Map<string, B
   const pk = pinned.get(env.kid as string); // R8.2
   if (pk === undefined) throw new Refusal("kid_unknown");
   if (!full(TENANT_RE, tenant)) throw new Refusal("tenant_invalid"); // R8.3: the CP grammar, before the signature
-  if (!edOk(pk, docMessage(tenant, docBytes), unhex(env.sig))) throw new Refusal("sig_invalid"); // R8.3
+  if (!full(ENV_RE, envLabel)) throw new Refusal("env_invalid"); // R8.3: the env grammar, also before the signature
+  if (!edOk(pk, docMessage(tenant, envLabel, docBytes), unhex(env.sig))) throw new Refusal("sig_invalid"); // R8.3
   let d: unknown;
   try { // R8.4
     d = strictParse(env.doc as string);
@@ -1108,8 +1113,9 @@ function verifyDocumentInner(body: Buffer, tenant: string, pinned: Map<string, B
     throw new Refusal("doc_malformed");
   }
   if (!isPObj(d)) throw new Refusal("doc_malformed");
-  if (!(intIn(get(d, "v"), 1, 1) && get(d, "kind") === DOC_KIND)) throw new Refusal("doc_unsupported"); // R8.5
+  if (!(intIn(get(d, "v"), DOC_V, DOC_V) && get(d, "kind") === DOC_KIND)) throw new Refusal("doc_unsupported"); // R8.5
   if (get(d, "tenant") !== tenant) throw new Refusal("tenant_mismatch"); // R8.6
+  if (get(d, "env") !== envLabel) throw new Refusal("env_mismatch"); // R8.6b
   const version = get(d, "version"); // R8.7
   if (!intIn(version, 0, MAX_SAFE)) throw new Refusal("version_invalid");
   const v = version as number;
@@ -1147,11 +1153,12 @@ function verifyDocumentInner(body: Buffer, tenant: string, pinned: Map<string, B
   return [{ config_digest: digest, experiments, outcome: unchanged ? "unchanged" : "accepted", version: v }, defs];
 }
 
-/** Spec §8 R8.1–R8.10 in order; a refusal leaves the caller's cache untouched (R8.11). Never throws. */
-export function verifyDocument(body: Buffer, tenant: string, pinned: Map<string, Buffer>, nowMs: number,
+/** Spec §8 R8.1–R8.10 in order, for the configured (tenant, env); a refusal leaves the caller's cache untouched (R8.11).
+ * Never throws. */
+export function verifyDocument(body: Buffer, tenant: string, env: string, pinned: Map<string, Buffer>, nowMs: number,
   cached: Cached | null = null, maxBytes: number = DOC_MAX_BYTES): DocResult {
   try {
-    return verifyDocumentInner(body, tenant, pinned, nowMs, cached, maxBytes)[0];
+    return verifyDocumentInner(body, tenant, env, pinned, nowMs, cached, maxBytes)[0];
   } catch (e) {
     if (e instanceof Refusal) return { outcome: "refused", reason: e.reason };
     throw e;
@@ -1164,8 +1171,8 @@ export const refreshCache = (cache: Cached | null, result: DocResult): Cached | 
     ? { config_digest: result.config_digest as string, version: result.version as number }
     : cache;
 
-export const documentDefs = (body: Buffer, tenant: string, pinned: Map<string, Buffer>, nowMs: number):
-  Map<string, ExperimentDef> => verifyDocumentInner(body, tenant, pinned, nowMs, null, DOC_MAX_BYTES)[1];
+export const documentDefs = (body: Buffer, tenant: string, env: string, pinned: Map<string, Buffer>, nowMs: number):
+  Map<string, ExperimentDef> => verifyDocumentInner(body, tenant, env, pinned, nowMs, null, DOC_MAX_BYTES)[1];
 
 /** R8.12: `sinceRefreshMs` is monotonic time since the last verified document or TLS-authenticated 304. */
 export const isStale = (sinceRefreshMs: number, nowMs: number, expiresAtMs: number,
@@ -1447,6 +1454,8 @@ export const DOC_ISSUED_MS = NOT_BEFORE_MS;
 export const DOC_EXPIRES_MS = DOC_ISSUED_MS + 86_400_000; // the recommended 24 h lifetime
 export const DOC_NOW_MS = DOC_ISSUED_MS + 60_000;
 const OTHER_TENANT = "t-other";
+export const ENV = "e-golden"; // a neutral label: which values a control plane serves is its own rule (§8)
+export const OTHER_ENV = "e-other";
 const TOKEN_AUD = "seam-control-plane";
 const TOKEN_IAT = Math.floor(NOT_BEFORE_MS / 1000);
 const TOKEN_JTI = range(0x00, 0x10);
@@ -1459,32 +1468,33 @@ export const pinnedDocKeys = (): Map<string, Buffer> => {
 };
 
 type J = Record<string, unknown>;
-function expJson(key: string, d: ExperimentDef, payloads: J[], decisionPoint?: string): J {
+function expJson(key: string, d: ExperimentDef, payloads: J[], decisionPoint: string): J {
   if (payloads.length !== d.arms.length) throw new Error("one payload per arm");
   const out: J = {
     arms: d.arms.map((a, k) => ({ bundle: { content_digest: hex(sha256(compact(payloads[k]))), payload: payloads[k] },
       variant_id: a.variant_id, weight_bp: a.weight_bp })),
-    assigner: d.assigner, bucket_version: d.bucket_version, budget_bp: d.budget_bp, experiment_id: d.experiment_id,
-    key, mode: d.mode, salt_hex: hex(d.salt!), salt_kid: d.salt_kid, state: d.state, variant_kind: d.variant_kind,
+    assigner: d.assigner, bucket_version: d.bucket_version, budget_bp: d.budget_bp, decision_point: decisionPoint,
+    experiment_id: d.experiment_id, key, mode: d.mode, salt_hex: hex(d.salt!), salt_kid: d.salt_kid, state: d.state,
+    variant_kind: d.variant_kind,
   };
-  if (decisionPoint !== undefined) out.decision_point = decisionPoint;
   return out;
 }
 
 const docExperiments = (): J[] => [
   expJson("checkout-flow", { ...layouts().L1, variant_kind: "prompt" }, [{ prompt: "concise", temperature_pct: 20 },
     { prompt: "grüß dich, ausführlich", temperature_pct: 70 }], "dp:checkout"),
-  expJson("ranker-holdout", { ...holdoutLayout(), variant_kind: "model" }, [{ model: "ranker-v2" }]),
+  expJson("ranker-holdout", { ...holdoutLayout(), variant_kind: "model" }, [{ model: "ranker-v2" }], "dp:ranker"),
 ];
 
 const docObj = (kw: J = {}): J => ({
-  expires_at_ms: DOC_EXPIRES_MS, experiments: docExperiments(), issued_at_ms: DOC_ISSUED_MS, kind: DOC_KIND,
-  tenant: TENANT, v: 1, version: DOC_VERSION, ...kw,
+  env: ENV, expires_at_ms: DOC_EXPIRES_MS, experiments: docExperiments(), issued_at_ms: DOC_ISSUED_MS, kind: DOC_KIND,
+  tenant: TENANT, v: DOC_V, version: DOC_VERSION, ...kw,
 });
 
-export const envelope = (docBytes: Buffer, sk: KeyObject, tenant = TENANT, domain = DOC_DOMAIN): string =>
-  compact({ doc: docBytes.toString("utf8"), kid: keyId(rawPk(sk)), sig: hex(edSignMsg(sk, docMessage(tenant, docBytes, domain))) })
-    .toString("utf8");
+export const envelope = (docBytes: Buffer, sk: KeyObject, tenant = TENANT, env = ENV, domain = DOC_DOMAIN): string =>
+  compact({
+    doc: docBytes.toString("utf8"), kid: keyId(rawPk(sk)), sig: hex(edSignMsg(sk, docMessage(tenant, env, docBytes, domain))),
+  }).toString("utf8");
 
 const flipHex = (h: string): string => {
   const b = Buffer.from(h, "hex");
@@ -1508,12 +1518,12 @@ function buildSdkDocument(): unknown {
   const good = envelope(goodBytes, cur);
   const digest = hex(sha256(goodBytes));
   const env = JSON.parse(good) as { doc: string; kid: string; sig: string };
-  const defs = documentDefs(utf8(good), TENANT, pinned, DOC_NOW_MS);
+  const defs = documentDefs(utf8(good), TENANT, ENV, pinned, DOC_NOW_MS);
   const cases: J[] = [];
   const kase = (name: string, why: string, envText: string, nowMs = DOC_NOW_MS, cached: Cached | null = null,
-    extra: { tenant?: string; pad_to_bytes?: number } = {}): void => {
+    extra: { tenant?: string; env?: string; pad_to_bytes?: number } = {}): void => {
     const c: J = { cached, envelope: envText, name, now_ms: nowMs, why, ...extra };
-    c.expect = verifyDocument(docCaseBody(c), extra.tenant ?? TENANT, pinned, nowMs, cached);
+    c.expect = verifyDocument(docCaseBody(c), extra.tenant ?? TENANT, extra.env ?? ENV, pinned, nowMs, cached);
     cases.push(c);
   };
   const signed = (kw: J): string => envelope(compact(docObj(kw)), cur);
@@ -1525,6 +1535,7 @@ function buildSdkDocument(): unknown {
   const txt = (o: unknown): string => compact(o).toString("utf8");
   const e1 = docExperiments()[1];
   const { key: _k, ...e1NoKey } = e1;
+  const { decision_point: _dp, ...e1NoDp } = e1;
 
   kase("valid", "the golden document, cold start", good);
   kase("valid_previous_key", "signed by the previous document key, still pinned", envelope(goodBytes, prev));
@@ -1558,13 +1569,30 @@ function buildSdkDocument(): unknown {
   const nl = "t-golden\nx";
   kase("tenant_newline", "the configured tenant carries a newline (outside the CP grammar); validly signed for it",
     envelope(compact(docObj({ tenant: nl })), cur, nl), DOC_NOW_MS, null, { tenant: nl });
-  kase("wrong_domain", "signed under the CP tenant-config domain", envelope(goodBytes, cur, TENANT, TENANT_DOC_DOMAIN));
+  kase("cross_env_replay", "a document validly signed for another env (message and body), replayed to this env",
+    envelope(compact(docObj({ env: OTHER_ENV })), cur, TENANT, OTHER_ENV));
+  for (const [name, badEnv, why] of [
+    ["env_newline", "e-golden\nx", "the configured env carries a newline; validly signed for it"],
+    ["env_uppercase", "E-golden", "the configured env has an upper-case letter; validly signed for it"],
+    ["env_empty", "", "the configured env is empty; validly signed for it"],
+    ["env_too_long", `e${"x".repeat(32)}`, "the configured env is 33 characters; validly signed for it"],
+    ["env_leading_digit", "1-golden", "the configured env starts with a digit; validly signed for it"],
+  ]) kase(name, why, envelope(compact(docObj({ env: badEnv })), cur, TENANT, badEnv), DOC_NOW_MS, null, { env: badEnv });
+  const maxEnv = `e${"x".repeat(31)}`;
+  kase("env_max_length", "a 32-character configured env (the grammar's maximum), signed for it",
+    envelope(compact(docObj({ env: maxEnv })), cur, TENANT, maxEnv), DOC_NOW_MS, null, { env: maxEnv });
+  kase("wrong_domain", "signed under the CP tenant-config domain",
+    envelope(goodBytes, cur, TENANT, ENV, TENANT_DOC_DOMAIN));
   kase("doc_duplicate_member", "doc_bytes gives version twice (validly signed)",
     envelope(Buffer.concat([goodBytes.subarray(0, -1), utf8(',"version":8}')]), cur));
   kase("doc_not_object", "doc_bytes is a JSON array (validly signed)", envelope(utf8("[]"), cur));
-  kase("v2", "v is 2", signed({ v: 2 }));
+  kase("v1_retired", "v is 1, the retired document shape (validly signed under the v2 domain)", signed({ v: 1 }));
+  kase("v3", "v is 3", signed({ v: 3 }));
   kase("wrong_kind", "kind names another document", signed({ kind: "branchpoint-runtime" }));
   kase("body_tenant_mismatch", "signed for the configured tenant, body names another", signed({ tenant: OTHER_TENANT }));
+  kase("body_env_mismatch", "signed for the configured env, body names another (R8.6b)", signed({ env: OTHER_ENV }));
+  const { env: _env, ...noEnv } = docObj();
+  kase("body_env_missing", "signed for the configured env, body has no env member (R8.6b)", envelope(compact(noEnv), cur));
   kase("version_too_large", "version is 2^53", envelope(utf8(compact(docObj({ version: 0 })).toString("utf8")
     .replace('"version":0}', `"version":9007199254740992}`)), cur));
   kase("version_not_integer", "version is a string", signed({ version: "7" }));
@@ -1585,6 +1613,12 @@ function buildSdkDocument(): unknown {
     signed({ experiments: exps(1, { decision_point: "dp:checkout" }) }));
   kase("key_collides_decision_point", "a key equals another experiment's decision_point",
     signed({ experiments: exps(1, { key: "dp:checkout" }) }));
+  kase("same_keys_other_env_document", "a document for another env reuses every key and decision_point of the " +
+    "golden one under new experiment ids: R8.10 is per document, so one env never sees the other's entries",
+    envelope(compact(docObj({ env: OTHER_ENV, experiments: docExperiments().map((e, i) =>
+      ({ ...e, experiment_id: rid("P", i + 1) })) })), cur, TENANT, OTHER_ENV), DOC_NOW_MS, null, { env: OTHER_ENV });
+  kase("missing_decision_point", "an experiment without decision_point: document accepted, that experiment " +
+    "config_invalid", signed({ experiments: [docExperiments()[0], e1NoDp] }));
   kase("unknown_enum", "mode is an unknown string: document accepted, that experiment config_invalid",
     signed({ experiments: exps(0, { mode: "canary" }) }));
   kase("bad_salt_hex", "salt_hex in uppercase: document accepted, that experiment config_invalid",
@@ -1601,15 +1635,17 @@ function buildSdkDocument(): unknown {
     cases,
     document: {
       config_digest: digest, doc_bytes: goodBytes.toString("utf8"), envelope: good, evaluations, kid: env.kid,
-      message_hex: hex(docMessage(TENANT, goodBytes)), sig: env.sig,
+      message_hex: hex(docMessage(TENANT, ENV, goodBytes)), sig: env.sig,
     },
     doc_public_key_hex: hex(rawPk(cur)),
     doc_seed_hex: hex(DOC_SEED),
+    env: ENV,
     expiry_skew_ms: EXPIRY_SKEW_MS,
     freshness,
     max_document_bytes: DOC_MAX_BYTES,
     max_staleness_ms: MAX_STALENESS_MS,
-    note: "each case runs verify_document(body, case.tenant or tenant, pinned_doc_keys, now_ms, cached), where " +
+    note: "each case runs verify_document(body, case.tenant if present else tenant, case.env if present else env, pinned_doc_keys, now_ms, " +
+      "cached), where " +
       "body is the UTF-8 envelope, then, when pad_to_bytes is set, 0x20 bytes appended until it is " +
       "pad_to_bytes long; a refusal keeps the cache (R8.11)",
     pinned_doc_keys: Object.fromEntries([...pinned].map(([k, v]) => [k, hex(v)])),
@@ -1753,7 +1789,7 @@ function buildUploadBatch(): unknown {
 // batch by its certificate. Redirects are never followed.
 export const ROUTES = {
   certificates: { auth: "sdk_key_token", base: "cp", method: "POST", path: "/v1/branchpoint/sdk/certificates" },
-  document: { auth: "sdk_key_token", base: "cp", method: "GET", path: "/v1/branchpoint/sdk/document" },
+  document: { auth: "sdk_key_token", base: "cp", method: "GET", path: "/v2/branchpoint/sdk/document" },
   receipts: { auth: "certificate", base: "collector", method: "POST", path: "/v1/branchpoint/receipts" },
 };
 
@@ -1792,12 +1828,12 @@ export function verifySdkCommitted(dir: string = SDK_GOLDEN_DIR): string[] {
   const pinned = new Map<string, Buffer>(Object.entries(g.pinned_doc_keys).map(([k, v]) => [k, unhex(v)]));
   const cur = privateKey(unhex(g.doc_seed_hex));
   const db = utf8(g.document.doc_bytes);
-  if (hex(docMessage(g.tenant, db)) !== g.document.message_hex || hex(sha256(db)) !== g.document.config_digest ||
+  if (hex(docMessage(g.tenant, g.env, db)) !== g.document.message_hex || hex(sha256(db)) !== g.document.config_digest ||
     hex(edSignMsg(cur, unhex(g.document.message_hex))) !== g.document.sig || keyId(rawPk(cur)) !== g.document.kid) {
     errors.push("sdk document message/sig/kid/digest");
   }
   for (const c of g.cases) {
-    const got = verifyDocument(docCaseBody(c), c.tenant ?? g.tenant, pinned, c.now_ms, c.cached);
+    const got = verifyDocument(docCaseBody(c), c.tenant ?? g.tenant, c.env ?? g.env, pinned, c.now_ms, c.cached);
     if (!sameJson(got, c.expect)) errors.push(`sdk document ${c.name}: got ${JSON.stringify(got)}`);
   }
   for (const f of g.freshness) {

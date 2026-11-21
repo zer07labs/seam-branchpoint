@@ -58,6 +58,7 @@ TICK_EVERY = 3  # the clock advances 1 ms every 3 units: ULIDs take both the fre
 OUTCOME_EVERY = 7
 DEFAULT = {"default": True}
 TENANT = "t-golden"
+ENV = "e-conformance"
 AUDIENCE = "seam-cp"
 T0 = ref.NOT_BEFORE_MS
 MONO0 = 5_000_000
@@ -91,19 +92,20 @@ def build_document() -> tuple[dict, list[str]]:
             arms.append({"bundle": {"content_digest": hashlib.sha256(compact(payload)).hexdigest(), "payload": payload},
                          "variant_id": a["variant_id"], "weight_bp": a["weight_bp"]})
         e = {"arms": arms, "assigner": lay["assigner"], "bucket_version": lay["bucket_version"],
-             "budget_bp": lay["budget_bp"], "experiment_id": f"01JBP9{n:020d}", "key": f"layout-{name.lower()}",
+             "budget_bp": lay["budget_bp"], "decision_point": f"dp:layout-{name.lower()}",
+             "experiment_id": f"01JBP9{n:020d}", "key": f"layout-{name.lower()}",
              "mode": lay["mode"], "salt_kid": bpa1["salt_kid"], "state": lay["state"],
              "variant_kind": lay["variant_kind"]}
         if lay["salt_present"]:
             e["salt_hex"] = salt.hex()
         experiments.append(e)
-    doc = {"expires_at_ms": T0 + 86_400_000, "experiments": experiments, "issued_at_ms": T0 - 1_000,
-           "kind": "branchpoint-sdk", "tenant": TENANT, "v": 1, "version": 1}
+    doc = {"env": ENV, "expires_at_ms": T0 + 86_400_000, "experiments": experiments, "issued_at_ms": T0 - 1_000,
+           "kind": "branchpoint-sdk", "tenant": TENANT, "v": 2, "version": 1}
     doc_bytes = compact(doc)
     doc_sk = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(sdk_golden["doc_seed_hex"]))
     doc_pk = ref.raw_pk(doc_sk)
     envelope = {"doc": doc_bytes.decode("utf-8"), "kid": ref.key_id(doc_pk),
-                "sig": doc_sk.sign(ref.doc_message(TENANT, doc_bytes)).hex()}
+                "sig": doc_sk.sign(ref.doc_message(TENANT, ENV, doc_bytes)).hex()}
     keys = [e["key"] for e in experiments] + [golden_doc["experiments"][0]["decision_point"], "no-such-flag"]
     return {"envelope": compact(envelope).decode("utf-8"), "doc_bytes": doc_bytes, "doc_pk": doc_pk,
             "config_digest": hashlib.sha256(doc_bytes).hexdigest()}, keys
@@ -149,7 +151,7 @@ def ulid_rand_bytes(label: str):
 def run_python(sc: dict, run: dict) -> dict:
     clock = {"wall": sc["t0_wall"], "mono": sc["t0_mono"]}
     sdk_key = SdkKey.from_seed(sc["sdk_key_id"], bytes.fromhex(sc["sdk_seed_hex"]))
-    cp = FakeCP(tenant=sc["tenant"], sdk_key_id=sc["sdk_key_id"], sdk_public_key=sdk_key.public_key,
+    cp = FakeCP(tenant=sc["tenant"], env=sc["env"], sdk_key_id=sc["sdk_key_id"], sdk_public_key=sdk_key.public_key,
                 audience=sc["audience"], cert_key=Ed25519PrivateKey.from_private_bytes(bytes.fromhex(sc["issuer_seed_hex"])),
                 clock_ms=lambda: clock["wall"], cert_lifetime_ms=sc["cert_lifetime_ms"])
     cp.serve(sc["doc_envelope"].encode("utf-8"), sc["config_digest"])
@@ -157,7 +159,7 @@ def run_python(sc: dict, run: dict) -> dict:
     transport = RecordingTransport(cp, collector)
     wseed = bytes.fromhex(sc["workload_seed_hex"])
     client = BranchpointClient(
-        tenant=sc["tenant"], sdk_key=sdk_key, document_keys=[bytes.fromhex(sc["doc_pk_hex"])],
+        tenant=sc["tenant"], env=sc["env"], sdk_key=sdk_key, document_keys=[bytes.fromhex(sc["doc_pk_hex"])],
         cert_issuer_keys=[cp.cert_public_key], transport=transport, audience=sc["audience"],
         receipt_buffer=run["receipt_capacity"], outcome_buffer=100_000, flush_at=1_000_000_000,
         max_batch_items=run["batch_max"], wall_clock_ms=lambda: clock["wall"], mono_clock_ms=lambda: clock["mono"],
@@ -281,7 +283,7 @@ def compare_runs(name: str, run: dict, py: dict, ts: dict) -> dict:
 
 
 def check_reference_evaluations(run: dict, py: dict, doc: dict) -> int:
-    defs = ref.document_defs(doc["envelope"].encode("utf-8"), TENANT,
+    defs = ref.document_defs(doc["envelope"].encode("utf-8"), TENANT, ENV,
                              {ref.key_id(doc["doc_pk"]): doc["doc_pk"]}, T0)
     by_dp = {}
     for e in json.loads(doc["doc_bytes"])["experiments"]:
@@ -383,7 +385,7 @@ def main() -> int:
     pinned = {ref.key_id(issuer_pk): issuer_pk}
     overflow_keys = ["layout-l1", "checkout-flow"]
     sc = {
-        "tenant": TENANT, "audience": AUDIENCE, "sdk_key_id": token["sdk_key_id"], "sdk_seed_hex": token["sdk_key_seed_hex"],
+        "tenant": TENANT, "env": ENV, "audience": AUDIENCE, "sdk_key_id": token["sdk_key_id"], "sdk_seed_hex": token["sdk_key_seed_hex"],
         "issuer_seed_hex": issuer_seed.hex(), "workload_seed_hex": ref.WORKLOAD_SEED.hex(),
         "doc_envelope": doc["envelope"], "doc_pk_hex": doc["doc_pk"].hex(), "config_digest": doc["config_digest"],
         "t0_wall": T0, "t0_mono": MONO0, "cert_lifetime_ms": CERT_LIFETIME_MS, "default_value": DEFAULT,

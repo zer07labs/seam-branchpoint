@@ -17,6 +17,7 @@ import { UlidGenerator } from "../../sdk/ts/src/wire.ts";
 
 interface Scenario {
   tenant: string;
+  env: string;
   audience: string;
   sdk_key_id: string;
   sdk_seed_hex: string;
@@ -72,7 +73,7 @@ async function runOne(run: Run): Promise<unknown> {
   const clock = { wall: sc.t0_wall, mono: sc.t0_mono };
   const sdkSeed = hex(sc.sdk_seed_hex);
   const sdkPk = new SdkKey(sc.sdk_key_id, sdkSeed).publicKey;
-  const cp = new FakeCP({ tenant: sc.tenant, sdkKeyId: sc.sdk_key_id, sdkKeyPublic: sdkPk, audience: sc.audience,
+  const cp = new FakeCP({ tenant: sc.tenant, env: sc.env, sdkKeyId: sc.sdk_key_id, sdkKeyPublic: sdkPk, audience: sc.audience,
     issuerSeed: hex(sc.issuer_seed_hex), now: () => clock.wall, certLifetimeMs: sc.cert_lifetime_ms });
   cp.serveRaw(Buffer.from(sc.doc_envelope, "utf8"), sc.config_digest);
   const collector = new FakeCollector({ issuerKeys: [cp.issuerPublicKey], verify: false });
@@ -80,7 +81,7 @@ async function runOne(run: Run): Promise<unknown> {
   const ulid = new UlidGenerator({ now: () => clock.wall, randomFill: await makeFill(sc.ulid_label) });
   const logs: string[] = [];
   const client = new BranchpointClient({
-    tenant: sc.tenant, sdkKeyId: sc.sdk_key_id, sdkKeySeed: sdkSeed, documentKeys: [hex(sc.doc_pk_hex)],
+    tenant: sc.tenant, env: sc.env, sdkKeyId: sc.sdk_key_id, sdkKeySeed: sdkSeed, documentKeys: [hex(sc.doc_pk_hex)],
     certIssuerKeys: [cp.issuerPublicKey], transport, audience: sc.audience,
     now: () => clock.wall, monotonic: () => clock.mono, random: () => 0.5, logger: { warn: (m) => logs.push(m) },
     chain: new ChainState({ ulid: () => ulid.next() }),
