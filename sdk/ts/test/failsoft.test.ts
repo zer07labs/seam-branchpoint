@@ -104,21 +104,27 @@ describe("AC2: fail-soft rows", () => {
     await h.client.close();
   });
 
-  test("other refusals: wrong tenant, oversize body, garbage, a 304 with no cache", async () => {
+  test("other refusals: wrong tenant, wrong env, oversize body, garbage, a 304 with no cache", async () => {
     const wrongTenant = harness({ experiments: null });
     wrongTenant.cp.publish(EXPERIMENTS, { tenant: "other-tenant", signTenant: "other-tenant" });
+    const otherEnv = harness({ experiments: null }); // a document validly signed for another env: cross-env replay
+    otherEnv.cp.publish(EXPERIMENTS, { env: "e-other", signEnv: "e-other" });
+    const envMember = harness({ experiments: null }); // signed for our env, the body names another (R8.6b)
+    envMember.cp.publish(EXPERIMENTS, { env: "e-other" });
     const big = harness({ experiments: null, client: { maxDocumentBytes: 64 } });
     big.cp.publish(EXPERIMENTS);
     const junk = harness({ experiments: null });
     junk.cp.serveRaw(Buffer.from("not json"));
     const nm = harness();
     nm.cp.script("document", { status: 304 });
-    for (const h of [wrongTenant, big, junk, nm]) {
+    for (const h of [wrongTenant, otherEnv, envMember, big, junk, nm]) {
       await h.client.start();
       assert.equal(h.client.evaluate("checkout", "user-1", 0).reason, CONFIG_UNAVAILABLE);
       await h.client.close();
     }
     assert.equal(wrongTenant.client.stats().document_fetch_failure, "unverified");
+    assert.equal(otherEnv.client.stats().document_refusal, "sig_invalid");
+    assert.equal(envMember.client.stats().document_refusal, "env_mismatch");
     assert.equal(big.client.stats().document_fetch_failure, "unverified");
     assert.equal(junk.client.stats().document_fetch_failure, "unverified");
     assert.equal(nm.client.stats().document_fetch_failure, "protocol");

@@ -1,9 +1,14 @@
-// The TypeScript half of tests/e2e/live_e2e.py: the same checks through the TS SDK. Reads BP_E2E_CONFIG and
-// prints one PASS/FAIL line per check, never a body, header, tenant, key or URL.
+// The TypeScript half of tests/e2e/live_e2e.py: the same checks through the TS SDK. Reads BP_E2E_CONFIG and the
+// required BRANCHPOINT_ENV, and prints one PASS/FAIL line per check, never a body, header, tenant, key or URL.
 import { readFileSync } from "node:fs";
 import { BranchpointClient, HttpTransport } from "../../sdk/ts/src/index.ts";
 
 const cfg = JSON.parse(readFileSync(process.env.BP_E2E_CONFIG ?? "", "utf8"));
+const env = process.env.BRANCHPOINT_ENV;
+if (!env) {
+  console.log("FAIL ts config: BRANCHPOINT_ENV is not set (the document env, required)");
+  process.exit(1);
+}
 let failed = 0;
 const check = (name: string, ok: boolean, detail: string): void => {
   console.log(`${ok ? "PASS" : "FAIL"} ${name}: ${detail}`);
@@ -12,6 +17,7 @@ const check = (name: string, ok: boolean, detail: string): void => {
 
 const client = new BranchpointClient({
   tenant: cfg.tenant,
+  env,
   sdkKeyId: cfg.sdk_key_id,
   sdkKeySeed: Buffer.from(cfg.sdk_key_seed_hex, "hex"),
   documentKeys: cfg.document_keys,

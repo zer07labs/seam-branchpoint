@@ -14,6 +14,7 @@ import { BUCKETS, type Mode, evaluate as evaluateDef } from "./evaluate.ts";
 import { type Transport, type TransportResponse, TransportError } from "./transport.ts";
 import { Uploader, type UploaderStats, backoffMs, safeCode } from "./uploader.ts";
 import {
+  ENV_RE,
   MAX_SAFE,
   METRIC_KEY_RE,
   Refusal,
@@ -74,6 +75,11 @@ export interface Logger {
 
 export interface ClientOptions {
   tenant: string;
+  /**
+   * The env whose document this client accepts (spec §8: `[a-z][a-z0-9-]{0,31}`, bound into the document signature
+   * and checked against its `env`, R8.6b). Required, with no default: a default would hide a misconfigured deployment.
+   */
+  env: string;
   /** SDK key id (`bk_…`) and its 32-byte Ed25519 seed. */
   sdkKeyId: string;
   sdkKeySeed: Uint8Array;
@@ -161,6 +167,7 @@ const posInt = (n: string, v: number): number => {
 
 export class BranchpointClient {
   readonly #tenant: string;
+  readonly #env: string;
   readonly #sdkKey: SdkKey;
   readonly #aud: string;
   readonly #docKeys;
@@ -211,7 +218,9 @@ export class BranchpointClient {
   #bgErrors = 0;
 
   constructor(o: ClientOptions) {
+    if (!matches(ENV_RE, o.env)) throw new RangeError("env: outside [a-z][a-z0-9-]{0,31}");
     this.#tenant = o.tenant;
+    this.#env = o.env;
     this.#now = o.now ?? Date.now;
     this.#mono = o.monotonic ?? (() => performance.now());
     this.#random = o.random ?? Math.random;
@@ -496,7 +505,7 @@ export class BranchpointClient {
     }
     if (res.status !== 200) return this.#docFail(`http_${res.status}`);
     const cur = this.#snap;
-    const v = verifyDocument(res.body, { tenant: this.#tenant, pinned: this.#docKeys, nowMs: this.#now(),
+    const v = verifyDocument(res.body, { tenant: this.#tenant, env: this.#env, pinned: this.#docKeys, nowMs: this.#now(),
       cached: cur === null ? null : { version: cur.doc.version, configDigest: cur.doc.configDigest },
       maxBytes: this.#maxDocBytes });
     if (v.outcome === "refused") { // R8.11: the cache, version and digest stay untouched

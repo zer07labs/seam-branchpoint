@@ -4,7 +4,9 @@
 # ///
 """Live end-to-end check of both SDKs against a running control plane's SDK document and certificate routes.
 
-    BP_E2E_CONFIG=/path/to/config.json uv run --script tests/e2e/live_e2e.py   # repo root; Node >= 22.18 on PATH
+    BP_E2E_CONFIG=/path/to/config.json BRANCHPOINT_ENV=<env> uv run --script tests/e2e/live_e2e.py
+    # repo root; Node >= 22.18 on PATH. BRANCHPOINT_ENV is required: the env label the SDK key's document is for
+    # (spec §8); both SDKs are configured with it and refuse a document signed for any other env.
 
 The config is a JSON file (keep it outside the repo, mode 0600); nothing in it is ever printed:
 
@@ -14,7 +16,7 @@ The config is a JSON file (keep it outside the repo, mode 0600); nothing in it i
 
 What it checks, per SDK (Python in process, then TypeScript through `live_e2e_ts.ts`):
 
-1. the signed document is fetched and verifies against the pinned keys (`accepted`);
+1. the signed v2 document for (tenant, BRANCHPOINT_ENV) is fetched and verifies against the pinned keys (`accepted`);
 2. a second fetch is a conditional GET (`not_modified`, or `unchanged` when the CP sends no ETag);
 3. a certificate is issued for a fresh workload key and verifies against the pinned issuer keys (`installed`);
 4. `evaluate` on a key the document does not carry returns the caller default with reason `flag_not_found`;
@@ -61,13 +63,17 @@ def load() -> dict:
     for k in ("cp_url", "audience", "tenant", "sdk_key_id", "sdk_key_seed_hex", "document_keys", "cert_issuer_keys"):
         if k not in cfg:
             sys.exit(f"config: missing {k}")
+    env = os.environ.get("BRANCHPOINT_ENV")
+    if not env:
+        sys.exit("BRANCHPOINT_ENV is not set (the document env, required)")
+    cfg["env"] = env
     return cfg
 
 
 def python_sdk(cfg: dict) -> None:
     key = SdkKey.from_seed(cfg["sdk_key_id"], bytes.fromhex(cfg["sdk_key_seed_hex"]))
     client = BranchpointClient(
-        tenant=cfg["tenant"], sdk_key=key, audience=cfg["audience"],
+        tenant=cfg["tenant"], env=cfg["env"], sdk_key=key, audience=cfg["audience"],
         document_keys=[bytes.fromhex(h) for h in cfg["document_keys"]],
         cert_issuer_keys=[bytes.fromhex(h) for h in cfg["cert_issuer_keys"]],
         transport=HttpTransport(cp_url=cfg["cp_url"], collector_url=COLLECTOR),

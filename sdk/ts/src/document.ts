@@ -15,6 +15,7 @@ import {
 } from "./evaluate.ts";
 import {
   DOC_DOMAIN,
+  ENV_RE,
   HEX64_RE,
   type JsonObject,
   KEY_RE,
@@ -39,8 +40,8 @@ import {
   utf8,
 } from "./wire.ts";
 
-/** The document `v` this SDK understands (R8.5). */
-export const SUPPORTED_DOCUMENT_V = 1;
+/** The document `v` this SDK understands (R8.5); v1 is retired and never read. */
+export const SUPPORTED_DOCUMENT_V = 2;
 export const DOC_KIND = "branchpoint-sdk";
 /** R8.1: the envelope size cap, applied before parsing. */
 export const DOC_MAX_BYTES = 4 * 1024 * 1024;
@@ -82,6 +83,8 @@ export type DocumentResult = VerifiedDocument | RefusedDocument;
 export interface VerifyOptions {
   /** The tenant this SDK is configured for (also the signed-message tenant, R8.3). */
   tenant: string;
+  /** The env this SDK is configured for (also the signed-message env, R8.3; the body's `env`, R8.6b). */
+  env: string;
   pinned: PinnedKeys;
   /** Wall clock, Unix ms. */
   nowMs: number;
@@ -89,14 +92,14 @@ export interface VerifyOptions {
   maxBytes?: number;
 }
 
-/** R8.3: the signed message, "seam.branchpoint.sdk-doc.v1\n" ‖ tenant ‖ "\n" ‖ doc bytes. */
-export const docMessage = (tenant: string, docBytes: Uint8Array): Buffer =>
-  Buffer.concat([utf8(DOC_DOMAIN + tenant + "\n"), docBytes]);
+/** R8.3: the signed message, "seam.branchpoint.sdk-doc.v2\n" ‖ tenant ‖ "\n" ‖ env ‖ "\n" ‖ doc bytes. */
+export const docMessage = (tenant: string, env: string, docBytes: Uint8Array): Buffer =>
+  Buffer.concat([utf8(DOC_DOMAIN + tenant + "\n" + env + "\n"), docBytes]);
 
-/** Sign a document for a tenant (for fakes and tests; the CP signs real documents). Returns the envelope bytes. */
-export function signDocument(sk: KeyObject, tenant: string, doc: string): Buffer {
+/** Sign a document for a (tenant, env) (for fakes and tests; the CP signs real documents). Returns the envelope bytes. */
+export function signDocument(sk: KeyObject, tenant: string, env: string, doc: string): Buffer {
   if (!doc.isWellFormed()) throw new TypeError("doc: lone surrogate");
-  const sig = ed25519Sign(sk, docMessage(tenant, utf8(doc))).toString("hex");
+  const sig = ed25519Sign(sk, docMessage(tenant, env, utf8(doc))).toString("hex");
   return utf8(JSON.stringify({ doc, kid: keyId(rawPublicKey(sk)), sig }));
 }
 
@@ -108,7 +111,7 @@ export function parseExperiment(e: JsonObject): ExperimentDef {
   const key = own(e, "key");
   let dp = own(e, "decision_point");
   let bad = !matches(KEY_RE, key);
-  if (dp !== undefined && !matches(KEY_RE, dp)) { // malformed: config_invalid, and never a lookup name (as in Python)
+  if (!matches(KEY_RE, dp)) { // required (§8); missing or malformed: config_invalid, never a lookup name (as in Python)
     bad = true;
     dp = undefined;
   }
@@ -183,8 +186,9 @@ function verifyInner(body: Uint8Array, o: VerifyOptions): VerifiedDocument {
   const pk = o.pinned.get(kid); // R8.2
   if (pk === undefined) throw new Refusal("kid_unknown");
   if (!matches(TENANT_RE, o.tenant)) throw new Refusal("tenant_invalid"); // R8.3, before the signature
+  if (!matches(ENV_RE, o.env)) throw new Refusal("env_invalid"); // R8.3, likewise for the env
   const docBytes = utf8(doc);
-  if (!ed25519Verify(pk, docMessage(o.tenant, docBytes), unhex(sig))) throw new Refusal("sig_invalid");
+  if (!ed25519Verify(pk, docMessage(o.tenant, o.env, docBytes), unhex(sig))) throw new Refusal("sig_invalid");
   let d: unknown;
   try { // R8.4
     d = strictParse(doc);
@@ -194,6 +198,7 @@ function verifyInner(body: Uint8Array, o: VerifyOptions): VerifiedDocument {
   if (!isJsonObject(d)) throw new Refusal("doc_malformed");
   if (!(own(d, "v") === SUPPORTED_DOCUMENT_V && own(d, "kind") === DOC_KIND)) throw new Refusal("doc_unsupported"); // R8.5
   if (own(d, "tenant") !== o.tenant) throw new Refusal("tenant_mismatch"); // R8.6
+  if (own(d, "env") !== o.env) throw new Refusal("env_mismatch"); // R8.6b
   const version = own(d, "version"); // R8.7
   if (!intIn(version, 0, MAX_SAFE)) throw new Refusal("version_invalid");
   const configDigest = sha256(docBytes).toString("hex");

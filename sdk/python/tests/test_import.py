@@ -54,5 +54,5 @@ def test_no_test_or_source_imports_the_reference():
 def test_public_surface():
     import seam_branchpoint as sb
 
-    assert sb.SUPPORTED_DOCUMENT_VERSION == 1
+    assert sb.SUPPORTED_DOCUMENT_VERSION == 2
     assert all(hasattr(sb, n) for n in sb.__all__)

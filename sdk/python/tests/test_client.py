@@ -10,7 +10,7 @@ import threading
 import time
 
 import pytest
-from _env import AUD, EID_HOLD, EID_SPLIT, SDK_KEY_ID, SDK_SEED, TENANT, make_env, ready
+from _env import AUD, ENV, EID_HOLD, EID_SPLIT, SDK_KEY_ID, SDK_SEED, TENANT, make_env, ready
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from seam_branchpoint import (
@@ -316,16 +316,43 @@ def test_outcome_for_the_wrong_experiment_is_refused_by_the_collector():
 
 # --- config -------------------------------------------------------------------------------------------------------------
 @pytest.mark.parametrize("kw", [
-    {"tenant": "bad tenant"}, {"audience": ""}, {"audience": 'a"b'}, {"sdk_key": "k"}, {"document_keys": []},
+    {"tenant": "bad tenant"}, {"env": ""}, {"env": "Live"}, {"env": "e\n"}, {"env": "e" * 33}, {"env": None},
+    {"audience": ""}, {"audience": 'a"b'}, {"sdk_key": "k"}, {"document_keys": []},
     {"cert_issuer_keys": []}, {"poll_interval_ms": 0}, {"max_staleness_ms": True}, {"max_document_bytes": 1.5},
 ])
 def test_config_errors(kw):
     env = make_env()
-    base = dict(tenant=TENANT, sdk_key=SdkKey.from_seed(SDK_KEY_ID, SDK_SEED), document_keys=[env.cp.doc_public_key],
+    base = dict(tenant=TENANT, env=ENV, sdk_key=SdkKey.from_seed(SDK_KEY_ID, SDK_SEED), document_keys=[env.cp.doc_public_key],
                 cert_issuer_keys=[env.cp.cert_public_key], transport=env.transport, audience=AUD)
     with pytest.raises(ConfigError) as ei:
         BranchpointClient(**{**base, **kw})
     assert SDK_SEED.hex() not in str(ei.value)
+
+
+def test_env_is_required_with_no_default():
+    env = make_env()
+    base = dict(tenant=TENANT, sdk_key=SdkKey.from_seed(SDK_KEY_ID, SDK_SEED), document_keys=[env.cp.doc_public_key],
+                cert_issuer_keys=[env.cp.cert_public_key], transport=env.transport, audience=AUD)
+    with pytest.raises(TypeError):
+        BranchpointClient(**base)  # type: ignore[call-arg]
+
+
+@pytest.mark.parametrize("served, reason", [("signature", "sig_invalid"), ("body", "env_mismatch")])
+def test_a_document_for_another_env_is_refused(served, reason):
+    env = make_env(publish=False)
+    if served == "signature":  # a document validly signed for another env (cross-env replay)
+        env.cp.publish([], env="e-other")
+    else:  # signed for our env, but its body names another (R8.6b)
+        from seam_branchpoint._fake import _compact
+        from seam_branchpoint.document import sign_document
+        db = _compact({"env": "e-other", "expires_at_ms": env.clock.wall() + 86_400_000, "experiments": [],
+                       "issued_at_ms": env.clock.wall() - 1_000, "kind": "branchpoint-sdk", "tenant": TENANT, "v": 2,
+                       "version": 1})
+        env.cp.serve(_compact(sign_document(env.cp.doc_key, TENANT, ENV, db)), None)
+    assert env.client.refresh_document() == "unverified"
+    s = env.client.stats()
+    assert s["document_refusal"] == reason
+    assert env.client.evaluate("checkout", "u").reason == "config_unavailable"
 
 
 # --- worker ---------------------------------------------------------------------------------------------------------

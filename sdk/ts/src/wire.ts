@@ -17,7 +17,7 @@ export const BUCKET_VERSION = "bpa1";
 export const CERT_DOMAIN = "seam.branchpoint.workload-cert.v1";
 export const RECEIPT_DOMAIN = "seam.branchpoint.receipt.v1";
 export const GENESIS_DOMAIN = "seam.branchpoint.chain-genesis.v1";
-export const DOC_DOMAIN = "seam.branchpoint.sdk-doc.v1\n";
+export const DOC_DOMAIN = "seam.branchpoint.sdk-doc.v2\n";
 export const BATCH_DOMAIN = "seam.branchpoint.upload-batch.v1\n";
 const BUCKET_PREFIX = "bpa1\n";
 const TAG_PREFIX = "bpa1-tag\n";
@@ -30,6 +30,8 @@ export const ULID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 export const VARIANT_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
 export const SDK_KEY_RE = /^bk_[0-9a-hjkmnp-tv-z]{26}$/;
 export const TENANT_RE = /^[A-Za-z0-9_-]{1,128}$/;
+/** The SDK document env label (§8): opaque, configured. */
+export const ENV_RE = /^[a-z][a-z0-9-]{0,31}$/;
 export const KEY_RE = /^[A-Za-z0-9_.:/-]{1,128}$/;
 export const KID_RE = /^[A-Za-z0-9_-]{43}$/;
 export const HEX8_RE = /^[0-9a-f]{8}$/;

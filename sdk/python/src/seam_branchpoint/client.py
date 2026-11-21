@@ -36,7 +36,7 @@ from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
-from ._wire import TENANT_RE, ConfigError, UlidGenerator, full, strict_loads, wall_ms
+from ._wire import ENV_RE, TENANT_RE, ConfigError, UlidGenerator, full, strict_loads, wall_ms
 from .auth import AUD_RE, SdkKey
 from .cert import Cert, CertRefused, check_pinned, pin_keys, raw_public_key, verify_cert_json
 from .chain import CHAIN_EXHAUSTED, ChainState
@@ -154,10 +154,11 @@ def _pins(name: str, keys: object) -> Mapping[str, Ed25519PublicKey]:
 
 
 class BranchpointClient:
-    """See the module docstring. All keyword arguments; the required ones are `tenant`, `sdk_key`, `document_keys`,
-    `cert_issuer_keys`, `transport` and `audience`. Clocks, randomness and the key factory are injectable."""
+    """See the module docstring. All keyword arguments; the required ones are `tenant`, `env`, `sdk_key`,
+    `document_keys`, `cert_issuer_keys`, `transport` and `audience`. `env` has no default: it names the (tenant, env)
+    document this client accepts (spec §8 R8.6b), and a default would hide a misconfigured deployment. Clocks, randomness and the key factory are injectable."""
 
-    def __init__(self, *, tenant: str, sdk_key: SdkKey, document_keys: Sequence[bytes | Ed25519PublicKey] | Mapping[str, Any],
+    def __init__(self, *, tenant: str, env: str, sdk_key: SdkKey, document_keys: Sequence[bytes | Ed25519PublicKey] | Mapping[str, Any],
                  cert_issuer_keys: Sequence[bytes | Ed25519PublicKey] | Mapping[str, Any], transport: Transport,
                  audience: str, poll_interval_ms: int = DEFAULT_POLL_INTERVAL_MS,
                  max_staleness_ms: int = DEFAULT_MAX_STALENESS_MS,
@@ -173,6 +174,8 @@ class BranchpointClient:
                  key_factory: Callable[[], Ed25519PrivateKey] = Ed25519PrivateKey.generate):
         if not full(TENANT_RE, tenant):
             raise ConfigError("tenant: outside [A-Za-z0-9_-]{1,128}")
+        if not full(ENV_RE, env):
+            raise ConfigError("env: outside [a-z][a-z0-9-]{0,31}")
         if not isinstance(sdk_key, SdkKey):
             raise ConfigError("sdk_key: expected an SdkKey")
         if not isinstance(audience, str) or not full(AUD_RE, audience):
@@ -181,7 +184,7 @@ class BranchpointClient:
                         ("max_document_bytes", max_document_bytes)):
             if type(v) is not int or v < 1:
                 raise ConfigError(f"{name}: a positive integer")
-        self._tenant, self._sdk_key, self._audience = tenant, sdk_key, audience
+        self._tenant, self._env, self._sdk_key, self._audience = tenant, env, sdk_key, audience
         self._doc_pins = _pins("document_keys", document_keys)
         self._issuer_pins = _pins("cert_issuer_keys", cert_issuer_keys)
         self._transport = transport
@@ -480,8 +483,8 @@ class BranchpointClient:
                 return "not_modified"
         if resp is not None and failure is None:
             try:
-                v = verify_document(resp.body, tenant=self._tenant, pinned=self._doc_pins, now_ms=self._wall(),
-                                    cached=mark, max_bytes=self._max_doc)
+                v = verify_document(resp.body, tenant=self._tenant, env=self._env, pinned=self._doc_pins,
+                                    now_ms=self._wall(), cached=mark, max_bytes=self._max_doc)
             except DocumentRefused as e:
                 self._doc_refusal = e.reason
                 failure = "unverified"

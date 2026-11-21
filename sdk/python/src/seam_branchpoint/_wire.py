@@ -23,7 +23,7 @@ TAG_DOMAIN = b"bpa1-tag\n"
 CERT_DOMAIN = b"seam.branchpoint.workload-cert.v1"
 RECEIPT_DOMAIN = b"seam.branchpoint.receipt.v1"
 GENESIS_DOMAIN = b"seam.branchpoint.chain-genesis.v1"
-DOC_DOMAIN = b"seam.branchpoint.sdk-doc.v1\n"
+DOC_DOMAIN = b"seam.branchpoint.sdk-doc.v2\n"
 BATCH_DOMAIN = b"seam.branchpoint.upload-batch.v1\n"
 BUCKET_VERSION = "bpa1"
 
@@ -35,6 +35,7 @@ ULID_RE = re.compile(r"[0-9A-HJKMNP-TV-Z]{26}")
 VARIANT_RE = re.compile(r"[A-Za-z0-9_.:-]{1,64}")
 SDK_KEY_RE = re.compile(r"bk_[0-9a-hjkmnp-tv-z]{26}")
 TENANT_RE = re.compile(r"[A-Za-z0-9_-]{1,128}")
+ENV_RE = re.compile(r"[a-z][a-z0-9-]{0,31}")  # the SDK document env label (§8): opaque, configured
 KEY_RE = re.compile(r"[A-Za-z0-9_.:/-]{1,128}")  # experiment key and decision_point (§8)
 KID_RE = re.compile(r"[A-Za-z0-9_-]{43}")
 SIG_HEX_RE = re.compile(r"[0-9a-f]{128}")

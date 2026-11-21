@@ -59,8 +59,8 @@ def _body(c: dict) -> bytes:
 def _run(c: dict) -> dict:
     cached = CacheMark(c["cached"]["version"], c["cached"]["config_digest"]) if c["cached"] else None
     try:
-        v = verify_document(_body(c), tenant=c.get("tenant", DOC["tenant"]), pinned=_pinned(), now_ms=c["now_ms"],
-                            cached=cached)
+        v = verify_document(_body(c), tenant=c.get("tenant", DOC["tenant"]), env=c.get("env", DOC["env"]),
+                            pinned=_pinned(), now_ms=c["now_ms"], cached=cached)
     except DocumentRefused as e:
         return {"outcome": "refused", "reason": e.reason}
     doc = v.document
@@ -79,9 +79,9 @@ def test_document_message_signature_digest_kid():
     cur = sk(DOC["doc_seed_hex"])
     db = d["doc_bytes"].encode("utf-8")
     assert raw_public_key(cur).hex() == DOC["doc_public_key_hex"]
-    assert doc_message(DOC["tenant"], db).hex() == d["message_hex"]
+    assert doc_message(DOC["tenant"], DOC["env"], db).hex() == d["message_hex"]
     assert sha256(db).hex() == d["config_digest"]
-    env = sign_document(cur, DOC["tenant"], db)
+    env = sign_document(cur, DOC["tenant"], DOC["env"], db)
     assert env == {"doc": d["doc_bytes"], "kid": d["kid"], "sig": d["sig"]}
     assert compact(env).decode("utf-8") == d["envelope"]
     assert key_id(raw_public_key(cur)) == d["kid"]
@@ -95,7 +95,7 @@ def test_document_case(case):
 def test_document_evaluations():
     """Every (experiment, unit) evaluation of the verified golden document."""
     d = DOC["document"]
-    v = verify_document(d["envelope"].encode("utf-8"), tenant=DOC["tenant"], pinned=_pinned(),
+    v = verify_document(d["envelope"].encode("utf-8"), tenant=DOC["tenant"], env=DOC["env"], pinned=_pinned(),
                         now_ms=DOC["cases"][0]["now_ms"])
     assert v.outcome == "accepted"
     assert d["evaluations"]

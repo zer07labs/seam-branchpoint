@@ -3,7 +3,8 @@
 - `Verifier`: the stateful half of spec §6 (seq, chain, duplicate ids, gaps) over the SDK's stateless `check_receipt`.
 - `Collector`: the §9.1 answers a conforming collector gives (R9.5), on top of `Verifier`.
 - `FakeCP`: the CP's two SDK routes (§10): it checks the SDK-key token (signature, audience, lifetime, `jti` replay),
-  serves a signed document with `304` on a matching `If-None-Match`, and issues workload certificates.
+  serves a signed v2 document for its one (tenant, env) with `304` on a matching `If-None-Match`, and issues workload
+  certificates.
 - `FakeCollector`: the collector route, verifying (`Collector`) or fast (accept everything, for throughput tests).
 - `FakeTransport`: the `Transport` interface over the two, with programmable failures and call counters.
 
@@ -146,16 +147,16 @@ def _pop(queue: deque) -> Any:
 def experiment_json(key: str, experiment_id: str, salt: bytes, arms: Iterable[tuple[str, int]] | None = None, *,
                     mode: str = "split", budget_bp: int = 0, state: str = "live", decision_point: str | None = None,
                     assigner: str = "sdk", variant_kind: str = "policy", payloads: bool = True) -> dict[str, Any]:
-    """One §8 experiment object (arms as `(variant_id, weight_bp)`; each arm's bundle payload is `{"v": id}`)."""
+    """One §8 experiment object (arms as `(variant_id, weight_bp)`; each arm's bundle payload is `{"v": id}`).
+    `decision_point` is required by the document (§8); it defaults to the key itself (an entry may share its own key)."""
     arms = list(arms if arms is not None else [("A", 10_000)])
     e: dict[str, Any] = {
         "arms": [{"bundle": {"content_digest": sha256(v.encode()).hex(), **({"payload": {"v": v}} if payloads else {})},
                   "variant_id": v, "weight_bp": w} for v, w in arms],
-        "assigner": assigner, "bucket_version": "bpa1", "budget_bp": budget_bp, "experiment_id": experiment_id,
+        "assigner": assigner, "bucket_version": "bpa1", "budget_bp": budget_bp,
+        "decision_point": key if decision_point is None else decision_point, "experiment_id": experiment_id,
         "key": key, "mode": mode, "salt_hex": salt.hex(), "salt_kid": salt_kid(salt), "state": state,
         "variant_kind": variant_kind}
-    if decision_point is not None:
-        e["decision_point"] = decision_point
     return e
 
 
@@ -163,11 +164,11 @@ class FakeCP:
     """The CP's SDK routes. `publish(experiments, version)` signs a new document; `script(route, ...)` queues
     answers (a `Response`, a `TransportError` to raise, or a callable) that take precedence over the real handler."""
 
-    def __init__(self, *, tenant: str, sdk_key_id: str, sdk_public_key: bytes, audience: str,
+    def __init__(self, *, tenant: str, env: str, sdk_key_id: str, sdk_public_key: bytes, audience: str,
                  doc_key: Ed25519PrivateKey | None = None, cert_key: Ed25519PrivateKey | None = None,
                  clock_ms: Callable[[], int] = wall_ms, cert_lifetime_ms: int = 3_600_000,
                  doc_lifetime_ms: int = 86_400_000, check_tokens: bool = True):
-        self.tenant, self.sdk_key_id, self.audience = tenant, sdk_key_id, audience
+        self.tenant, self.env, self.sdk_key_id, self.audience = tenant, env, sdk_key_id, audience
         self.sdk_pub = Ed25519PublicKey.from_public_bytes(bytes(sdk_public_key))
         self.doc_key = doc_key or Ed25519PrivateKey.generate()
         self.cert_key = cert_key or Ed25519PrivateKey.generate()
@@ -192,16 +193,18 @@ class FakeCP:
 
     def publish(self, experiments: list[dict[str, Any]], version: int | None = None, *, issued_at_ms: int | None = None,
                 expires_at_ms: int | None = None, key: Ed25519PrivateKey | None = None,
-                tenant: str | None = None) -> bytes:
-        """Sign and serve a document (version defaults to the next one). Returns the envelope body."""
+                tenant: str | None = None, env: str | None = None) -> bytes:
+        """Sign and serve a v2 document (version defaults to the next one) for this CP's (tenant, env), or for the
+        `tenant`/`env` given (both the body member and the signing input). Returns the envelope body."""
         self.version = self.version + 1 if version is None else version
         now = self.clock_ms()
         issued = now - 1_000 if issued_at_ms is None else issued_at_ms
         doc = {"expires_at_ms": issued + self.doc_lifetime_ms if expires_at_ms is None else expires_at_ms,
                "experiments": experiments, "issued_at_ms": issued, "kind": "branchpoint-sdk",
-               "tenant": tenant or self.tenant, "v": 1, "version": self.version}
+               "tenant": tenant or self.tenant, "env": env or self.env, "v": 2, "version": self.version}
         db = _compact(doc)
-        self.serve(_compact(sign_document(key or self.doc_key, tenant or self.tenant, db)), sha256(db).hex())
+        self.serve(_compact(sign_document(key or self.doc_key, tenant or self.tenant, env or self.env, db)),
+                   sha256(db).hex())
         return self.document_body  # type: ignore[return-value]
 
     def serve(self, body: bytes | None, etag: str | None) -> None:

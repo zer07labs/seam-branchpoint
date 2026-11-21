@@ -24,10 +24,11 @@ const SK = privateKeyFromSeed(fromHex(dg.doc_seed_hex));
 const pinned = pinKeys([rawPublicKey(SK)]);
 const NOW = dg.cases[0].now_ms as number;
 const TENANT = dg.tenant as string;
+const ENV = dg.env as string;
 const baseDoc = (): G => JSON.parse(dg.document.doc_bytes);
 
 const verify = (body: Uint8Array, extra: object = {}): DocumentResult =>
-  verifyDocument(body, { tenant: TENANT, pinned, nowMs: NOW, ...extra });
+  verifyDocument(body, { tenant: TENANT, env: ENV, pinned, nowMs: NOW, ...extra });
 
 function accepted(r: DocumentResult): VerifiedDocument {
   assert.notEqual(r.outcome, "refused", JSON.stringify(r));
@@ -36,7 +37,7 @@ function accepted(r: DocumentResult): VerifiedDocument {
 
 describe("signDocument / verifyDocument", () => {
   test("round trip; the digest is over the exact signed doc bytes", () => {
-    const r = accepted(verify(signDocument(SK, TENANT, dg.document.doc_bytes)));
+    const r = accepted(verify(signDocument(SK, TENANT, ENV, dg.document.doc_bytes)));
     assert.equal(r.configDigest, dg.document.config_digest);
     assert.equal(r.version, 7);
     assert.equal(r.issuedAtMs, 1762560000000);
@@ -44,17 +45,82 @@ describe("signDocument / verifyDocument", () => {
   });
 
   test("signDocument refuses a doc with no UTF-8 encoding", () => {
-    assert.throws(() => signDocument(SK, TENANT, '{"a":"\ud800"}'), TypeError);
+    assert.throws(() => signDocument(SK, TENANT, ENV, '{"a":"\ud800"}'), TypeError);
   });
 
   test("tenant grammar is checked before the signature (tenant_invalid)", () => {
-    const env = signDocument(SK, "T bad", dg.document.doc_bytes);
-    assert.deepEqual(verifyDocument(env, { tenant: "T bad", pinned, nowMs: NOW }),
+    const env = signDocument(SK, "T bad", ENV, dg.document.doc_bytes);
+    assert.deepEqual(verifyDocument(env, { tenant: "T bad", env: ENV, pinned, nowMs: NOW }),
       { outcome: "refused", reason: "tenant_invalid" });
+    assert.deepEqual(verifyDocument(env, { tenant: "T bad", env: "BAD", pinned, nowMs: NOW }),
+      { outcome: "refused", reason: "tenant_invalid" }, "the tenant check runs first");
+  });
+
+  test("env grammar is checked before the signature (env_invalid)", () => {
+    for (const bad of ["", "E-unit", "e_unit", "e.unit", "e unit", "e-unit\n", "1e", "-e", "e".repeat(33), "\u00e9"]) {
+      const d = baseDoc();
+      d.env = bad;
+      const env = signDocument(SK, TENANT, bad, JSON.stringify(d)); // validly signed for it: only the grammar refuses
+      assert.deepEqual(verify(env, { env: bad }), { outcome: "refused", reason: "env_invalid" }, JSON.stringify(bad));
+    }
+    for (const good of ["e", "e".repeat(32), "a0-", "live", "sandbox", "prod-eu-1"]) {
+      const d = baseDoc();
+      d.env = good;
+      assert.equal(verify(signDocument(SK, TENANT, good, JSON.stringify(d)), { env: good }).outcome, "accepted", good);
+    }
+  });
+
+  test("the signature binds the env: a document for another env is sig_invalid (cross-env replay)", () => {
+    assert.deepEqual(verify(signDocument(SK, TENANT, ENV, dg.document.doc_bytes), { env: "e-other" }),
+      { outcome: "refused", reason: "sig_invalid" });
+    const d = baseDoc();
+    d.env = "e-other";
+    assert.deepEqual(verify(signDocument(SK, TENANT, "e-other", JSON.stringify(d))),
+      { outcome: "refused", reason: "sig_invalid" });
+  });
+
+  test("the body env must equal the configured env (env_mismatch, R8.6b, after tenant_mismatch)", () => {
+    for (const v of ["e-other", 7, null, undefined]) {
+      const d = baseDoc();
+      d.env = v;
+      assert.deepEqual(verify(signDocument(SK, TENANT, ENV, JSON.stringify(d))),
+        { outcome: "refused", reason: "env_mismatch" }, String(v));
+    }
+    const d = baseDoc();
+    d.env = "e-other";
+    d.tenant = "t-other";
+    assert.deepEqual(verify(signDocument(SK, TENANT, ENV, JSON.stringify(d))),
+      { outcome: "refused", reason: "tenant_mismatch" });
+  });
+
+  test("v1 is retired: a v:1 body is doc_unsupported", () => {
+    for (const v of [1, 3, "2", true]) {
+      const d = baseDoc();
+      d.v = v;
+      assert.deepEqual(verify(signDocument(SK, TENANT, ENV, JSON.stringify(d))),
+        { outcome: "refused", reason: "doc_unsupported" }, String(v));
+    }
+  });
+
+  test("a missing decision_point marks only that experiment config_invalid", () => {
+    const d = baseDoc();
+    delete d.experiments[1].decision_point;
+    const r = accepted(verify(signDocument(SK, TENANT, ENV, JSON.stringify(d))));
+    assert.deepEqual({ ...r.status }, { "checkout-flow": "ok", "ranker-holdout": CONFIG_INVALID });
+    assert.equal(lookupExperiment(r, "ranker-holdout")!.decisionPoint, null);
+  });
+
+  test("lookup ambiguity (R8.10) is per document: another env may reuse a key and decision_point", () => {
+    for (const e of [ENV, "e-other"]) {
+      const d = baseDoc();
+      d.env = e;
+      const r = accepted(verify(signDocument(SK, TENANT, e, JSON.stringify(d)), { env: e }));
+      assert.equal(lookupExperiment(r, "dp:checkout")!.key, "checkout-flow");
+    }
   });
 
   test("maxBytes option lowers the R8.1 cap, checked before parsing", () => {
-    const env = signDocument(SK, TENANT, dg.document.doc_bytes);
+    const env = signDocument(SK, TENANT, ENV, dg.document.doc_bytes);
     assert.equal(verify(env, { maxBytes: env.length }).outcome, "accepted");
     assert.deepEqual(verify(env, { maxBytes: env.length - 1 }), { outcome: "refused", reason: "document_too_large" });
     assert.deepEqual(verify(Buffer.from("not json at all"), { maxBytes: 3 }),
@@ -64,17 +130,17 @@ describe("signDocument / verifyDocument", () => {
   test("one bad experiment is config_invalid while the rest of the document is served", () => {
     const d = baseDoc();
     d.experiments[1].mode = "bandit";
-    const r = accepted(verify(signDocument(SK, TENANT, JSON.stringify(d))));
+    const r = accepted(verify(signDocument(SK, TENANT, ENV, JSON.stringify(d))));
     assert.deepEqual({ ...r.status }, { "checkout-flow": "ok", "ranker-holdout": CONFIG_INVALID });
     assert.equal(evaluate(lookupExperiment(r, "ranker-holdout")!, "u").reason, CONFIG_INVALID);
     assert.equal(evaluate(lookupExperiment(r, "checkout-flow")!, "u").outcome, "variant");
   });
 
   test("a malformed decision_point is config_invalid and is never a lookup key (null, as in Python)", () => {
-    for (const dp of ["", "dp:\u00e9", 7, null, "x".repeat(129), "dp checkout"]) {
+    for (const dp of ["", "dp:\u00e9", 7, null, undefined, "x".repeat(129), "dp checkout"]) {
       const d = baseDoc();
       d.experiments[0].decision_point = dp;
-      const r = accepted(verify(signDocument(SK, TENANT, JSON.stringify(d))));
+      const r = accepted(verify(signDocument(SK, TENANT, ENV, JSON.stringify(d))));
       assert.equal(r.status["checkout-flow"], CONFIG_INVALID, JSON.stringify(dp));
       assert.equal(lookupExperiment(r, "checkout-flow")!.decisionPoint, null);
       if (typeof dp === "string") assert.equal(lookupExperiment(r, dp), undefined);
@@ -82,7 +148,7 @@ describe("signDocument / verifyDocument", () => {
     }
   });
   test("a non-finite clock fails closed: expired, and stale", () => {
-    const env = signDocument(SK, TENANT, dg.document.doc_bytes);
+    const env = signDocument(SK, TENANT, ENV, dg.document.doc_bytes);
     for (const nowMs of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
       assert.deepEqual(verify(env, { nowMs }), { outcome: "refused", reason: "expired" }, String(nowMs));
       assert.equal(isStale(0, nowMs, 2 ** 52), true, String(nowMs));
@@ -93,10 +159,10 @@ describe("signDocument / verifyDocument", () => {
 });
 
 describe("cache (R8.11)", () => {
-  const v7 = signDocument(SK, TENANT, dg.document.doc_bytes);
+  const v7 = signDocument(SK, TENANT, ENV, dg.document.doc_bytes);
   const d8 = baseDoc();
   d8.version = 8;
-  const v8 = signDocument(SK, TENANT, JSON.stringify(d8));
+  const v8 = signDocument(SK, TENANT, ENV, JSON.stringify(d8));
 
   test("accepted replaces the cache; unchanged keeps it; a refusal never touches it", () => {
     let cache = refreshCache(null, verify(v7));
@@ -116,13 +182,14 @@ describe("cache (R8.11)", () => {
 });
 
 describe("lookup and payloads", () => {
-  const r = accepted(verify(signDocument(SK, TENANT, dg.document.doc_bytes)));
+  const r = accepted(verify(signDocument(SK, TENANT, ENV, dg.document.doc_bytes)));
 
   test("by key, then by decision_point; unknown is undefined", () => {
     const byKey = lookupExperiment(r, "checkout-flow")!;
     assert.equal(lookupExperiment(r, "dp:checkout"), byKey);
     assert.equal(byKey.decisionPoint, "dp:checkout");
-    assert.equal(lookupExperiment(r, "ranker-holdout")!.decisionPoint, null);
+    assert.equal(lookupExperiment(r, "ranker-holdout")!.decisionPoint, "dp:ranker");
+    assert.equal(lookupExperiment(r, "dp:ranker")!.key, "ranker-holdout");
     assert.equal(lookupExperiment(r, "nope"), undefined);
     assert.equal(lookupExperiment(r, "__proto__"), undefined);
   });
@@ -141,7 +208,7 @@ describe("lookup and payloads", () => {
     d.experiments[0].arms[0].bundle.payload = JSON.parse('{"__proto__":{"polluted":true},"n":1}');
     const text = JSON.stringify(d);
     assert.ok(text.includes('"__proto__"'));
-    const r2 = accepted(verify(signDocument(SK, TENANT, text)));
+    const r2 = accepted(verify(signDocument(SK, TENANT, ENV, text)));
     const p = lookupExperiment(r2, "checkout-flow")!.arms[0]!.payload as Record<string, unknown>;
     assert.ok(Object.hasOwn(p, "__proto__"));
     assert.equal((p as { polluted?: unknown }).polluted, undefined);
@@ -150,7 +217,7 @@ describe("lookup and payloads", () => {
 });
 
 describe("properties", () => {
-  const env = signDocument(SK, TENANT, dg.document.doc_bytes);
+  const env = signDocument(SK, TENANT, ENV, dg.document.doc_bytes);
 
   test("no single-byte mutation of a signed envelope is accepted as a different document", () => {
     let s = 12345;
