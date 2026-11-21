@@ -30,7 +30,7 @@ implementations under `reference/`.
 | Module | What it gives you |
 |---|---|
 | `evaluate` | `prepareExperiment` (validates once at ingest) and `evaluate(def, unit)`. `evaluate` is synchronous and returns `variant`, `held_out` or a `default` with its fail-soft reason. A unit with no UTF-8 encoding (a lone surrogate) gives `invalid_unit`. |
-| `document` | `verifyDocument(body, {tenant, pinned, nowMs, cached?, maxBytes?})` runs §8 R8.1–R8.10 in order. A refusal names the first rule that failed. `refreshCache` (R8.11), `lookupExperiment` (by key, then decision_point) and `isStale` (R8.12) are also here. The supported document `v` is **1**. |
+| `document` | `verifyDocument(body, {tenant, env, pinned, nowMs, cached?, maxBytes?})` runs §8 R8.1–R8.10 in order. A refusal names the first rule that failed. `refreshCache` (R8.11), `lookupExperiment` (by key, then decision_point) and `isStale` (R8.12) are also here. The supported document `v` is **2** (`SUPPORTED_DOCUMENT_V`), signed for one (tenant, env) over `"seam.branchpoint.sdk-doc.v2\n" ‖ tenant ‖ "\n" ‖ env ‖ "\n" ‖ doc_bytes` and fetched from `GET {cp}/v2/branchpoint/sdk/document`. Any other `v` (the retired `v` = 1 included) is `doc_unsupported`. The env refusals are `env_invalid` (the configured env fails `[a-z][a-z0-9-]{0,31}`, before the signature) and `env_mismatch` (R8.6b: the signed body names another env); a document signed for another env is `sig_invalid`. An experiment without a `decision_point` is `config_invalid`; the rest of the document still serves. |
 | `cert` | The workload certificate (`buildWcert`, `parseWcert`, `verifyCertEnvelope`, `checkIssuedCert`) and `WorkloadKey`. `WorkloadKey`'s private key never leaves the object. |
 | `chain` | `ChainState`: one head per (cert_digest, experiment_id) scope. `append` refuses an invalid or non-live definition and an evaluation not of that definition (experiment_id, bucket, variant, propensity), grammar-checks the receipt id (injected generators included), and returns an **unsigned** `ReceiptRecord` (canonical, hash, seq). After seq 2^53−1 a scope is exhausted and `append` returns `null`. `signReceipt(record, key)` signs separately, at flush. `checkReceipt` is the validating §6 stateless check; `buildCanonical` is byte-equal to JCS. Also the R9.4 outcomes (`makeOutcome`, `outcomeOk`), the batch (`buildBatch`, `signBatch` → `batch_sig_hex`, `batchBody`, `batchShapeOk`) and the collector answer (`sdkDisposition`). |
 | `auth` | The §10 SDK-key token (`sdkKeyToken`, and `SdkKey.token()` with a fresh 16-byte jti per call), `DEFAULT_ROUTES` and `cpDisposition`. A bad kid, `aud` (must match `AUD_RE`: 1–256 visible ASCII, no `"` or `\`), iat or jti throws `TokenInputError` before anything is signed. |
@@ -72,6 +72,7 @@ import { BranchpointClient, HttpTransport } from "@zer07labs/seam-branchpoint";
 
 const client = new BranchpointClient({
   tenant: "acme-prod",
+  env: "staging",                          // required, no default: the env the document is signed for
   sdkKeyId, sdkKeySeed,                    // the SDK key (bk_…) and its 32-byte Ed25519 seed
   documentKeys: [docKeyHex],               // pinned SDK-document keys (current + previous)
   certIssuerKeys: [issuerKeyHex],          // pinned certificate-issuer keys
@@ -116,6 +117,7 @@ immutable snapshot swapped by reference, chain state needs no lock, and receipts
 
 | Option | Default | |
 |---|---|---|
+| `env` | required (no default) | The env label the document must be signed for, `[a-z][a-z0-9-]{0,31}` (else `RangeError`). A document for another env is refused (`sig_invalid` / `env_mismatch`). |
 | `pollIntervalMs` | 60 000 | Document poll, ±10 % jitter; while there is no document, full-jitter backoff capped at the interval. |
 | `maxStalenessMs` | 600 000 | R8.12 staleness on the monotonic clock. |
 | `maxDocumentBytes` | 1 MiB | R8.1 cap. |

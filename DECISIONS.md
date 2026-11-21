@@ -227,3 +227,31 @@ and by both `--check`s. `SdkGolden.test_as0_group_untouched` asserts that the co
 keeps both. `PYPI_API_TOKEN` and `NPM_TOKEN` stay: `release.yml` uses them. The README row for 0.0.0 stays, because
 the reservations are still published (PyPI `0.0.0`, npm `0.0.0-stage`) and the table documents what each published
 version reads.
+
+## Flows W1 (2026-11-21)
+
+### Flows: env-scoped document v2
+Flows target plan `branchpoint.md` SB-A1/A2/A3/A5/A6, C1–C5, C9, C10, R2; §4 B1, B3.
+- **The document is signed for one (tenant, env).** The message is `"seam.branchpoint.sdk-doc.v2\n" ‖ tenant ‖ "\n" ‖
+  env ‖ "\n" ‖ doc_bytes`, and the body carries `env` (R8.6b `env_mismatch`). An env is a trust boundary: a document
+  published for one env, replayed against a client configured for another, must fail closed, so the env is in the
+  signed bytes (cross-env replay is `sig_invalid`) and in the body (a CP bug naming the wrong env is caught after the
+  signature). `version` is strictly increasing per (tenant, env), since each env has its own document stream.
+- **`env` is an opaque label, `[a-z][a-z0-9-]{0,31}`.** It is checked before the signature (R8.3 `env_invalid`,
+  after `tenant_invalid`), for the same reason as the tenant: no `\n` can be smuggled into the domain-separated
+  message. The spec names no env values; which ones a control plane serves is its decision. The SDKs take `env` as a
+  required argument with no default, so a client can never silently trust a document for an env it did not name.
+- **The flow id is not signed.** A flow is a reporting and governance grouping above decision points, not a trust
+  boundary for what a client may evaluate. Putting `flow_ref` in the document signing input, a receipt, a certificate
+  or an HMAC input would tie attested evidence to a grouping that can be re-drawn, and would change receipt bytes for
+  no security gain. Attested rows reach a flow by a stamp beside the row or by the join experiment → decision point →
+  namespace → flow (`docs/mapping.md`).
+- **`decision_point` is required.** The flow join needs it; a missing one makes that entry `config_invalid` (the
+  existing per-experiment fail-soft row), never a document refusal, so one bad entry cannot take a tenant's whole
+  document down. `config_digest` is unchanged (sha256 of `doc_bytes`).
+- **v1 dropped, no compatibility (owner ruling 8).** No SDK verifies `….sdk-doc.v1`; a `v: 1` body is
+  `doc_unsupported`. The v1 domain is retired and never reused. The document route moves to `/v2`; the certificate
+  and receipt routes, receipts, certificates, the batch and the token are unchanged. No shim: a dual-version SDK would
+  keep the env-unbound v1 path alive as a downgrade target.
+- **Goldens re-pinned:** only `sdk_document_golden.json` and `sdk_key_token_golden.json` changed (the token golden
+  carries the document route). The manifest moves only through the hub's re-vendor PR.
