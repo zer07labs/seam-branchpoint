@@ -475,8 +475,11 @@ const DOC_EXPECT: Record<string, string> = {
   kid_short: "envelope_malformed", oversized: "document_too_large", at_cap: "accepted", tenant_newline: "tenant_invalid",
   unknown_kid: "kid_unknown", forged_sig: "sig_invalid",
   wrong_tenant: "sig_invalid", wrong_domain: "sig_invalid", doc_duplicate_member: "doc_malformed",
-  doc_not_object: "doc_malformed", v2: "doc_unsupported", wrong_kind: "doc_unsupported",
-  body_tenant_mismatch: "tenant_mismatch", version_too_large: "version_invalid", version_not_integer: "version_invalid",
+  doc_not_object: "doc_malformed", v1_retired: "doc_unsupported", v3: "doc_unsupported", wrong_kind: "doc_unsupported",
+  body_tenant_mismatch: "tenant_mismatch", cross_env_replay: "sig_invalid", env_newline: "env_invalid",
+  env_uppercase: "env_invalid", env_empty: "env_invalid", env_too_long: "env_invalid", env_leading_digit: "env_invalid",
+  env_max_length: "accepted", body_env_mismatch: "env_mismatch", body_env_missing: "env_mismatch",
+  same_keys_other_env_document: "accepted", missing_decision_point: "accepted", version_too_large: "version_invalid", version_not_integer: "version_invalid",
   rollback: "rollback", version_conflict: "version_conflict", window_invalid: "window_invalid", expired: "expired",
   experiments_not_array: "doc_malformed", unindexable_missing_key: "unindexable",
   unindexable_experiment_id: "unindexable", duplicate_key: "ambiguous_lookup",
@@ -527,7 +530,8 @@ describe("sdk document (§8)", () => {
   const g = sdkLoad("sdk_document_golden.json");
   const pinned = new Map<string, Buffer>(Object.entries(g.pinned_doc_keys).map(([k, v]) => [k, bp.unhex(v)]));
   const by: Record<string, any> = Object.fromEntries(g.cases.map((c: any) => [c.name, c]));
-  const run = (c: any): any => bp.verifyDocument(bp.docCaseBody(c), c.tenant ?? g.tenant, pinned, c.now_ms, c.cached);
+  const run = (c: any): any =>
+    bp.verifyDocument(bp.docCaseBody(c), c.tenant ?? g.tenant, c.env ?? g.env, pinned, c.now_ms, c.cached);
 
   test("every case has its named outcome", () => {
     assert.deepEqual(Object.keys(by).sort(), Object.keys(DOC_EXPECT).sort());
@@ -540,7 +544,7 @@ describe("sdk document (§8)", () => {
 
   test("experiment-level failures mark only that experiment", () => {
     for (const [name, bad] of [["unknown_enum", "checkout-flow"], ["bad_salt_hex", "ranker-holdout"],
-      ["bad_arm_bundle", "ranker-holdout"]]) {
+      ["bad_arm_bundle", "ranker-holdout"], ["missing_decision_point", "ranker-holdout"]]) {
       const ex = run(by[name]).experiments;
       assert.equal(ex[bad], "config_invalid", name);
       for (const k of Object.keys(ex)) if (k !== bad) assert.equal(ex[k], "ok", name);
@@ -550,7 +554,10 @@ describe("sdk document (§8)", () => {
   test("positive document: message, digest, envelope, pinned keys, non-ASCII payload", () => {
     const doc = g.document;
     const db = Buffer.from(doc.doc_bytes, "utf8");
-    assert.ok(bp.unhex(doc.message_hex).equals(Buffer.concat([Buffer.from("seam.branchpoint.sdk-doc.v1\nt-golden\n"), db])));
+    assert.ok(bp.unhex(doc.message_hex).equals(Buffer.concat([Buffer.from("seam.branchpoint.sdk-doc.v2\nt-golden\ne-golden\n"), db])));
+    const parsed = JSON.parse(doc.doc_bytes);
+    assert.deepEqual([parsed.v, parsed.env], [2, g.env]);
+    assert.ok(parsed.experiments.every((e: any) => typeof e.decision_point === "string"), "decision_point required");
     assert.equal(doc.config_digest, createHash("sha256").update(db).digest("hex"));
     assert.deepEqual(JSON.parse(doc.envelope), { doc: doc.doc_bytes, kid: doc.kid, sig: doc.sig });
     assert.equal(pinned.size, 2);
@@ -569,8 +576,8 @@ describe("sdk document (§8)", () => {
   test("size cap applies before parsing", () => {
     const env = Buffer.from(by.valid.envelope, "utf8");
     const atCap = Buffer.concat([env, Buffer.alloc(bp.DOC_MAX_BYTES - env.length, 0x20)]);
-    assert.equal(bp.verifyDocument(atCap, bp.TENANT, pinned, bp.DOC_NOW_MS).outcome, "accepted");
-    assert.deepEqual({ ...bp.verifyDocument(Buffer.concat([atCap, Buffer.from(" ")]), bp.TENANT, pinned, bp.DOC_NOW_MS) },
+    assert.equal(bp.verifyDocument(atCap, bp.TENANT, bp.ENV, pinned, bp.DOC_NOW_MS).outcome, "accepted");
+    assert.deepEqual({ ...bp.verifyDocument(Buffer.concat([atCap, Buffer.from(" ")]), bp.TENANT, bp.ENV, pinned, bp.DOC_NOW_MS) },
       { outcome: "refused", reason: "document_too_large" });
   });
 
@@ -586,22 +593,59 @@ describe("sdk document (§8)", () => {
     const c = by.tenant_newline;
     assert.ok(c.tenant.includes("\n"));
     const env = JSON.parse(c.envelope);
-    assert.ok(bp.edOk(pinned.get(env.kid)!, bp.docMessage(c.tenant, Buffer.from(env.doc, "utf8")), bp.unhex(env.sig)));
+    assert.ok(bp.edOk(pinned.get(env.kid)!, bp.docMessage(c.tenant, g.env, Buffer.from(env.doc, "utf8")),
+      bp.unhex(env.sig)));
     for (const bad of ["", "t".repeat(129), "t.golden", "t golden", "t-golden\n", "tënant"]) {
-      assert.equal(bp.verifyDocument(Buffer.from(by.valid.envelope, "utf8"), bad, pinned, bp.DOC_NOW_MS).reason,
-        "tenant_invalid", JSON.stringify(bad));
+      for (const e of [bp.ENV, "E"]) { // the tenant grammar runs first, even with a bad env
+        assert.equal(bp.verifyDocument(Buffer.from(by.valid.envelope, "utf8"), bad, e, pinned, bp.DOC_NOW_MS).reason,
+          "tenant_invalid", JSON.stringify(bad));
+      }
     }
+  });
+
+  test("env grammar is checked before the signature", () => {
+    for (const name of ["env_newline", "env_uppercase", "env_empty", "env_too_long", "env_leading_digit"]) {
+      const c = by[name];
+      const env = JSON.parse(c.envelope);
+      assert.ok(bp.edOk(pinned.get(env.kid)!, bp.docMessage(g.tenant, c.env, Buffer.from(env.doc, "utf8")),
+        bp.unhex(env.sig)), name);
+    }
+    assert.ok(by.env_newline.env.includes("\n"));
+    assert.deepEqual([by.env_too_long.env.length, by.env_max_length.env.length], [33, 32]);
+    for (const bad of ["a.b", "a_b", "a b", "ä", "-a"]) {
+      assert.equal(bp.verifyDocument(Buffer.from(by.valid.envelope, "utf8"), bp.TENANT, bad, pinned, bp.DOC_NOW_MS).reason,
+        "env_invalid", JSON.stringify(bad));
+    }
+  });
+
+  test("env is bound by the signature and the body", () => {
+    const valid = Buffer.from(by.valid.envelope, "utf8");
+    assert.equal(bp.verifyDocument(valid, bp.TENANT, bp.OTHER_ENV, pinned, bp.DOC_NOW_MS).reason, "sig_invalid");
+    const replay = by.cross_env_replay;
+    assert.equal(JSON.parse(JSON.parse(replay.envelope).doc).env, bp.OTHER_ENV);
+    assert.equal(bp.verifyDocument(Buffer.from(replay.envelope, "utf8"), bp.TENANT, bp.OTHER_ENV, pinned, bp.DOC_NOW_MS)
+      .outcome, "accepted");
+  });
+
+  test("lookup ambiguity (R8.10) is per document, so per env", () => {
+    const same = by.same_keys_other_env_document;
+    const golden = JSON.parse(g.document.doc_bytes).experiments;
+    const other = JSON.parse(JSON.parse(same.envelope).doc).experiments;
+    assert.deepEqual(other.map((e: any) => [e.key, e.decision_point]), golden.map((e: any) => [e.key, e.decision_point]));
+    const ids = new Set(golden.map((e: any) => e.experiment_id));
+    assert.ok(other.every((e: any) => !ids.has(e.experiment_id)));
+    assert.equal(run(same).outcome, "accepted");
   });
 
   test("envelope bytes must be UTF-8 (a BOM or invalid byte is an envelope refusal)", () => {
     const env = Buffer.from(by.valid.envelope, "utf8");
     for (const raw of [Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), env]),
       Buffer.from(by.valid.envelope.replace("concise", "conc\u0000se"), "utf8")]) {
-      assert.equal(bp.verifyDocument(raw, bp.TENANT, pinned, bp.DOC_NOW_MS).reason, "envelope_malformed");
+      assert.equal(bp.verifyDocument(raw, bp.TENANT, bp.ENV, pinned, bp.DOC_NOW_MS).reason, "envelope_malformed");
     }
     const bad = Buffer.from(env);
     bad[bad.indexOf("concise")] = 0xff;
-    assert.equal(bp.verifyDocument(bad, bp.TENANT, pinned, bp.DOC_NOW_MS).reason, "envelope_malformed");
+    assert.equal(bp.verifyDocument(bad, bp.TENANT, bp.ENV, pinned, bp.DOC_NOW_MS).reason, "envelope_malformed");
   });
 
   test("unknown enum keeps the fail-soft row order", () => {
