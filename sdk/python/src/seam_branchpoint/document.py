@@ -1,6 +1,6 @@
 """The signed `branchpoint-sdk` document (spec §8): envelope verification R8.1–R8.10 in order, the per-experiment
 parse into `ExperimentDef`, the cache mark (R8.11) and freshness (R8.12). Pure: the caller supplies the body, the
-configured tenant, the pinned keys and the clocks."""
+configured tenant and env, the pinned keys and the clocks."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey,
 
 from ._wire import (
     DOC_DOMAIN,
+    ENV_RE,
     HEX64_RE,
     KEY_RE,
     KID_RE,
@@ -30,7 +31,7 @@ from ._wire import (
 from .cert import key_id, public_key, raw_public_key
 from .evaluate import ASSIGNERS, MODES, STATES, UNSPECIFIED, VARIANT_KINDS, Arm, ExperimentDef
 
-SUPPORTED_DOCUMENT_VERSION = 1  # the `v` this SDK release reads (spec §7)
+SUPPORTED_DOCUMENT_VERSION = 2  # the `v` this SDK release reads (spec §7); v1 is retired and never read
 DOC_KIND = "branchpoint-sdk"
 DEFAULT_MAX_DOCUMENT_BYTES = 4 * 1024 * 1024  # R8.1
 EXPIRY_SKEW_MS = 300_000  # R8.9 / R8.12
@@ -44,20 +45,21 @@ _ENUMS: dict[str, tuple[str, ...]] = {"mode": MODES, "state": STATES, "assigner"
 
 
 class DocumentRefused(Refusal):
-    """A §8 refusal: `document_too_large`, `envelope_malformed`, `kid_unknown`, `tenant_invalid`, `sig_invalid`,
-    `doc_malformed`, `doc_unsupported`, `tenant_mismatch`, `version_invalid`, `rollback`, `version_conflict`,
-    `window_invalid`, `expired`, `unindexable` or `ambiguous_lookup`. The cache stays as it was (R8.11)."""
+    """A §8 refusal: `document_too_large`, `envelope_malformed`, `kid_unknown`, `tenant_invalid`, `env_invalid`,
+    `sig_invalid`, `doc_malformed`, `doc_unsupported`, `tenant_mismatch`, `env_mismatch`, `version_invalid`,
+    `rollback`, `version_conflict`, `window_invalid`, `expired`, `unindexable` or `ambiguous_lookup`. The cache stays
+    as it was (R8.11)."""
 
 
-def doc_message(tenant: str, doc_bytes: bytes) -> bytes:
-    """`"seam.branchpoint.sdk-doc.v1\\n" ‖ tenant ‖ "\\n" ‖ doc_bytes`: the signed message (R8.3)."""
-    return DOC_DOMAIN + tenant.encode("utf-8") + b"\n" + doc_bytes
+def doc_message(tenant: str, env: str, doc_bytes: bytes) -> bytes:
+    """`"seam.branchpoint.sdk-doc.v2\\n" ‖ tenant ‖ "\\n" ‖ env ‖ "\\n" ‖ doc_bytes`: the signed message (R8.3)."""
+    return DOC_DOMAIN + tenant.encode("utf-8") + b"\n" + env.encode("utf-8") + b"\n" + doc_bytes
 
 
-def sign_document(doc_key: Ed25519PrivateKey, tenant: str, doc_bytes: bytes) -> dict[str, str]:
+def sign_document(doc_key: Ed25519PrivateKey, tenant: str, env: str, doc_bytes: bytes) -> dict[str, str]:
     """The CP side, for fakes and tests: the envelope object `{doc, kid, sig}`."""
     return {"doc": doc_bytes.decode("utf-8"), "kid": key_id(raw_public_key(doc_key)),
-            "sig": doc_key.sign(doc_message(tenant, doc_bytes)).hex()}
+            "sig": doc_key.sign(doc_message(tenant, env, doc_bytes)).hex()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +76,7 @@ class Document:
     `decision_point` to the same definitions (unique across both, R8.10)."""
 
     tenant: str
+    env: str
     version: int
     issued_at_ms: int
     expires_at_ms: int
@@ -103,7 +106,7 @@ def parse_experiment(e: dict[str, Any]) -> ExperimentDef:
     row order still decides the reason (a paused experiment with an unknown mode is `paused`)."""
     bad = not full(KEY_RE, e["key"])
     dp = e.get("decision_point")
-    if "decision_point" in e and not full(KEY_RE, dp):
+    if not full(KEY_RE, dp):  # required (§8): a missing or unreadable decision_point marks the experiment malformed
         bad, dp = True, None
     en = {k: (v if isinstance(v := e.get(k), str) and v in allowed else UNSPECIFIED) for k, allowed in _ENUMS.items()}
     bv = e.get("bucket_version")
@@ -143,6 +146,7 @@ def verify_document(
     body: bytes,
     *,
     tenant: str,
+    env: str,
     pinned: Mapping[str, bytes | Ed25519PublicKey],
     now_ms: int,
     cached: CacheMark | None = None,
@@ -150,28 +154,30 @@ def verify_document(
 ) -> VerifiedDocument:
     """Spec §8 R8.1–R8.10, in order; the first failure raises DocumentRefused with its reason.
 
-    `tenant` is the configured tenant, `pinned` maps document key ids to public keys (current + previous),
+    `tenant` and `env` are the configured tenant and env, `pinned` maps document key ids to public keys (current + previous),
     `now_ms` is the local wall clock, `cached` is the mark of the document held (None on a cold start).
     """
     body = bytes(body)
     if len(body) > max_bytes:  # R8.1, before parsing
         raise DocumentRefused("document_too_large")
     try:  # R8.1 envelope
-        env = strict_loads(body)
-        if not isinstance(env, dict) or env.keys() != {"doc", "kid", "sig"}:
+        envl = strict_loads(body)
+        if not isinstance(envl, dict) or envl.keys() != {"doc", "kid", "sig"}:
             raise ValueError("envelope members")
-        if not isinstance(env["doc"], str) or not full(SIG_HEX_RE, env["sig"]) or not full(KID_RE, env["kid"]):
+        if not isinstance(envl["doc"], str) or not full(SIG_HEX_RE, envl["sig"]) or not full(KID_RE, envl["kid"]):
             raise ValueError("envelope types")
-        doc_bytes = env["doc"].encode("utf-8")  # a lone surrogate has no UTF-8 encoding
+        doc_bytes = envl["doc"].encode("utf-8")  # a lone surrogate has no UTF-8 encoding
     except (ValueError, RecursionError):
         raise DocumentRefused("envelope_malformed") from None
-    if env["kid"] not in pinned:  # R8.2
+    if envl["kid"] not in pinned:  # R8.2
         raise DocumentRefused("kid_unknown")
     if not full(TENANT_RE, tenant):  # R8.3, before the signature: no "\n" smuggling into the domain message
         raise DocumentRefused("tenant_invalid")
-    pub = public_key(pinned[env["kid"]])  # ConfigError for a malformed pin: a configuration fault, not a verdict
+    if not full(ENV_RE, env):  # R8.3, likewise for the env
+        raise DocumentRefused("env_invalid")
+    pub = public_key(pinned[envl["kid"]])  # ConfigError for a malformed pin: a configuration fault, not a verdict
     try:
-        pub.verify(bytes.fromhex(env["sig"]), doc_message(tenant, doc_bytes))
+        pub.verify(bytes.fromhex(envl["sig"]), doc_message(tenant, env, doc_bytes))
     except InvalidSignature:
         raise DocumentRefused("sig_invalid") from None
     try:  # R8.4
@@ -185,6 +191,8 @@ def verify_document(
         raise DocumentRefused("doc_unsupported")
     if d.get("tenant") != tenant:  # R8.6
         raise DocumentRefused("tenant_mismatch")
+    if d.get("env") != env:  # R8.6b
+        raise DocumentRefused("env_mismatch")
     version = d.get("version")  # R8.7
     if not is_int(version, 0, MAX_SAFE):
         raise DocumentRefused("version_invalid")
@@ -214,7 +222,7 @@ def verify_document(
         raise DocumentRefused("ambiguous_lookup")
     defs = {e["key"]: parse_experiment(e) for e in exps}
     by_dp = {d_.decision_point: d_ for d_ in defs.values() if d_.decision_point is not None}
-    doc = Document(tenant, version, issued, expires, digest, MappingProxyType(defs), MappingProxyType(by_dp))
+    doc = Document(tenant, env, version, issued, expires, digest, MappingProxyType(defs), MappingProxyType(by_dp))
     unchanged = cached is not None and version == cached.version
     return VerifiedDocument(UNCHANGED if unchanged else ACCEPTED, doc)
 

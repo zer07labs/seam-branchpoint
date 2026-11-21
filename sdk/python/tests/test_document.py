@@ -16,6 +16,7 @@ from conftest import compact
 KEY = Ed25519PrivateKey.from_private_bytes(bytes(range(0x80, 0xA0)))
 PINNED = {key_id(raw_public_key(KEY)): raw_public_key(KEY)}
 TENANT = "t-unit"
+ENV = "e-unit"
 SALT = bytes(range(32))
 NOW = 1_762_560_060_000
 
@@ -24,25 +25,26 @@ def exp(key="k1", eid="01JBP9000000000000000000AB", **kw) -> dict:
     e = {"arms": [{"bundle": {"content_digest": "ab" * 32, "payload": {"p": 1}}, "variant_id": "A", "weight_bp": 10_000}],
          "assigner": "sdk", "bucket_version": "bpa1", "budget_bp": 0, "experiment_id": eid, "key": key,
          "mode": "split", "salt_hex": SALT.hex(), "salt_kid": salt_kid(SALT), "state": "live",
-         "variant_kind": "policy"}
+         "variant_kind": "policy", "decision_point": key}  # decision_point is required (§8); its own key is allowed
     e.update(kw)
     return {k: v for k, v in e.items() if v is not None}
 
 
 def doc(**kw) -> dict:
     d = {"expires_at_ms": NOW + 86_400_000, "experiments": [exp()], "issued_at_ms": NOW - 60_000,
-         "kind": "branchpoint-sdk", "tenant": TENANT, "v": 1, "version": 3}
+         "kind": "branchpoint-sdk", "tenant": TENANT, "env": ENV, "v": 2, "version": 3}
     d.update(kw)
-    return d
+    return {k: v for k, v in d.items() if v is not None}
 
 
-def body(d: dict | bytes, key: Ed25519PrivateKey = KEY, tenant: str = TENANT) -> bytes:
+def body(d: dict | bytes, key: Ed25519PrivateKey = KEY, tenant: str = TENANT, env: str = ENV) -> bytes:
     db = d if isinstance(d, bytes) else compact(d)
-    return compact(sign_document(key, tenant, db))
+    return compact(sign_document(key, tenant, env, db))
 
 
 def verify(b: bytes, **kw):
     kw.setdefault("tenant", TENANT)
+    kw.setdefault("env", ENV)
     kw.setdefault("pinned", PINNED)
     kw.setdefault("now_ms", NOW)
     return verify_document(b, **kw)
@@ -79,26 +81,52 @@ def test_size_cap_is_checked_before_parsing():
 
 def test_unknown_kid_precedes_tenant_and_signature():
     other = Ed25519PrivateKey.from_private_bytes(bytes(range(0xC0, 0xE0)))
-    assert reason(body(doc(), key=other), tenant="bad\ntenant") == "kid_unknown"
+    assert reason(body(doc(), key=other), tenant="bad\ntenant", env="bad\nenv") == "kid_unknown"
 
 
 @pytest.mark.parametrize("tenant", ["", "a b", "a\n", "x" * 129, "té"])
 def test_tenant_grammar_before_signature(tenant):
     assert reason(body(doc()), tenant=tenant) == "tenant_invalid"
+    assert reason(body(doc()), tenant=tenant, env="BAD") == "tenant_invalid"  # the tenant check runs first
 
 
-def test_signature_is_bound_to_the_tenant_and_domain():
+@pytest.mark.parametrize("env", ["", "E-unit", "e_unit", "e.unit", "e unit", "e-unit\n", "1e", "-e", "e" * 33, "é"])
+def test_env_grammar_before_signature(env):
+    # Validly signed for that env, so only the grammar check can refuse it.
+    assert reason(body(doc(env=env), env=env), env=env) == "env_invalid"
+
+
+def test_env_grammar_bounds():
+    for env in ("e", "e" * 32, "a0-", "live", "sandbox", "prod-eu-1"):
+        assert verify(body(doc(env=env), env=env), env=env).document.env == env
+
+
+def test_signature_is_bound_to_the_tenant_env_and_domain():
     assert reason(body(doc(), tenant="t-other")) == "sig_invalid"
+    assert reason(body(doc(), env="e-other")) == "sig_invalid"
+    # Cross-env replay: a document validly signed for another env, body included, is refused by the signature.
+    assert reason(body(doc(env="e-other"), env="e-other")) == "sig_invalid"
     db = compact(doc())
     env = {"doc": db.decode(), "kid": key_id(raw_public_key(KEY)),
            "sig": KEY.sign(b"seam-config-tenant.v1\n" + TENANT.encode() + b"\n" + db).hex()}
     assert reason(compact(env)) == "sig_invalid"
-    assert doc_message(TENANT, b"{}") == b"seam.branchpoint.sdk-doc.v1\nt-unit\n{}"
+    env["sig"] = KEY.sign(b"seam.branchpoint.sdk-doc.v1\n" + TENANT.encode() + b"\n" + db).hex()  # the retired v1 input
+    assert reason(compact(env)) == "sig_invalid"
+    assert doc_message(TENANT, ENV, b"{}") == b"seam.branchpoint.sdk-doc.v2\nt-unit\ne-unit\n{}"
+
+
+def test_env_member_must_match_the_configured_env():
+    assert reason(body(doc(env="e-other"))) == "env_mismatch"  # signed for ours, body names another
+    assert reason(body(doc(env=None))) == "env_mismatch"  # no env member
+    assert reason(body(doc(env=7))) == "env_mismatch"
+    assert reason(body(doc(tenant="t-other", env="e-other"))) == "tenant_mismatch"  # R8.6 precedes R8.6b
+    assert verify(body(doc())).document.env == ENV
 
 
 @pytest.mark.parametrize("d, why", [
     (b"[1]", "doc_malformed"), (b"{", "doc_malformed"), (b'{"a":1,"a":1}', "doc_malformed"),
-    (doc(v=2), "doc_unsupported"), (doc(v=True), "doc_unsupported"), (doc(v=1.0), "doc_unsupported"),
+    (doc(v=1), "doc_unsupported"), (doc(v=3), "doc_unsupported"), (doc(v=True), "doc_unsupported"),
+    (doc(v=2.0), "doc_unsupported"),
     (doc(kind="tenant-config"), "doc_unsupported"), (doc(tenant="t-other"), "tenant_mismatch"),
     (doc(version=-1), "version_invalid"), (doc(version=2**53), "version_invalid"), (doc(version="3"), "version_invalid"),
     (doc(issued_at_ms=NOW, expires_at_ms=NOW), "window_invalid"), (doc(issued_at_ms=-1), "window_invalid"),
@@ -113,6 +141,22 @@ def test_signature_is_bound_to_the_tenant_and_domain():
 ])
 def test_refusals(d, why):
     assert reason(body(d)) == why
+
+
+def test_missing_decision_point_marks_only_that_experiment():
+    e2 = exp("k2", "01JBP9000000000000000000AC", decision_point=None)
+    v = verify(body(doc(experiments=[exp(), e2])))
+    assert v.outcome == "accepted"
+    assert not v.document.experiments["k1"].invalid and v.document.experiments["k2"].invalid
+    assert v.document.experiments["k2"].decision_point is None
+    assert evaluate(v.document.experiments["k2"], "u").reason == "config_invalid"
+
+
+def test_lookup_ambiguity_is_per_document():
+    # Two envs of one tenant may reuse a key and decision_point: each document is checked on its own (R8.10).
+    for env in ("e-unit", "e-other"):
+        v = verify(body(doc(env=env, experiments=[exp(decision_point="dp:x")]), env=env), env=env)
+        assert v.document.find("dp:x").key == "k1"
 
 
 def test_own_decision_point_may_equal_own_key():
@@ -160,7 +204,8 @@ def test_unknown_enum_reads_unspecified_and_row_order_still_decides():
 
 
 @pytest.mark.parametrize("change", [
-    dict(key="bad key"), dict(decision_point="bad dp"), dict(decision_point=""), dict(bucket_version=1),
+    dict(key="bad key"), dict(decision_point="bad dp"), dict(decision_point=""), dict(decision_point=None),
+    dict(decision_point=5), dict(bucket_version=1),
     dict(budget_bp=10_001), dict(budget_bp=None), dict(arms={}),
     dict(arms=[{"variant_id": "A", "weight_bp": 10_000}]),
     dict(arms=[{"bundle": {"content_digest": "AB" * 32, "payload": {}}, "variant_id": "A", "weight_bp": 10_000}]),

@@ -94,7 +94,7 @@ export interface Route {
 /** R10.6 default routes (provisional; configuration, so other paths are a config change, not a release). */
 export const DEFAULT_ROUTES: Readonly<Record<"document" | "certificates" | "receipts", Route>> = Object.freeze({
   certificates: Object.freeze({ auth: "sdk_key_token", base: "cp", method: "POST", path: "/v1/branchpoint/sdk/certificates" }),
-  document: Object.freeze({ auth: "sdk_key_token", base: "cp", method: "GET", path: "/v1/branchpoint/sdk/document" }),
+  document: Object.freeze({ auth: "sdk_key_token", base: "cp", method: "GET", path: "/v2/branchpoint/sdk/document" }),
   receipts: Object.freeze({ auth: "certificate", base: "collector", method: "POST", path: "/v1/branchpoint/receipts" }),
 });
 

@@ -81,26 +81,27 @@ describe("sdk_document_golden", () => {
     const cur = privateKeyFromSeed(fromHex(dg.doc_seed_hex));
     assert.equal(rawPublicKey(cur).toString("hex"), dg.doc_public_key_hex);
     const doc = dg.document;
-    assert.equal(docMessage(dg.tenant, Buffer.from(doc.doc_bytes, "utf8")).toString("hex"), doc.message_hex);
-    const env = signDocument(cur, dg.tenant, doc.doc_bytes);
+    assert.equal(docMessage(dg.tenant, dg.env, Buffer.from(doc.doc_bytes, "utf8")).toString("hex"), doc.message_hex);
+    const env = signDocument(cur, dg.tenant, dg.env, doc.doc_bytes);
     assert.equal(env.toString("utf8"), doc.envelope);
-    const r = verifyDocument(env, { tenant: dg.tenant, pinned, nowMs: dg.cases[0].now_ms });
+    const r = verifyDocument(env, { tenant: dg.tenant, env: dg.env, pinned, nowMs: dg.cases[0].now_ms });
     assert.ok(r.outcome === "accepted");
     assert.equal(r.configDigest, doc.config_digest);
   });
 
-  test("every document case (44), refusal reasons in R8.1–R8.10 order", () => {
-    assert.equal(dg.cases.length, 44);
+  test("every document case (56), refusal reasons in R8.1–R8.10 order", () => {
+    assert.equal(dg.cases.length, 56);
     for (const c of dg.cases) {
       const cached = c.cached === null ? null : { version: c.cached.version, configDigest: c.cached.config_digest };
-      const got = verifyDocument(caseBody(c), { tenant: c.tenant ?? dg.tenant, pinned, nowMs: c.now_ms, cached });
+      const got = verifyDocument(caseBody(c), { tenant: c.tenant ?? dg.tenant, env: c.env ?? dg.env, pinned, nowMs: c.now_ms,
+        cached });
       assert.deepEqual(project(got), c.expect, c.name);
     }
   });
 
   test("every evaluation of the golden document", () => {
     const r = verifyDocument(Buffer.from(dg.document.envelope, "utf8"),
-      { tenant: dg.tenant, pinned, nowMs: dg.cases[0].now_ms });
+      { tenant: dg.tenant, env: dg.env, pinned, nowMs: dg.cases[0].now_ms });
     assert.ok(r.outcome !== "refused");
     assert.equal(dg.document.evaluations.length, 10);
     for (const ev of dg.document.evaluations) {

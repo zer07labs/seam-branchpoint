@@ -6,14 +6,15 @@ import { join } from "node:path";
 import { after, describe, test } from "node:test";
 import { inspect } from "node:util";
 import { type AppendInput, CHAIN_EXHAUSTED, ChainState, type ReceiptRecord } from "../src/chain.ts";
-import { ASSIGNED, CONFIG_UNAVAILABLE, FLAG_NOT_FOUND, INTERNAL_ERROR, NO_CERTIFICATE,
+import { ASSIGNED, BranchpointClient, CONFIG_UNAVAILABLE, FLAG_NOT_FOUND, INTERNAL_ERROR, NO_CERTIFICATE,
   RECEIPT_DROPPED } from "../src/client.ts";
 import type { Transport } from "../src/transport.ts";
 import { MAX_RETAINED_CERTS } from "../src/uploader.ts";
 import { MAX_SAFE } from "../src/wire.ts";
 import { TransportError } from "../src/transport.ts";
 import { SDK_DIR } from "./_golden.ts";
-import { EID, harness, tick, units } from "./_harness.ts";
+import { FAKE_SDK_KEY_ID, FAKE_SDK_KEY_SEED } from "../src/fake.ts";
+import { ENV, EID, TENANT, harness, tick, units } from "./_harness.ts";
 import { normalize, verifyBatches } from "./_verifier.ts";
 
 // The client's background timers are unref()ed by design, so a test awaiting a fake transport that only those
@@ -796,3 +797,17 @@ const CANONICAL_KEYS = [
   "certificate_expires_in_ms", "certificate_digest", "certificate_failure", "worker_alive",
   "receipts_dropped_error", "outcomes_dropped_error", // a batch whose build threw becomes declared gaps (both SDKs)
 ];
+
+describe("env (spec §8)", () => {
+  test("env is a required option, grammar-checked at construction", () => {
+    const h = harness();
+    const base = { tenant: TENANT, sdkKeyId: FAKE_SDK_KEY_ID, sdkKeySeed: FAKE_SDK_KEY_SEED,
+      documentKeys: [h.cp.documentPublicKey], certIssuerKeys: [h.cp.issuerPublicKey], transport: h.transport };
+    // @ts-expect-error env has no default
+    assert.throws(() => new BranchpointClient(base), RangeError);
+    for (const env of ["", "Live", "e\n", "e".repeat(33), "1e", "e_x"]) {
+      assert.throws(() => new BranchpointClient({ ...base, env }), RangeError, JSON.stringify(env));
+    }
+    assert.ok(new BranchpointClient({ ...base, env: ENV }));
+  });
+});

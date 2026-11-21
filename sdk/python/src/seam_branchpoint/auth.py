@@ -23,7 +23,7 @@ DEFAULT_ROUTES = MappingProxyType({
     "certificates": MappingProxyType({"auth": "sdk_key_token", "base": "cp", "method": "POST",
                                       "path": "/v1/branchpoint/sdk/certificates"}),
     "document": MappingProxyType({"auth": "sdk_key_token", "base": "cp", "method": "GET",
-                                  "path": "/v1/branchpoint/sdk/document"}),
+                                  "path": "/v2/branchpoint/sdk/document"}),
     "receipts": MappingProxyType({"auth": "certificate", "base": "collector", "method": "POST",
                                   "path": "/v1/branchpoint/receipts"}),
 })

@@ -13,9 +13,9 @@ import pytest
 
 from seam_branchpoint import BranchpointClient, HttpTransport, Response, SdkKey, TransportError
 
-from _env import AUD, SDK_KEY_ID, SDK_SEED, TENANT, make_env
+from _env import AUD, ENV, SDK_KEY_ID, SDK_SEED, TENANT, make_env
 
-DOC = "/v1/branchpoint/sdk/document"
+DOC = "/v2/branchpoint/sdk/document"
 CERT = "/v1/branchpoint/sdk/certificates"
 RECEIPTS = "/v1/branchpoint/receipts"
 
@@ -100,7 +100,7 @@ def _transport(base, **kw):
 
 def _client(server, transport, **kw):
     env = server.env
-    return BranchpointClient(tenant=TENANT, sdk_key=SdkKey.from_seed(SDK_KEY_ID, SDK_SEED),
+    return BranchpointClient(tenant=TENANT, env=ENV, sdk_key=SdkKey.from_seed(SDK_KEY_ID, SDK_SEED),
                              document_keys=[env.cp.doc_public_key], cert_issuer_keys=[env.cp.cert_public_key],
                              transport=transport, audience=AUD, **kw)
 

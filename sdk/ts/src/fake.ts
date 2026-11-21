@@ -68,7 +68,7 @@ export function experimentJson(e: FakeExperiment): Record<string, unknown> {
         bundle: { content_digest: sha256(utf8(JSON.stringify(payload))).toString("hex"), payload } };
     }),
   };
-  if (e.decisionPoint !== undefined) o.decision_point = e.decisionPoint;
+  o.decision_point = e.decisionPoint ?? e.key; // required (§8); an entry may share its own key
   if (salt !== null) {
     o.salt_hex = Buffer.from(salt).toString("hex");
     o.salt_kid = saltKid(salt);
@@ -80,6 +80,8 @@ export function experimentJson(e: FakeExperiment): Record<string, unknown> {
 
 export interface FakeCpOptions {
   tenant: string;
+  /** The env this CP's documents are signed for and name (spec §8). */
+  env: string;
   sdkKeyId: string;
   /** The SDK key's raw public key: every CP request's token is verified against it. */
   sdkKeyPublic: Uint8Array;
@@ -102,6 +104,7 @@ type Scripted = { status: number; body?: unknown } | { error: TransportErrorKind
 /** A CP: verifies each SDK-key token (signature, typ, kid, aud, window, jti replay), serves the document and certs. */
 export class FakeCP {
   readonly tenant: string;
+  readonly env: string;
   readonly sdkKeyId: string;
   readonly audience: string;
   readonly docKey: KeyObject;
@@ -121,6 +124,7 @@ export class FakeCP {
 
   constructor(o: FakeCpOptions) {
     this.tenant = o.tenant;
+    this.env = o.env;
     this.sdkKeyId = o.sdkKeyId;
     this.audience = o.audience ?? "seam-control-plane";
     this.docKey = privateKeyFromSeed(o.docSeed ?? seedOf(0xd0));
@@ -143,17 +147,21 @@ export class FakeCP {
     return this.#digest;
   }
 
-  /** Sign and serve a document; `version` defaults to the next one. Returns the version. */
+  /**
+   * Sign and serve a v2 document for this CP's (tenant, env); `version` defaults to the next one. `tenant`/`env` set
+   * the body members, `signTenant`/`signEnv` the signing input (each defaults to this CP's). Returns the version.
+   */
   publish(experiments: FakeExperiment[] | Record<string, unknown>[], o: { version?: number; issuedAtMs?: number;
-    expiresAtMs?: number; tenant?: string; signTenant?: string; key?: KeyObject } = {}): number {
+    expiresAtMs?: number; tenant?: string; signTenant?: string; env?: string; signEnv?: string;
+    key?: KeyObject } = {}): number {
     const now = this.#now();
     const version = o.version ?? this.#version + 1;
     this.#version = Math.max(this.#version, version);
     const exps = experiments.map((e) => ("arms" in e && "experimentId" in e ? experimentJson(e as FakeExperiment) : e));
-    const doc = JSON.stringify({ v: 1, kind: "branchpoint-sdk", tenant: o.tenant ?? this.tenant, version,
+    const doc = JSON.stringify({ v: 2, kind: "branchpoint-sdk", tenant: o.tenant ?? this.tenant, env: o.env ?? this.env, version,
       issued_at_ms: o.issuedAtMs ?? Math.floor(now), expires_at_ms: o.expiresAtMs ?? Math.floor(now) + 86_400_000,
       experiments: exps });
-    this.#envelope = signDocument(o.key ?? this.docKey, o.signTenant ?? this.tenant, doc);
+    this.#envelope = signDocument(o.key ?? this.docKey, o.signTenant ?? this.tenant, o.signEnv ?? this.env, doc);
     this.#digest = sha256(utf8(doc)).toString("hex");
     return version;
   }
