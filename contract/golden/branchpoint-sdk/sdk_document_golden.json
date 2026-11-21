@@ -829,7 +829,7 @@
   ],
   "max_document_bytes": 4194304,
   "max_staleness_ms": 600000,
-  "note": "each case runs verify_document(body, case.tenant or tenant, case.env or env, pinned_doc_keys, now_ms, cached), where body is the UTF-8 envelope, then, when pad_to_bytes is set, 0x20 bytes appended until it is pad_to_bytes long; a refusal keeps the cache (R8.11)",
+  "note": "each case runs verify_document(body, case.tenant if present else tenant, case.env if present else env, pinned_doc_keys, now_ms, cached), where body is the UTF-8 envelope, then, when pad_to_bytes is set, 0x20 bytes appended until it is pad_to_bytes long; a refusal keeps the cache (R8.11)",
   "pinned_doc_keys": {
     "7c_8cf3VPZjtkqQSzpjXvbhEeMBVVWow5j-JOgj_uu8": "4fd099ccd47d7893dfe9ec24414ecb0d9b5420232aad30d91c465be33cbe65c4",
     "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8": "cd14b37f956e953194ff7fb73b3d81dcc561d61a7538094b7c3e1a643ee5f3aa"
