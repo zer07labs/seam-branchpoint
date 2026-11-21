@@ -23,16 +23,22 @@ the normative text is `docs/spec/branchpoint-v1.md`.
 
 ## SDK wires
 
-- **SDK document envelope, domain and body (§8)** — CONFIRMED. Envelope `{"doc","kid","sig"}` (exactly these members);
-  signature over `"seam.branchpoint.sdk-doc.v1\n" ‖ tenant ‖ "\n" ‖ doc_bytes`, the CP tenant-document convention
-  under its own domain; body `{v, kind, tenant, version, issued_at_ms, expires_at_ms, experiments}`.
+- ~~**SDK document envelope, domain and body (§8), v1**~~ — SUPERSEDED by the v2 row below (Flows W1, owner ruling 8:
+  v1 dropped, no compatibility). Was: signature over `"seam.branchpoint.sdk-doc.v1\n" ‖ tenant ‖ "\n" ‖ doc_bytes`;
+  body `{v, kind, tenant, version, issued_at_ms, expires_at_ms, experiments}`.
+- **SDK document envelope, domain and body (§8), v2** — CONFIRMED (Flows W1, SB-A1/B1). Envelope `{"doc","kid","sig"}`
+  (exactly these members); signature over `"seam.branchpoint.sdk-doc.v2\n" ‖ tenant ‖ "\n" ‖ env ‖ "\n" ‖ doc_bytes`;
+  body `{v: 2, kind, tenant, env, version, issued_at_ms, expires_at_ms, experiments}`. `env` is an opaque label
+  `[a-z][a-z0-9-]{0,31}`; `version` is strictly increasing per (tenant, env); `decision_point` is required per
+  experiment (missing → that entry `config_invalid`). See DECISIONS.md "Flows: env-scoped document v2".
 - **Upload batch and collector response (§9, §9.1)** — CONFIRMED. The §6 batch plus `outcomes`, informational
   `dropped` and `batch_sig_hex`; `cert` and `batch_sig_hex` required on any non-empty batch; response
   `{"outcomes", "results"}` with statuses `accepted` / `duplicate` / §6 reason (receipts) and `accepted` / `duplicate` /
   `outcome_receipt_unknown` (outcomes); batch-level `400 {"error"}`.
 - **SDK-key token profile (§10)** — CONFIRMED. The CP's `seam-mc+jwt` machine profile with `kid = bk_…`, 60 s
   lifetime, fixed key order.
-- **Routes (R10.6)** — CONFIRMED. `GET {cp}/v1/branchpoint/sdk/document`, `POST {cp}/v1/branchpoint/sdk/certificates`
+- **Routes (R10.6)** — CONFIRMED; the document route SUPERSEDED by `GET {cp}/v2/branchpoint/sdk/document` (v2, Flows
+  W1). Was `GET {cp}/v1/branchpoint/sdk/document`; unchanged: `POST {cp}/v1/branchpoint/sdk/certificates`
   (`{"pk_hex"}`), `POST {collector}/v1/branchpoint/receipts`. Configuration defaults.
 - **`expires_at_ms`, a 5-minute skew allowance, a 24 h recommended lifetime** — CONFIRMED. Without persisted state a
   cold SDK has no rollback high-water mark, so an expiry bounds replay of an old signed document. 300 000 ms absorbs
@@ -40,7 +46,8 @@ the normative text is `docs/spec/branchpoint-v1.md`.
 - **`max_staleness_ms` default 600 000** — CONFIRMED as the default; the number follows the poll interval. Ten 60 s
   polls, measured on the monotonic clock from the last verified document or TLS-authenticated 304.
 - **Reason names for document refusals** — CONFIRMED. `document_too_large`, `envelope_malformed`, `kid_unknown`,
-  `tenant_invalid`, `sig_invalid`, `doc_malformed`, `doc_unsupported`, `tenant_mismatch`, `version_invalid`,
+  `tenant_invalid`, `env_invalid` (v2), `sig_invalid`, `doc_malformed`, `doc_unsupported`, `tenant_mismatch`,
+  `env_mismatch` (v2, R8.6b), `version_invalid`,
   `rollback`, `version_conflict`, `window_invalid`, `expired`, `unindexable`, `ambiguous_lookup`; outcomes
   `accepted` / `unchanged` / `refused`. They feed `stats()` failure kinds.
 - **An invalid outcome makes the whole batch `400 batch_malformed`** — CONFIRMED. The SDK drops an invalid outcome

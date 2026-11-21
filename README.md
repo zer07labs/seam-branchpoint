@@ -26,6 +26,7 @@ The OpenFeature providers ship as `seam_branchpoint.openfeature` and `@zer07labs
 | 0.0.0 (placeholder) | none — reads no document |
 | 0.1.0 (Python and TypeScript) | `v = 1` |
 | 0.1.1 (Python and TypeScript) | `v = 1` |
+| next release (Python and TypeScript) | `v = 2` only (signed for one (tenant, env); `env` is a required client argument; `GET …/v2/branchpoint/sdk/document`). `v = 1` is retired and refused. |
 
 Every release's notes repeat its row.
 

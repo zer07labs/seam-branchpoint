@@ -93,13 +93,20 @@ JSON forms.
 
 | Document member | `branchpoint.v1` / Seam | Notes |
 |---|---|---|
-| `v`, `kind` | none | `1`, `"branchpoint-sdk"`; a new shape is `v: 2` under a new domain |
+| `v`, `kind` | none | `2`, `"branchpoint-sdk"` (`v: 1` is retired); a new shape is a new `v` under a new domain |
 | `tenant` | the certificate's `tenant` (§4) | must equal the SDK's configured tenant (R8.6) and is bound into the signing message |
-| `version` | none (CP per-tenant counter) | strictly increasing; the SDK's rollback guard (R8.7) |
+| `env` | none (opaque env label) | must equal the SDK's configured env (R8.6b) and is bound into the signing message |
+| `version` | none (CP counter per (tenant, env)) | strictly increasing per (tenant, env); the SDK's rollback guard (R8.7) |
 | `issued_at_ms`, `expires_at_ms` | none | CP wall clock; bounds replay of an old document (R8.9, R8.12) |
 | `experiments[]` | `ExperimentDef` | enum strings as in the golden layouts; `salt_hex` is `salt` in hex; `arms[].bundle` is `VariantBundle` (`content_digest`, `payload` as an object, the proto's `Struct`) |
 | envelope `kid` | none | RFC 7638 key_id of the CP document key (the `issuer_kid` form, Q9) |
 | sha256(`doc_bytes`) | `Receipt.config_digest` | Q4; the value every receipt from this document carries |
+
+**Flows note.** A flow id (`flow_ref`) never enters a receipt, the document signing input, a certificate or any
+HMAC input (`unit_tag`, bucket). The env is signed because it scopes which document a client may trust; the flow is
+not, because it is a reporting grouping, not a trust boundary. An attested row reaches its flow either through a
+stamp written beside the row (outside the signed bytes), or through the join experiment → decision point → namespace
+→ flow.
 
 ## `WorkloadCertificate`, `SignedReceipt`, `ReceiptBatch`, `VariantBundle`, `EvidenceGrade`
 
