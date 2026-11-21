@@ -201,9 +201,10 @@ class FakeCP:
         issued = now - 1_000 if issued_at_ms is None else issued_at_ms
         doc = {"expires_at_ms": issued + self.doc_lifetime_ms if expires_at_ms is None else expires_at_ms,
                "experiments": experiments, "issued_at_ms": issued, "kind": "branchpoint-sdk",
-               "tenant": tenant or self.tenant, "env": env or self.env, "v": 2, "version": self.version}
+               "tenant": self.tenant if tenant is None else tenant, "env": self.env if env is None else env, "v": 2, "version": self.version}
         db = _compact(doc)
-        self.serve(_compact(sign_document(key or self.doc_key, tenant or self.tenant, env or self.env, db)),
+        self.serve(_compact(sign_document(key or self.doc_key, self.tenant if tenant is None else tenant,
+                                                    self.env if env is None else env, db)),
                    sha256(db).hex())
         return self.document_body  # type: ignore[return-value]
 

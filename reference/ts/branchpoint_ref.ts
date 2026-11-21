@@ -1644,7 +1644,7 @@ function buildSdkDocument(): unknown {
     freshness,
     max_document_bytes: DOC_MAX_BYTES,
     max_staleness_ms: MAX_STALENESS_MS,
-    note: "each case runs verify_document(body, case.tenant or tenant, case.env or env, pinned_doc_keys, now_ms, " +
+    note: "each case runs verify_document(body, case.tenant if present else tenant, case.env if present else env, pinned_doc_keys, now_ms, " +
       "cached), where " +
       "body is the UTF-8 envelope, then, when pad_to_bytes is set, 0x20 bytes appended until it is " +
       "pad_to_bytes long; a refusal keeps the cache (R8.11)",

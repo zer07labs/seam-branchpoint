@@ -7,6 +7,7 @@
     BP_E2E_CONFIG=/path/to/config.json BRANCHPOINT_ENV=<env> uv run --script tests/e2e/live_e2e.py
     # repo root; Node >= 22.18 on PATH. BRANCHPOINT_ENV is required: the env label the SDK key's document is for
     # (spec §8); both SDKs are configured with it and refuse a document signed for any other env.
+    # Needs a control plane that serves GET /v2/branchpoint/sdk/document (CP Flows B4); before that the fetch is a 404.
 
 The config is a JSON file (keep it outside the repo, mode 0600); nothing in it is ever printed:
 
