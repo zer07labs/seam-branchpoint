@@ -1,7 +1,7 @@
 // @zer07labs/seam-branchpoint — attested-grade experiment assignment primitives for branchpoint.v1
 // (docs/spec/branchpoint-v1.md). Zero runtime dependencies; no network at import time.
 
-export const VERSION = "0.1.1";
+export const VERSION = "0.2.0";
 
 export * from "./wire.ts";
 export * from "./evaluate.ts";

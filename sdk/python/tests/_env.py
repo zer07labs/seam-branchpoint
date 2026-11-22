@@ -71,11 +71,11 @@ class Env:
 
 def make_env(*, clock: Clock | None = None, real_clocks: bool = False, verify: bool = True, keep: bool = True,
              experiments: list[dict] | None = None, publish: bool = True, cert_lifetime_ms: int = 3_600_000,
-             **kw) -> Env:
+             env: str = ENV, **kw) -> Env:
     if clock is None and not real_clocks:
         clock = Clock()
     sdk_key = SdkKey.from_seed(SDK_KEY_ID, SDK_SEED)
-    cp = FakeCP(tenant=TENANT, env=ENV, sdk_key_id=SDK_KEY_ID, sdk_public_key=sdk_key.public_key, audience=AUD,
+    cp = FakeCP(tenant=TENANT, env=env, sdk_key_id=SDK_KEY_ID, sdk_public_key=sdk_key.public_key, audience=AUD,
                 doc_key=Ed25519PrivateKey.from_private_bytes(bytes(range(0x40, 0x60))),
                 cert_key=Ed25519PrivateKey.from_private_bytes(bytes(range(0x60, 0x80))),
                 cert_lifetime_ms=cert_lifetime_ms, **({"clock_ms": clock.wall} if clock else {}))
@@ -87,7 +87,7 @@ def make_env(*, clock: Clock | None = None, real_clocks: bool = False, verify: b
         kw.setdefault("wall_clock_ms", clock.wall)
         kw.setdefault("mono_clock_ms", clock.mono)
         kw.setdefault("uniform", lambda a, b: b)  # deterministic backoff/jitter: always the ceiling
-    client = BranchpointClient(tenant=TENANT, env=ENV, sdk_key=sdk_key, document_keys=[cp.doc_public_key],
+    client = BranchpointClient(tenant=TENANT, env=env, sdk_key=sdk_key, document_keys=[cp.doc_public_key],
                                cert_issuer_keys=[cp.cert_public_key], transport=transport, audience=AUD, **kw)
     return Env(clock, cp, collector, transport, client)
 

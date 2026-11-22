@@ -255,3 +255,20 @@ Flows target plan `branchpoint.md` SB-A1/A2/A3/A5/A6, C1–C5, C9, C10, R2; §4 
   keep the env-unbound v1 path alive as a downgrade target.
 - **Goldens re-pinned:** only `sdk_document_golden.json` and `sdk_key_token_golden.json` changed (the token golden
   carries the document route). The manifest moves only through the hub's re-vendor PR.
+
+## Flows W5 (2026-11-22)
+
+### Versions: one document per env label; a new experiment id on every promote
+Re-plan `flows-w4plus-replan.md` §1.4, owner rulings Q9 and Q10; §9.7 CK3.
+- **Q10: one document per running version, by env label.** The label is already opaque (`[a-z][a-z0-9-]{0,31}`) and
+  already a signed trust scope with its own `version` stream, so each isolated version gets its own document with no
+  wire, proto or golden change. Keys and decision points may repeat across labels, as they may across envs (R8.10 is
+  per document). The label values are the CP's rule; this contract names none.
+- **Q9: a new experiment id on every promote, rollback included.** The SDK already scopes chains by
+  `(cert_digest, experiment_id)`, so a new id starts at its own genesis and evidence never mixes. Reopening an old id
+  would continue a closed experiment's chain and pool its evidence, which Q9 rejects. The spec now states the producer
+  rule: drop the predecessor's entry in the same document version, since a document carrying both under one key is
+  refused whole (`ambiguous_lookup`) and every SDK would keep its stale cache.
+- **No SDK code change.** Both are pinned by lifecycle tests in both SDKs (`tests/test_lifecycle.py`,
+  `test/lifecycle.test.ts`). The SDKs move to 0.2.0 (the v2 reader from W1 has not been released yet); the release is
+  dispatched only once the CP serves `/v2` (CP P8).
