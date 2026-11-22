@@ -75,7 +75,7 @@ Live submits a pending approval. A second person must review `pending_live` from
 `submission_id` and `content_sha256` in `approve-live.json`, and run this with **their own token file**:
 
 ```sh
-seam-cp --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-live --file approve-live.json
+seam --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-live --file approve-live.json
 seam branchpoint evidence "$EXPERIMENT_ID"
 seam branchpoint transition "$EXPERIMENT_ID" paused --file pause.json
 ```
@@ -86,14 +86,14 @@ rules/sweeper; there is no manual Concluded transition. Inspect `status`, then s
 
 ```sh
 seam branchpoint transition "$EXPERIMENT_ID" verdict --expected-experiment-rev "$EXPERIMENT_REV" --file verdict.json
-seam-cp --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-verdict --file approve-verdict.json
+seam --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-verdict --file approve-verdict.json
 ```
 
 `verdict.json` carries `verdict: "stop"`, `"promote"` (with `arm`), or `"extend"` (with `extend_max_duration_s`).
 The second person reviews `pending_verdict` from `status` and supplies its `verdict_id` and `content_sha256`
 in `approve-verdict.json`: stop/promote closes the experiment; extend returns it to Live.
 To close Draft / server-assigned Shadow where permitted, use
-`seam-cp branchpoint transition "$EXPERIMENT_ID" closed --file close.json` with the record's `content_sha256`.
+`seam branchpoint transition "$EXPERIMENT_ID" closed --file close.json` with the record's `content_sha256`.
 
 Decision points use `--resource point` on `list`, `status`, `create`, and `update`:
 
