@@ -255,7 +255,12 @@ it is a claim, not a timestamp anyone attests.
 The CP serves the experiments of each (tenant, env) to the SDK as one signed document. `env` is an **opaque label**
 (grammar §3) naming one environment of the tenant, so one tenant can run independent experiment sets side by side; this
 spec gives the label no meaning, and which values a control plane serves is that control plane's rule. The SDK is
-configured with its tenant and its env, and accepts only a document signed for both. Golden: `sdk_document_golden.json`
+configured with its tenant and its env, and accepts only a document signed for both. A control plane that runs several
+isolated versions of one environment serves each its own label, and so its own document and `version` stream. An
+`experiment_id` names one configuration for its whole life: a producer that moves a key to a new experiment (a
+promotion, or a rollback to an older configuration) mints a new `experiment_id` and drops the predecessor's entry in
+the same document `version` (R8.10 refuses a document carrying both), so receipts start a new chain (§5) and never
+extend the predecessor's. Golden: `sdk_document_golden.json`
 (the document key seeds, a document carrying layout L1 and the holdout layout, the exact signing message, and every
 case below with its expected outcome).
 

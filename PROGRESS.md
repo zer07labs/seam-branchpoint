@@ -49,3 +49,11 @@
   `sdk_key_token_golden.json` changed. The hub manifest pins are pending its re-vendor PR.
 - Python and TS SDKs: `env` is a required client argument with no default; fakes serve v2; conformance and the live
   e2e (`BRANCHPOINT_ENV`) configure an env. `stats()` keys unchanged; two new refusal reasons in both SDKs.
+
+## Flows W5: versions (2026-11-22, draft until CP P8 merges)
+- Spec §8: per-version env labels (Q10) and a new `experiment_id` on every promote, rollback included (Q9), with the
+  producer rule that the predecessor's entry leaves the document in the same version. No wire, proto or golden change.
+- Lifecycle tests in both SDKs: per-label documents and version streams, promote and rollback chains (seq 0 at each new
+  id's genesis, verified by the collector), and the whole-document refusal when the predecessor is kept.
+- TS `close()` test race fixed (it waited one tick, but signing runs on the threadpool first, #7): it failed about 1 run in 2 on main.
+- Version 0.2.0 in both SDKs (the W1 v2 reader). Release dispatch waits until the CP serves `/v2` in prd (B5).

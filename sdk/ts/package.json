@@ -1,6 +1,6 @@
 {
   "name": "@zer07labs/seam-branchpoint",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Seam Branchpoint SDK: attested, locally evaluated experiments for AI decisions (branchpoint.v1), with an OpenFeature provider.",
   "license": "Apache-2.0",
   "repository": {

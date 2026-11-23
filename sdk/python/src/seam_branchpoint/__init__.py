@@ -67,7 +67,7 @@ from .evaluate import Arm, Evaluation, ExperimentDef, evaluate
 from .transport import HttpTransport, Response, Transport, TransportError
 from .uploader import disposition
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 __all__ = [
     "EVENT_CONFIGURATION_CHANGED", "EVENT_FRESH", "EVENT_READY", "EVENT_STALE",

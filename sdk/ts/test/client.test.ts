@@ -702,7 +702,7 @@ describe("P6 gaps: close() makes exactly one final attempt", () => {
     await h.client.start();
     for (const u of units(3)) h.client.evaluate("checkout", u, 0);
     void h.client.flush();
-    await tick();
+    while (c.posts() === 0) await tick(); // in flight at close: signing runs on the threadpool first (#7)
     await h.client.close(2_000);
     assert.equal(c.posts(), 2);
     const s = h.client.stats();

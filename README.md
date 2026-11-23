@@ -50,16 +50,16 @@ Branchpoint is an opt-in add-on on a tenant that already holds `runtime`.
 Use Python 3.11+ and install the management CLI from your organization's authenticated Seam package index:
 
 ```sh
-pip install seam-control-plane-client==0.4.0
+pip install seam-cli==0.5.0
 # Supply your CP origin and tenant through CP_ORIGIN and TENANT first.
 export SEAM_CP_URL="$CP_ORIGIN" SEAM_CP_TENANT="$TENANT"
 export SEAM_CP_TOKEN_FILE="$HOME/.config/seam/human-token"
-seam-cp branchpoint list
-seam-cp branchpoint create --file experiment.json
-seam-cp branchpoint status "$EXPERIMENT_ID"
-seam-cp branchpoint update "$EXPERIMENT_ID" --expected-experiment-rev "$EXPERIMENT_REV" --file experiment-update.json
-seam-cp branchpoint transition "$EXPERIMENT_ID" shadow --file shadow.json
-seam-cp branchpoint transition "$EXPERIMENT_ID" live --expected-experiment-rev "$EXPERIMENT_REV" --file live.json
+seam branchpoint list
+seam branchpoint create --file experiment.json
+seam branchpoint status "$EXPERIMENT_ID"
+seam branchpoint update "$EXPERIMENT_ID" --expected-experiment-rev "$EXPERIMENT_REV" --file experiment-update.json
+seam branchpoint transition "$EXPERIMENT_ID" shadow --file shadow.json
+seam branchpoint transition "$EXPERIMENT_ID" live --expected-experiment-rev "$EXPERIMENT_REV" --file live.json
 ```
 
 Configure exactly one credential source. For people, prefer `SEAM_CP_TOKEN_FILE` (or the global
@@ -75,9 +75,9 @@ Live submits a pending approval. A second person must review `pending_live` from
 `submission_id` and `content_sha256` in `approve-live.json`, and run this with **their own token file**:
 
 ```sh
-seam-cp --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-live --file approve-live.json
-seam-cp branchpoint evidence "$EXPERIMENT_ID"
-seam-cp branchpoint transition "$EXPERIMENT_ID" paused --file pause.json
+seam --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-live --file approve-live.json
+seam branchpoint evidence "$EXPERIMENT_ID"
+seam branchpoint transition "$EXPERIMENT_ID" paused --file pause.json
 ```
 
 The server enforces separation of duties. `pause.json` carries the record's `content_sha256` and optionally
@@ -85,21 +85,21 @@ The server enforces separation of duties. `pause.json` carries the record's `con
 rules/sweeper; there is no manual Concluded transition. Inspect `status`, then submit and approve a verdict:
 
 ```sh
-seam-cp branchpoint transition "$EXPERIMENT_ID" verdict --expected-experiment-rev "$EXPERIMENT_REV" --file verdict.json
-seam-cp --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-verdict --file approve-verdict.json
+seam branchpoint transition "$EXPERIMENT_ID" verdict --expected-experiment-rev "$EXPERIMENT_REV" --file verdict.json
+seam --token-file "$APPROVER_TOKEN_FILE" branchpoint transition "$EXPERIMENT_ID" approve-verdict --file approve-verdict.json
 ```
 
 `verdict.json` carries `verdict: "stop"`, `"promote"` (with `arm`), or `"extend"` (with `extend_max_duration_s`).
 The second person reviews `pending_verdict` from `status` and supplies its `verdict_id` and `content_sha256`
 in `approve-verdict.json`: stop/promote closes the experiment; extend returns it to Live.
 To close Draft / server-assigned Shadow where permitted, use
-`seam-cp branchpoint transition "$EXPERIMENT_ID" closed --file close.json` with the record's `content_sha256`.
+`seam branchpoint transition "$EXPERIMENT_ID" closed --file close.json` with the record's `content_sha256`.
 
 Decision points use `--resource point` on `list`, `status`, `create`, and `update`:
 
 ```sh
-seam-cp branchpoint create "$POINT_ID" --resource point --file point.json
-seam-cp branchpoint update "$POINT_ID" --resource point --expected-point-rev "$POINT_REV" --file point-update.json
+seam branchpoint create "$POINT_ID" --resource point --file point.json
+seam branchpoint update "$POINT_ID" --resource point --expected-point-rev "$POINT_REV" --file point-update.json
 ```
 
 Point create sends revision 0; read `POINT_REV` with `status --resource point` before updating.

@@ -68,19 +68,22 @@ export interface HarnessOptions {
   /** Wrap the transport the client sees (the fakes still record). */
   wrap?: (t: FakeTransport) => Transport;
   certLifetimeMs?: number;
+  /** The env label the CP signs for and the client is configured with (default `ENV`). */
+  env?: string;
 }
 
 export function harness(o: HarnessOptions = {}): Harness {
   const clock: Clock = { wall: T0, mono: 1_000 };
   const sdkPk = new SdkKey(FAKE_SDK_KEY_ID, FAKE_SDK_KEY_SEED).publicKey;
-  const cp = new FakeCP({ tenant: TENANT, env: ENV, sdkKeyId: FAKE_SDK_KEY_ID, sdkKeyPublic: sdkPk, now: () => clock.wall,
+  const env = o.env ?? ENV;
+  const cp = new FakeCP({ tenant: TENANT, env, sdkKeyId: FAKE_SDK_KEY_ID, sdkKeyPublic: sdkPk, now: () => clock.wall,
     certLifetimeMs: o.certLifetimeMs });
   const collector = new FakeCollector({ issuerKeys: [cp.issuerPublicKey], verify: o.verify });
   const transport = new FakeTransport(cp, collector, { latencyMs: o.latencyMs });
   if (o.experiments !== null) cp.publish(o.experiments ?? EXPERIMENTS);
   const logs: string[] = [];
   const client = new BranchpointClient({
-    tenant: TENANT, env: ENV, sdkKeyId: FAKE_SDK_KEY_ID, sdkKeySeed: FAKE_SDK_KEY_SEED, documentKeys: [cp.documentPublicKey],
+    tenant: TENANT, env, sdkKeyId: FAKE_SDK_KEY_ID, sdkKeySeed: FAKE_SDK_KEY_SEED, documentKeys: [cp.documentPublicKey],
     certIssuerKeys: [cp.issuerPublicKey], transport: o.wrap ? o.wrap(transport) : transport,
     now: () => clock.wall, monotonic: () => clock.mono, logger: { warn: (m) => logs.push(m) }, ...o.client,
   });
